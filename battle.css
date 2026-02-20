@@ -907,6 +907,97 @@ html, body {
   max-width: 90%;
 }
 
+/* ===== カード選択フェイズオーバーレイ ===== */
+#card-select-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 55%;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  z-index: 360;
+  pointer-events: none;
+  background: rgba(0,0,0,0.7);
+}
+#card-select-overlay.active { display: flex; }
+#card-select-title {
+  color: #44aaff;
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: 6px;
+  text-shadow: 0 0 20px rgba(68,170,255,0.4), 0 2px 6px rgba(0,0,0,0.7);
+}
+#card-select-desc {
+  color: rgba(255,255,255,0.9);
+  font-size: 13px;
+  font-weight: bold;
+  text-align: center;
+  line-height: 1.7;
+  letter-spacing: 0.5px;
+  max-width: 90%;
+}
+#card-select-buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+  pointer-events: auto;
+}
+#card-select-confirm {
+  background: linear-gradient(135deg,#555,#444);
+  color: #888;
+  border: 1px solid rgba(255,255,255,0.15);
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  cursor: default;
+  transition: all 0.2s ease;
+}
+#card-select-confirm.ready {
+  background: linear-gradient(135deg,#1a5aab,#103a70);
+  color: #aac4ff;
+  border: 1px solid rgba(80,160,255,0.5);
+  cursor: pointer;
+  box-shadow: 0 0 12px rgba(80,160,255,0.3);
+}
+#card-select-confirm.ready:active { transform: scale(0.96); }
+#card-select-skip {
+  background: linear-gradient(135deg,#8b1a1a,#5c1010);
+  color: #ffd4d4;
+  border: 1px solid rgba(255,100,100,0.4);
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  cursor: pointer;
+  box-shadow: 0 0 12px rgba(255,80,80,0.2);
+}
+#card-select-skip:active { transform: scale(0.96); }
+/* カード選択中のハイライト（手札＆公開場の光らせ） */
+.card-select-zone-glow {
+  animation: selectZoneGlow 1.5s ease-in-out infinite;
+}
+@keyframes selectZoneGlow {
+  0%   { box-shadow: inset 0 0 8px rgba(68,170,255,0.15); }
+  50%  { box-shadow: inset 0 0 20px rgba(68,170,255,0.35); }
+  100% { box-shadow: inset 0 0 8px rgba(68,170,255,0.15); }
+}
+/* 選択対象カードのハイライト */
+.battle-card.selectable {
+  border: 1px solid rgba(68,170,255,0.5);
+  box-shadow: 0 0 6px 2px rgba(68,170,255,0.35);
+  cursor: pointer;
+}
+.battle-card.selected-card {
+  border: 2px solid rgba(255,215,0,0.8) !important;
+  box-shadow: 0 0 10px 3px rgba(255,215,0,0.5), 0 0 20px 6px rgba(255,215,0,0.2) !important;
+  transform: translateY(-6px);
+}
+
 /* ===== スタート画面 ===== */
 #start-overlay {
   position: absolute; inset: 0;
