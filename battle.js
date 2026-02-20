@@ -24,7 +24,7 @@ const CARD_DB = [
   { number: 1920, name: 'こなきじじい', cost: 8, power: 0, type: '道具札', season: '秋', tribe: '', img: 'images/card_12_p (18).jpg', effect: 'draw_3' },
   { number: 1921, name: '夜刀神', cost: 4, power: 1, type: '場所札', season: '春', tribe: '妖怪', img: 'images/card_12_p (16).jpg' },
   { number: 1922, name: '沼御前', cost: 0, power: 0, type: '怪異札', season: '春', tribe: '妖怪', img: 'images/card_12_p (26).jpg', keyword: '鮮明', effect: 'global_youkai_plus2' },
-  { number: 1923, name: 'ヨモツモノ', cost: 6, power: 0, type: '怪異札', season: '冬', tribe: '妖怪', img: 'images/card_12_p (21).jpg' },
+  { number: 1923, name: 'ヨモツモノ', cost: 6, power: 6, type: '怪異札', season: '冬', tribe: '妖怪', img: 'images/card_12_p (21).jpg' },
   { number: 1924, name: 'いったん木綿', cost: 0, power: 0, type: '季節札', season: '冬', tribe: '', effect: 'youkai_power_plus2', img: 'images/card_12_p (24).jpg' },
   { number: 1925, name: '屈服の刻印', cost: 0, power: 0, type: '道具札', season: '無', tribe: '', img: 'images/card_12_p (1).jpg' },
   { number: 1926, name: '鈴鳴り', cost: 8, power: 0, type: '道具札', season: '無', tribe: '', img: 'images/card_12_p (28).jpg' },
@@ -245,7 +245,16 @@ function canPlayCardBool(card, who) {
 // ===================================================================
 // 手札のplayableクラス更新（緑オーラ）
 // ===================================================================
+function clearPlayableAura() {
+  dom.playerHandCards.querySelectorAll('.battle-card.playable').forEach(el => el.classList.remove('playable'));
+  dom.playerOpenCards.querySelectorAll('.battle-card.playable').forEach(el => el.classList.remove('playable'));
+}
 function updatePlayableAura() {
+  // 自分のターン中かつ手札超過フェイズでない場合のみ緑オーラ表示
+  if (turnLocked || handOverflowPhase || gameEnded) {
+    clearPlayableAura();
+    return;
+  }
   // 手札
   dom.playerHandCards.querySelectorAll('.battle-card').forEach(el => {
     const uid = el.dataset.uid;
@@ -875,9 +884,12 @@ function executeAttackAnimation(targetEl, atkIdx, power, group) {
   const dmgDelay = isFinishBlow ? 600 : 200;
 
   if (isFinishBlow) {
-    // フィニッシュブロー：3倍スロー + 操作不可
+    // フィニッシュブロー：3倍スロー + ズーム + 操作不可
     turnLocked = true;
     targetEl.classList.add('attacking-slow');
+    // 場全体をズームイン
+    const fieldRow = $('player-field-row');
+    fieldRow.classList.add('finish-zoom-scene');
   } else {
     targetEl.classList.add('attacking');
   }
@@ -885,13 +897,15 @@ function executeAttackAnimation(targetEl, atkIdx, power, group) {
   setTimeout(() => {
     opponent.life -= power;
     if (opponent.life < 0) opponent.life = 0;
-    showDamage(power, 'top');
+    showDamage(power, 'top', isFinishBlow);
     dom.oppLife.textContent = opponent.life;
   }, dmgDelay);
 
   setTimeout(() => {
-    // フィニッシュ用にカード参照を退避
-    const finishCard = group.basho;
+    if (isFinishBlow) {
+      const fieldRow = $('player-field-row');
+      fieldRow.classList.remove('finish-zoom-scene');
+    }
     if (atkIdx < player.field.length) {
       const g = player.field[atkIdx];
       if (g.basho) player.soul.push(g.basho);
@@ -912,26 +926,12 @@ function executeAttackAnimation(targetEl, atkIdx, power, group) {
     selectedGroupIdx = null;
 
     if (isFinishBlow) {
-      showFinishZoom(finishCard, true);
+      showWinLoseResult(true);
     }
   }, animDuration);
 }
 
-function showFinishZoom(card, isWin) {
-  if (!card) {
-    showWinLoseResult(isWin);
-    return;
-  }
-  dom.finishZoomImg.src = card.img;
-  dom.finishZoomOverlay.style.display = 'flex';
-  dom.finishZoomOverlay.classList.add('active');
-  // 1.5秒後に結果表示
-  setTimeout(() => {
-    dom.finishZoomOverlay.style.display = 'none';
-    dom.finishZoomOverlay.classList.remove('active');
-    showWinLoseResult(isWin);
-  }, 1800);
-}
+// showFinishZoom は削除済み（攻撃シーンズームに移行）
 
 function showWinLoseResult(isWin) {
   gameEnded = true;
@@ -940,17 +940,19 @@ function showWinLoseResult(isWin) {
   dom.resultOverlay.style.display = 'flex';
 }
 
-function showDamage(amount, side) {
+function showDamage(amount, side, isFinish) {
   dom.damageText.textContent = '−' + amount;
-  dom.damageOverlay.className = (side === 'top') ? 'show-top' : 'show-bottom';
+  const cls = (side === 'top') ? 'show-top' : 'show-bottom';
+  dom.damageOverlay.className = cls + (isFinish ? ' finish-damage' : '');
   dom.damageOverlay.style.display = '';
   dom.damageText.style.animation = 'none';
   void dom.damageText.offsetHeight;
   dom.damageText.style.animation = '';
+  const duration = isFinish ? 1600 : 850;
   setTimeout(() => {
     dom.damageOverlay.style.display = 'none';
     dom.damageOverlay.className = '';
-  }, 850);
+  }, duration);
 }
 
 dom.attackBtn.addEventListener('click', (e) => { e.stopPropagation(); performAttack().catch(()=>{}); });
@@ -1005,11 +1007,20 @@ function setupKaiiInteraction(el, group, owner, kCard) {
   el.addEventListener('touchstart', () => el.classList.add('glow'), { passive: true });
   el.addEventListener('touchend', (e) => {
     el.classList.remove('glow'); e.stopPropagation(); e.preventDefault();
-    if (owner === 'opponent') { showKaiiBlockMsg(); return; }
+    if (owner === 'opponent') {
+      // 鮮明カードがあるかチェック
+      const senmeCards = group.kaii.filter(k => k.keyword === '鮮明');
+      if (senmeCards.length > 0) {
+        if (kaiiPopupActive) hideKaiiPopup(); else showKaiiPopup({ kaii: senmeCards }, owner);
+      } else {
+        showKaiiBlockMsg();
+      }
+      return;
+    }
     if (kaiiPopupActive) hideKaiiPopup(); else showKaiiPopup(group, owner);
   });
-  // 自分の怪異札のみ：マウスオーバーで拡大表示
-  if (owner === 'player' && kCard) {
+  // 自分の怪異札＆相手の鮮明怪異札：マウスオーバーで拡大表示
+  if (kCard && (owner === 'player' || kCard.keyword === '鮮明')) {
     el.addEventListener('mouseenter', () => {
       el.classList.add('glow');
       showPreview(kCard, owner);
@@ -1024,7 +1035,15 @@ function setupKaiiInteraction(el, group, owner, kCard) {
   }
   el.addEventListener('click', (e) => {
     e.stopPropagation();
-    if (owner === 'opponent') { showKaiiBlockMsg(); return; }
+    if (owner === 'opponent') {
+      const senmeCards = group.kaii.filter(k => k.keyword === '鮮明');
+      if (senmeCards.length > 0) {
+        if (kaiiPopupActive) hideKaiiPopup(); else showKaiiPopup({ kaii: senmeCards }, owner);
+      } else {
+        showKaiiBlockMsg();
+      }
+      return;
+    }
     if (kaiiPopupActive) hideKaiiPopup(); else showKaiiPopup(group, owner);
   });
 }
@@ -1083,7 +1102,7 @@ function setupDrag(el, card) {
       return;
     }
     if (Math.abs(x - startX) > 8 || Math.abs(y - startY) > 8) {
-      if (turnLocked || gameEnded) return;
+      if ((turnLocked && !handOverflowPhase) || gameEnded) return;
       isDragging = true; dragCard = card; dragSourceEl = el;
       hidePreview(); hideKaiiPopup(); hideAttackBtn(); clearAllGlow();
       suppressPreview = true;
@@ -1325,6 +1344,7 @@ function drawCards(who, count) {
 // ゲーム開始
 // ===================================================================
 let isFirstTurn = true; // 先行フラグ（50%ランダム）
+let cpuFirstAction = true; // CPUの最初のターンかどうか
 
 function startGame() {
   uidCounter = 1;
@@ -1333,7 +1353,7 @@ function startGame() {
   opponent.deck = buildSampleDeck();
   opponent.hand = []; opponent.field = []; opponent.soul = []; opponent.exile = []; opponent.open = []; opponent.life = 30;
   selectedGroupIdx = null; suppressPreview = false; isAttacking = false; attackUsedThisTurn = false;
-  turnNumber = 0; turnLocked = true; gameEnded = false; handOverflowPhase = false;
+  turnNumber = 0; turnLocked = true; gameEnded = false; handOverflowPhase = false; cpuFirstAction = true;
   dom.handOverflowOverlay.style.display = 'none';
   dom.handOverflowOverlay.classList.remove('active');
 
@@ -1443,17 +1463,24 @@ function showTurnAnnounce(text, cb) {
 function checkWinLose() {
   if (gameEnded) return;
   // 攻撃によるフィニッシュブローはexecuteAttackAnimation/executeCpuAttackが処理する
-  // ここでは道具札ダメージなど非攻撃のライフ0のみ処理
+  // ここでは道具札ダメージなど非攻撃のライフ0のみ処理（ズーム＋スロー演出付き）
   if (opponent.life <= 0) {
     gameEnded = true;
+    turnLocked = true;
+    // ダメージ演出にスロー＋ズーム（damageOverlayをズームで表示）
+    dom.damageOverlay.classList.add('finish-damage-zoom');
     setTimeout(() => {
+      dom.damageOverlay.classList.remove('finish-damage-zoom');
       showWinLoseResult(true);
-    }, 500);
+    }, 1500);
   } else if (player.life <= 0) {
     gameEnded = true;
+    turnLocked = true;
+    dom.damageOverlay.classList.add('finish-damage-zoom');
     setTimeout(() => {
+      dom.damageOverlay.classList.remove('finish-damage-zoom');
       showWinLoseResult(false);
-    }, 500);
+    }, 1500);
   }
 }
 
@@ -1467,8 +1494,10 @@ function startPlayerTurn() {
   player.field.forEach(g => { g._summonedThisTurn = false; });
   renderField('player');
   showTurnAnnounce('あなたのターン', () => {
-    // 先行1ターン目（turnNumber=1）はドローなし、それ以降はドロー1枚
-    if (turnNumber >= 2) {
+    // 先行1ターン目のみドローなし。後攻なら1ターン目からドロー。
+    const isPlayerSenkou = isFirstTurn; // isFirstTurn=true → プレイヤーが先行
+    const skipDraw = (isPlayerSenkou && turnNumber === 1);
+    if (!skipDraw) {
       drawCards('player', 1);
     }
     turnLocked = false;
@@ -1491,10 +1520,11 @@ function endTurn() {
 
 function startHandOverflowPhase() {
   handOverflowPhase = true;
-  turnLocked = true; // ターン終了ボタン等を無効化
+  turnLocked = true; // ターン終了ボタン等を無効化（ドラッグはhandOverflowPhaseで許可）
   dom.handOverflowOverlay.style.display = 'flex';
   dom.handOverflowOverlay.classList.add('active');
   hidePreview(); hideAttackBtn(); clearAllGlow();
+  clearPlayableAura(); // 手札超過中は緑オーラ非表示
 }
 
 function checkHandOverflowDone() {
@@ -1533,7 +1563,13 @@ function cpuTurn() {
   // 召喚酔い解除：相手ターン開始時に縦に戻す
   opponent.field.forEach(g => { g._summonedThisTurn = false; });
   renderField('opponent');
-  drawCards('opponent', 1);
+  // 先行1ターン目のみドローなし。CPUが先行 = isFirstTurn===false
+  const isCpuSenkou = !isFirstTurn;
+  const skipDraw = (isCpuSenkou && cpuFirstAction);
+  if (!skipDraw) {
+    drawCards('opponent', 1);
+  }
+  cpuFirstAction = false;
   // CPUフラグリセット
   cpuUsedFlags.basho = false;
   cpuUsedFlags.kaii = false;
@@ -1616,7 +1652,7 @@ async function executeCpuActions(actions, idx, done) {
 
   setTimeout(() => {
     executeCpuActions(actions, idx + 1, done);
-  }, 600);
+  }, 1000);
 }
 
 async function cpuPlaceCard(card) {
@@ -1704,6 +1740,9 @@ function executeCpuAttack(groupIdx, done) {
   if (isFinishBlow) {
     targetEl.classList.add('attacking');
     targetEl.style.animation = 'cpuAttackSlideDownSlow 1.5s ease-in forwards';
+    // 場全体をズームイン
+    const fieldRow = $('opp-field-row');
+    fieldRow.classList.add('finish-zoom-scene');
   } else {
     targetEl.classList.add('attacking');
     targetEl.style.animation = 'cpuAttackSlideDown 0.5s ease-in forwards';
@@ -1712,12 +1751,15 @@ function executeCpuAttack(groupIdx, done) {
   setTimeout(() => {
     player.life -= power;
     if (player.life < 0) player.life = 0;
-    showDamage(power, 'bottom');
+    showDamage(power, 'bottom', isFinishBlow);
     dom.playerLife.textContent = player.life;
   }, dmgDelay);
 
   setTimeout(() => {
-    const attackingCard = group.basho;
+    if (isFinishBlow) {
+      const fieldRow = $('opp-field-row');
+      fieldRow.classList.remove('finish-zoom-scene');
+    }
     if (group.basho) opponent.soul.push(group.basho);
     group.kaii.forEach(k => opponent.soul.push(k));
     if (group.season) {
@@ -1732,7 +1774,7 @@ function executeCpuAttack(groupIdx, done) {
     updateAllCounts();
 
     if (isFinishBlow) {
-      showFinishZoom(attackingCard, false);
+      showWinLoseResult(false);
     } else {
       done();
     }

@@ -247,12 +247,20 @@ html, body {
   z-index: 1;
 }
 
-/* ===== 場のcard-row: 中央揃え＋枠内に収まる ===== */
+/* ===== 場のcard-row: 画面中央揃え＋枠内に収まる ===== */
 .field-card-row {
   overflow: visible;
   align-items: flex-end;
   gap: clamp(4px, 3vw, 14px);
   height: 100%;
+}
+/* 自分の場：左にライフ(38px)→右に同じ分パディングで画面中央に揃える */
+#player-field-row .field-card-row {
+  padding-right: 38px;
+}
+/* 相手の場：右にライフ(38px)→左に同じ分パディングで画面中央に揃える */
+#opp-field-row .field-card-row {
+  padding-left: 38px;
 }
 
 /* ===== カード共通 ===== */
@@ -1090,31 +1098,33 @@ html, body {
   letter-spacing: 0.5px;
 }
 
-/* ===== フィニッシュブローズーム ===== */
-#finish-zoom-overlay {
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  display: none;
-  align-items: center;
-  justify-content: center;
+/* ===== フィニッシュブロー：攻撃シーンズーム ===== */
+.field-row.finish-zoom-scene {
+  transform: scale(1.8);
+  transform-origin: center center;
+  transition: transform 0.5s ease-out;
+  z-index: 9001;
+  position: relative;
+}
+/* フィニッシュダメージ：スロー＋拡大 */
+#damage-overlay.finish-damage #damage-text {
+  animation: dmgAppearSlow 1.5s ease-out forwards;
+  font-size: 72px;
+}
+@keyframes dmgAppearSlow {
+  0%   { opacity: 0; transform: rotate(-12deg) scale(0.3) translateY(20px); }
+  20%  { opacity: 1; transform: rotate(-12deg) scale(1.3); }
+  50%  { opacity: 1; transform: rotate(-12deg) scale(1.15); }
+  80%  { opacity: 0.9; transform: rotate(-12deg) scale(1.1); }
+  100% { opacity: 0; transform: rotate(-12deg) scale(1.0) translateY(-10px); }
+}
+/* 非攻撃フィニッシュ（道具札等）：ダメージ演出ズーム */
+#damage-overlay.finish-damage-zoom {
   z-index: 470;
-  pointer-events: none;
-  background: rgba(0,0,0,0.75);
 }
-#finish-zoom-overlay.active { display: flex; }
-#finish-zoom-img {
-  max-height: 60%;
-  max-width: 70%;
-  object-fit: contain;
-  border-radius: 14px;
-  box-shadow: 0 0 60px 20px rgba(255,215,0,0.3), 0 0 30px rgba(255,255,255,0.2);
-  animation: finishZoomIn 1.2s ease-out forwards;
-}
-@keyframes finishZoomIn {
-  0%   { opacity: 0; transform: scale(0.3); }
-  40%  { opacity: 1; transform: scale(1.1); }
-  60%  { opacity: 1; transform: scale(1.0); }
-  100% { opacity: 1; transform: scale(1.0); }
+#damage-overlay.finish-damage-zoom #damage-text {
+  font-size: 80px;
+  animation: dmgAppearSlow 1.5s ease-out forwards;
 }
 
 /* スロー攻撃アニメ（プレイヤー：3倍遅い） */
@@ -1283,6 +1293,8 @@ html, body {
   .life-value { font-size: 24px; }
   .life-label { font-size: 11px; }
   .life-area { width: 46px; }
+  #player-field-row .field-card-row { padding-right: 46px; }
+  #opp-field-row .field-card-row { padding-left: 46px; }
   .battle-card.on-field { width: 82px; }
   .field-group.has-season .basho-slot { margin-top: -95px; }
   .field-group .kaii-row { margin-top: -32px; }
@@ -1311,6 +1323,8 @@ html, body {
   .battle-card.kaii-attached { width: 44px; }
   .kaii-row .battle-card.kaii-attached:not(:first-child) { margin-left: -26px; }
   .life-area { width: 54px; }
+  #player-field-row .field-card-row { padding-right: 54px; }
+  #opp-field-row .field-card-row { padding-left: 54px; }
   .life-value { font-size: 28px; }
   .zone-count { font-size: 13px; width: 24px; height: 24px; }
   .drag-ghost { width: 70px; height: 98px; }
