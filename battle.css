@@ -968,6 +968,32 @@ html, body {
   max-width: 90%;
 }
 
+/* 手札超過：決定ボタン */
+#hand-overflow-buttons {
+  margin-top: 8px;
+  pointer-events: auto;
+}
+#hand-overflow-confirm {
+  background: linear-gradient(135deg,#555,#444);
+  color: #888;
+  border: 1px solid rgba(255,255,255,0.15);
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  cursor: default;
+  transition: all 0.2s ease;
+}
+#hand-overflow-confirm.ready {
+  background: linear-gradient(135deg,#1a5aab,#103a70);
+  color: #aac4ff;
+  border: 1px solid rgba(80,160,255,0.5);
+  cursor: pointer;
+  box-shadow: 0 0 12px rgba(80,160,255,0.3);
+}
+#hand-overflow-confirm.ready:active { transform: scale(0.96); }
+
 /* ===== 手札超過：タップ選択ハイライト ===== */
 .battle-card.overflow-selected {
   border: 2px solid rgba(255,200,50,0.8) !important;
@@ -1439,6 +1465,35 @@ html, body {
 }
 .battle-card.kaii-flipping {
   animation: kaiiFlipReveal 0.4s ease-in-out forwards;
+}
+
+/* ===== フローティングテキスト（ドロー・憑依・除外） ===== */
+.floating-text {
+  position: absolute;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  pointer-events: none;
+  z-index: 100;
+  animation: floatingTextUp 0.9s ease-out forwards;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.6);
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+.floating-text.ft-draw {
+  color: rgba(100,200,255,0.95);
+}
+.floating-text.ft-hyoui {
+  color: rgba(180,120,255,0.95);
+}
+.floating-text.ft-exile {
+  color: rgba(255,100,100,0.95);
+}
+@keyframes floatingTextUp {
+  0%   { opacity: 0; transform: translateX(-50%) translateY(0); }
+  15%  { opacity: 1; transform: translateX(-50%) translateY(-2px); }
+  60%  { opacity: 1; transform: translateX(-50%) translateY(-18px); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-30px); }
 }
 
 /* ===== スクロールバー非表示 ===== */

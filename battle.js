@@ -162,6 +162,7 @@ const dom = {
   startOverlay: $('start-overlay'),
   startBtn: $('start-btn'),
   handOverflowOverlay: $('hand-overflow-overlay'),
+  handOverflowConfirm: $('hand-overflow-confirm'),
   cardSelectOverlay: $('card-select-overlay'),
   cardSelectTitle: $('card-select-title'),
   cardSelectDesc: $('card-select-desc'),
@@ -721,6 +722,10 @@ function setupCardInteraction(el, card, owner) {
   el.addEventListener('touchend', (e) => {
     e.stopPropagation();
     e.preventDefault();
+    // 手札超過フェイズ中：タップで選択/解除
+    if (handOverflowPhase && owner === 'player') {
+      if (handleOverflowTap(card, el)) return;
+    }
     // カード選択フェイズ中：手札・公開場のカードをタップで選択
     if (cardSelectPhase && owner === 'player') {
       if (handleCardSelectTap(card, el)) return;
@@ -737,6 +742,10 @@ function setupCardInteraction(el, card, owner) {
   el.addEventListener('mouseleave', () => { el.classList.remove('glow'); if (!insideKaiiPopup) hidePreview(); });
   el.addEventListener('click', (e) => {
     e.stopPropagation();
+    // 手札超過フェイズ中：クリックで選択/解除
+    if (handOverflowPhase && owner === 'player') {
+      if (handleOverflowTap(card, el)) return;
+    }
     // カード選択フェイズ中：手札・公開場のカードをクリックで選択
     if (cardSelectPhase && owner === 'player') {
       if (handleCardSelectTap(card, el)) return;
@@ -1029,7 +1038,7 @@ function executeAttackAnimation(targetEl, atkIdx, power, group) {
 
 function showWinLoseResult(isWin) {
   gameEnded = true;
-  dom.resultText.textContent = isWin ? 'あなたの勝ち' : 'あなたの負け';
+  dom.resultText.textContent = isWin ? 'YOU WIN!' : 'YOU LOSE!';
   dom.resultOverlay.className = isWin ? 'active win' : 'active lose';
   dom.resultOverlay.style.display = 'flex';
 }
@@ -1167,6 +1176,26 @@ function showPlayEffect(card) {
 }
 
 // ===================================================================
+// フローティングテキスト（ドロー・憑依・除外）
+// カードの上に小さい文字が現れて上に消えていく演出
+// ===================================================================
+function showFloatingText(targetEl, text, type) {
+  // type: 'draw', 'hyoui', 'exile'
+  if (!targetEl) return;
+  const rect = targetEl.getBoundingClientRect();
+  const app = $('app');
+  const appRect = app.getBoundingClientRect();
+  const ft = document.createElement('div');
+  ft.className = 'floating-text ft-' + type;
+  ft.textContent = text;
+  // #app内に絶対配置（カードのoverflow:hiddenを回避）
+  ft.style.left = (rect.left - appRect.left + rect.width / 2) + 'px';
+  ft.style.top = (rect.top - appRect.top + rect.height * 0.3) + 'px';
+  app.appendChild(ft);
+  setTimeout(() => { ft.remove(); }, 950);
+}
+
+// ===================================================================
 // 季節札警告
 // ===================================================================
 function showSeasonWarning() { dom.seasonWarning.classList.add('active'); dom.seasonWarning.style.display = 'flex'; }
@@ -1222,11 +1251,14 @@ function setupDrag(el, card) {
     const soulRect = $('player-soul-zone').getBoundingClientRect();
     const inSoul = (x >= soulRect.left && x <= soulRect.right && y >= soulRect.top && y <= soulRect.bottom);
     if (handOverflowPhase && inSoul) {
+      // D&Dで捨てたカードを選択セットから除去
+      overflowSelectedUids.delete(String(card.uid));
       let idx = player.hand.findIndex(c => c.uid === card.uid);
       if (idx !== -1) {
         player.hand.splice(idx, 1);
         player.soul.push(card);
         renderPlayerHand(); renderSoul('player'); updateAllCounts();
+        updateOverflowConfirmBtn();
         checkHandOverflowDone();
       } else {
         // 手札公開場からも捨てられる
@@ -1235,6 +1267,7 @@ function setupDrag(el, card) {
           player.open.splice(idx, 1);
           player.soul.push(card);
           renderPlayerOpen(); renderSoul('player'); updateAllCounts();
+          updateOverflowConfirmBtn();
           checkHandOverflowDone();
         }
       }
@@ -1399,6 +1432,14 @@ function placeCard(card) {
     tg.kaii.push(card);
     markUsed('player', '怪異札');
     renderField('player'); renderPlayerHand(); updateAllCounts();
+    // 憑依フローティングテキスト
+    requestAnimationFrame(() => {
+      const kaiiUid = String(card.uid);
+      const allKaii = dom.playerFieldCards.querySelectorAll('.kaii-attached');
+      allKaii.forEach(kEl => {
+        if (kEl.dataset.uid === kaiiUid) showFloatingText(kEl, '憑依', 'hyoui');
+      });
+    });
   } else if (card.type === '道具札') {
     // 道具札：効果発動演出のみ（全道具札共通）→効果処理→魂へ
     markUsed('player', '道具札');
@@ -1432,10 +1473,23 @@ function placeCard(card) {
 // ===================================================================
 function drawCards(who, count) {
   const st = (who === 'player') ? player : opponent;
-  for (let i = 0; i < count && st.deck.length > 0; i++) st.hand.push(st.deck.shift());
+  const drawnUids = [];
+  for (let i = 0; i < count && st.deck.length > 0; i++) {
+    const drawn = st.deck.shift();
+    st.hand.push(drawn);
+    drawnUids.push(String(drawn.uid));
+  }
   if (who === 'player') { renderPlayerHand(); updateDeckImg(dom.playerDeck, 'player'); }
   else { renderOppHand(); updateDeckImg(dom.oppDeck, 'opponent'); }
   updateAllCounts();
+  // ドローフローティングテキスト（両プレイヤー対応）
+  const container = (who === 'player') ? dom.playerHandCards : dom.oppHandCards;
+  requestAnimationFrame(() => {
+    drawnUids.forEach(uid => {
+      const el = container.querySelector('.battle-card[data-uid="' + uid + '"]');
+      if (el) showFloatingText(el, 'ドロー', 'draw');
+    });
+  });
 }
 
 // ===================================================================
@@ -1455,6 +1509,10 @@ function startGame() {
   cardSelectPhase = false; cardSelectConfig = null; cardSelectSelectedCard = null;
   dom.handOverflowOverlay.style.display = 'none';
   dom.handOverflowOverlay.classList.remove('active');
+  dom.handOverflowConfirm.disabled = true;
+  dom.handOverflowConfirm.classList.remove('ready');
+  overflowSelectedUids.clear();
+  document.querySelectorAll('.battle-card.overflow-selected').forEach(e => e.classList.remove('overflow-selected'));
   dom.cardSelectOverlay.style.display = 'none';
   dom.cardSelectOverlay.classList.remove('active');
   $('player-hand-zone').classList.remove('card-select-zone-glow');
@@ -1633,6 +1691,9 @@ function startHandOverflowPhase() {
   overflowSelectedUids.clear();
   dom.handOverflowOverlay.style.display = 'flex';
   dom.handOverflowOverlay.classList.add('active');
+  // 決定ボタンを初期状態（灰色・無効）にリセット
+  dom.handOverflowConfirm.disabled = true;
+  dom.handOverflowConfirm.classList.remove('ready');
   hidePreview(); hideAttackBtn(); clearAllGlow();
   clearPlayableAura(); // 手札超過中は緑オーラ非表示
 }
@@ -1648,28 +1709,45 @@ function handleOverflowTap(card, el) {
     overflowSelectedUids.add(uid);
     el.classList.add('overflow-selected');
   }
-  // 選択数で超過が解消するかチェック
+  // 決定ボタンの状態更新
+  updateOverflowConfirmBtn();
+  return true;
+}
+
+function updateOverflowConfirmBtn() {
   const total = player.hand.length + player.open.length;
   const remaining = total - overflowSelectedUids.size;
+  // 8枚以下になる選択数なら決定可能
   if (remaining <= 8 && overflowSelectedUids.size > 0) {
-    // 選択されたカードを全て魂へ送る
-    const uidsToDiscard = new Set(overflowSelectedUids);
-    overflowSelectedUids.clear();
-    uidsToDiscard.forEach(discardUid => {
-      let idx = player.hand.findIndex(c => String(c.uid) === discardUid);
-      if (idx !== -1) {
-        player.soul.push(player.hand.splice(idx, 1)[0]);
-      } else {
-        idx = player.open.findIndex(c => String(c.uid) === discardUid);
-        if (idx !== -1) {
-          player.soul.push(player.open.splice(idx, 1)[0]);
-        }
-      }
-    });
-    renderPlayerHand(); renderPlayerOpen(); renderSoul('player'); updateAllCounts();
-    checkHandOverflowDone();
+    dom.handOverflowConfirm.disabled = false;
+    dom.handOverflowConfirm.classList.add('ready');
+  } else {
+    dom.handOverflowConfirm.disabled = true;
+    dom.handOverflowConfirm.classList.remove('ready');
   }
-  return true;
+}
+
+function confirmOverflowDiscard() {
+  if (overflowSelectedUids.size === 0) return;
+  const total = player.hand.length + player.open.length;
+  const remaining = total - overflowSelectedUids.size;
+  if (remaining > 8) return; // まだ足りない
+  // 選択されたカードを全て魂へ送る
+  const uidsToDiscard = new Set(overflowSelectedUids);
+  overflowSelectedUids.clear();
+  uidsToDiscard.forEach(discardUid => {
+    let idx = player.hand.findIndex(c => String(c.uid) === discardUid);
+    if (idx !== -1) {
+      player.soul.push(player.hand.splice(idx, 1)[0]);
+    } else {
+      idx = player.open.findIndex(c => String(c.uid) === discardUid);
+      if (idx !== -1) {
+        player.soul.push(player.open.splice(idx, 1)[0]);
+      }
+    }
+  });
+  renderPlayerHand(); renderPlayerOpen(); renderSoul('player'); updateAllCounts();
+  checkHandOverflowDone();
 }
 
 function checkHandOverflowDone() {
@@ -1680,9 +1758,23 @@ function checkHandOverflowDone() {
     overflowSelectedUids.clear();
     dom.handOverflowOverlay.style.display = 'none';
     dom.handOverflowOverlay.classList.remove('active');
+    dom.handOverflowConfirm.disabled = true;
+    dom.handOverflowConfirm.classList.remove('ready');
+    // overflow-selectedクラスも全て除去
+    document.querySelectorAll('.battle-card.overflow-selected').forEach(e => e.classList.remove('overflow-selected'));
     proceedEndTurn();
   }
 }
+
+// 手札超過：決定ボタン
+dom.handOverflowConfirm.addEventListener('click', (e) => {
+  e.stopPropagation();
+  confirmOverflowDiscard();
+});
+dom.handOverflowConfirm.addEventListener('touchend', (e) => {
+  e.preventDefault(); e.stopPropagation();
+  confirmOverflowDiscard();
+});
 
 // ===================================================================
 // カード選択フェイズ（召喚時効果等で手札からカードを選択）
@@ -1843,6 +1935,11 @@ function handleSummonEffect(card, who) {
             player.exile.push(selectedCard);
             renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
             updateExileDisplay('player');
+            // 除外フローティングテキスト
+            requestAnimationFrame(() => {
+              const exileImg = dom.playerExile.querySelector('.exile-top-card');
+              if (exileImg) showFloatingText(dom.playerExile, '除外', 'exile');
+            });
             // 相手に3点ダメージ
             opponent.life -= 3;
             if (opponent.life < 0) opponent.life = 0;
@@ -1881,6 +1978,10 @@ async function handleCpuSummonEffect(card) {
         opponent.exile.push(target);
         renderOppHand(); updateAllCounts();
         updateExileDisplay('opponent');
+        // 除外フローティングテキスト
+        requestAnimationFrame(() => {
+          showFloatingText(dom.oppExile, '除外', 'exile');
+        });
         // プレイヤーに3点ダメージ
         player.life -= 3;
         if (player.life < 0) player.life = 0;
@@ -1967,14 +2068,24 @@ function canCpuPlay(card) {
 
 function buildCpuActions() {
   const actions = [];
-  // ソート：高コスト優先
-  const hand = [...opponent.hand].sort((a, b) => (b.cost || 0) - (a.cost || 0));
+  // ソート：高コスト優先、ドロー効果持ちをさらに優先
+  const hand = [...opponent.hand].sort((a, b) => {
+    // ドロー効果を持つカードを最優先
+    const aHasDraw = (a.effect && a.effect.startsWith('draw')) ? 1 : 0;
+    const bHasDraw = (b.effect && b.effect.startsWith('draw')) ? 1 : 0;
+    if (aHasDraw !== bHasDraw) return bHasDraw - aHasDraw;
+    return (b.cost || 0) - (a.cost || 0);
+  });
 
-  // 季節札を先に
-  for (const c of hand) {
-    if (c.type === '季節札' && canCpuPlay(c)) { actions.push(c); break; }
+  // 季節札：場所札が載っている場合は使わない（場所札がない状態なら使う）
+  const existingSeason = opponent.field.find(g => g.season !== null);
+  const seasonHasBasho = existingSeason && existingSeason.basho !== null;
+  if (!seasonHasBasho) {
+    for (const c of hand) {
+      if (c.type === '季節札' && canCpuPlay(c)) { actions.push(c); break; }
+    }
   }
-  // 場所札（高コスト優先）
+  // 場所札（高コスト優先、ドロー効果持ち最優先）
   for (const c of hand) {
     if (c.type === '場所札' && !cpuUsedFlags.basho && canCpuPlay(c)) { actions.push(c); break; }
   }
@@ -1982,7 +2093,7 @@ function buildCpuActions() {
   for (const c of hand) {
     if (c.type === '怪異札' && !cpuUsedFlags.kaii && canCpuPlay(c)) { actions.push(c); break; }
   }
-  // 道具札（高コスト優先）
+  // 道具札（ドロー効果持ちを最優先、高コスト優先）
   for (const c of hand) {
     if (c.type === '道具札' && !cpuUsedFlags.dougu && canCpuPlay(c)) { actions.push(c); break; }
   }
@@ -2048,8 +2159,9 @@ async function cpuPlaceCard(card) {
         if (p > bestPower) { bestPower = p; best = g; }
       }
     });
-    if (best) { best.kaii.push(card); cpuUsedFlags.kaii = true; }
-    else { opponent.hand.push(card); return; }
+    if (best) {
+      best.kaii.push(card); cpuUsedFlags.kaii = true;
+    } else { opponent.hand.push(card); return; }
   } else if (card.type === '道具札') {
     cpuUsedFlags.dougu = true;
     renderField('opponent'); renderOppHand(); updateAllCounts();
@@ -2072,6 +2184,16 @@ async function cpuPlaceCard(card) {
   }
   renderField('opponent'); renderOppHand(); updateAllCounts();
   markUsed('opponent', card.type);
+  // 怪異札装備時：憑依フローティングテキスト
+  if (card.type === '怪異札') {
+    requestAnimationFrame(() => {
+      const kaiiUid = String(card.uid);
+      const allKaii = dom.oppFieldCards.querySelectorAll('.kaii-attached');
+      allKaii.forEach(kEl => {
+        if (kEl.dataset.uid === kaiiUid) showFloatingText(kEl, '憑依', 'hyoui');
+      });
+    });
+  }
 }
 
 function pickCpuAttackTarget() {
