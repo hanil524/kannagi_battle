@@ -2,36 +2,40 @@
 // カードデータ（妖怪デッキ：墓暴き 26種）
 // ===================================================================
 const CARD_DB = [
-  { number: 1901, name: '先祖代々之墓', cost: 0, power: 1, type: '場所札', season: '夏', tribe: '妖怪', graveyard: true, img: 'images/card_12_p (7).jpg', summonEffect: 'exile_graveyard_damage3' },
-  { number: 1902, name: '妖蟲の墓', cost: 0, power: 1, type: '場所札', season: '夏', tribe: '妖怪', graveyard: true, img: 'images/card_12_p (9).jpg' },
-  { number: 1903, name: 'まよい火', cost: 3, power: 3, type: '場所札', season: '夏', tribe: '妖怪', graveyard: false, img: 'images/card_12_p (10).jpg' },
-  { number: 1904, name: '赤えい', cost: 5, power: 5, type: '場所札', season: '夏', tribe: '妖怪', graveyard: false, img: 'images/card_12_p (11).jpg' },
-  { number: 1905, name: 'のづち', cost: 7, power: 7, type: '場所札', season: '夏', tribe: '妖怪', graveyard: false, img: 'images/card_12_p (12).jpg', keyword: '速攻' },
-  { number: 1906, name: 'ねこ娘', cost: 0, power: 0, type: '怪異札', season: '夏', tribe: '妖怪', graveyard: false, img: 'images/card_12_p (4).jpg' },
-  { number: 1907, name: 'かに坊主', cost: 5, power: 0, type: '怪異札', season: '夏', tribe: '妖怪', graveyard: false, img: 'images/card_12_p (13).jpg' },
-  { number: 1908, name: '蟲憑', cost: 8, power: 0, type: '怪異札', season: '夏', tribe: '妖怪', graveyard: true, img: 'images/card_12_p (14).jpg' },
-  { number: 1909, name: '私の墓', cost: 1, power: 0, type: '道具札', season: '夏', tribe: '', graveyard: true, img: 'images/card_12_p (22).jpg' },
-  { number: 1910, name: '沈めてあげる', cost: 9, power: 0, type: '道具札', season: '夏', tribe: '', graveyard: true, img: 'images/card_12_p (20).jpg', effect: 'damage_8' },
-  { number: 1911, name: '霊道', cost: 0, power: 1, type: '場所札', season: '秋', tribe: '妖怪', graveyard: true, img: 'images/card_12_p (8).jpg' },
-  { number: 1912, name: '木霊の森', cost: 1, power: 1, type: '場所札', season: '秋', tribe: '妖怪', graveyard: false, img: 'images/card_12_p (27).jpg' },
-  { number: 1913, name: '砂の竹林', cost: 4, power: 3, type: '場所札', season: '秋', tribe: '妖怪', graveyard: false, img: 'images/card_12_p (25).jpg' },
-  { number: 1914, name: 'べとべと', cost: 2, power: 2, type: '場所札', season: '秋', tribe: '妖怪', graveyard: false, img: 'images/card_12_p (15).jpg' },
-  { number: 1915, name: 'うぶめ', cost: 8, power: 1, type: '場所札', season: '秋', tribe: '妖怪', graveyard: true, img: 'images/card_12_p (23).jpg' },
-  { number: 1916, name: 'あずき洗い', cost: 0, power: 0, type: '怪異札', season: '秋', tribe: '妖怪', graveyard: false, img: 'images/card_12_p (2).jpg' },
-  { number: 1917, name: 'さとり', cost: 0, power: 0, type: '怪異札', season: '秋', tribe: '妖怪', graveyard: false, img: 'images/card_12_p (3).jpg' },
-  { number: 1918, name: '山姥', cost: 4, power: 0, type: '怪異札', season: '秋', tribe: '妖怪', graveyard: false, img: 'images/card_12_p (17).jpg' },
-  { number: 1919, name: '唐笠おばけ', cost: 0, power: 0, type: '道具札', season: '秋', tribe: '', graveyard: false, img: 'images/card_12_p (19).jpg' },
-  { number: 1920, name: 'こなきじじい', cost: 8, power: 0, type: '道具札', season: '秋', tribe: '', graveyard: false, img: 'images/card_12_p (18).jpg', effect: 'draw_3' },
-  { number: 1921, name: '夜刀神', cost: 4, power: 1, type: '場所札', season: '春', tribe: '妖怪', graveyard: false, img: 'images/card_12_p (16).jpg' },
-  { number: 1922, name: '沼御前', cost: 0, power: 0, type: '怪異札', season: '春', tribe: '妖怪', graveyard: false, img: 'images/card_12_p (26).jpg', keyword: '鮮明', effect: 'global_youkai_plus2' },
-  { number: 1923, name: 'ヨモツモノ', cost: 6, power: 6, type: '怪異札', season: '冬', tribe: '妖怪', graveyard: true, img: 'images/card_12_p (21).jpg' },
-  { number: 1924, name: 'いったん木綿', cost: 0, power: 0, type: '季節札', season: '冬', tribe: '', graveyard: false, effect: 'youkai_power_plus2', img: 'images/card_12_p (24).jpg' },
-  { number: 1925, name: '屈服の刻印', cost: 0, power: 0, type: '道具札', season: '無', tribe: '', graveyard: true, img: 'images/card_12_p (1).jpg' },
-  { number: 1926, name: '鈴鳴り', cost: 8, power: 0, type: '道具札', season: '無', tribe: '', graveyard: false, img: 'images/card_12_p (28).jpg' },
+  { number: 1901, name: '先祖代々之墓', cost: 0, power: 1, type: '場所札', season: '夏', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (7).jpg', summonEffect: 'exile_graveyard_damage3' },
+  { number: 1902, name: '妖蟲の墓', cost: 0, power: 1, type: '場所札', season: '夏', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (9).jpg' },
+  { number: 1903, name: 'まよい火', cost: 3, power: 3, type: '場所札', season: '夏', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (10).jpg' },
+  { number: 1904, name: '赤えい', cost: 5, power: 5, type: '場所札', season: '夏', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (11).jpg' },
+  { number: 1905, name: 'のづち', cost: 7, power: 7, type: '場所札', season: '夏', tribe: '妖怪', qty: 2, img: 'images/card_12_p (12).jpg', keyword: '速攻' },
+  { number: 1906, name: 'ねこ娘', cost: 0, power: 0, type: '怪異札', season: '夏', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (4).jpg' },
+  { number: 1907, name: 'かに坊主', cost: 5, power: 0, type: '怪異札', season: '夏', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (13).jpg' },
+  { number: 1908, name: '蟲憑', cost: 8, power: 0, type: '怪異札', season: '夏', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (14).jpg' },
+  { number: 1909, name: '私の墓', cost: 1, power: 0, type: '道具札', season: '夏', tribe: '墓地', qty: 2, img: 'images/card_12_p (22).jpg' },
+  { number: 1910, name: '沈めてあげる', cost: 9, power: 0, type: '道具札', season: '夏', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (20).jpg', effect: 'damage_8' },
+  { number: 1911, name: '霊道', cost: 0, power: 1, type: '場所札', season: '秋', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (8).jpg' },
+  { number: 1912, name: '木霊の森', cost: 1, power: 1, type: '場所札', season: '秋', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (27).jpg' },
+  { number: 1913, name: '砂の竹林', cost: 4, power: 3, type: '場所札', season: '秋', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (25).jpg' },
+  { number: 1914, name: 'べとべと', cost: 2, power: 2, type: '場所札', season: '秋', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (15).jpg' },
+  { number: 1915, name: 'うぶめ', cost: 8, power: 1, type: '場所札', season: '秋', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (23).jpg' },
+  { number: 1916, name: 'あずき洗い', cost: 0, power: 0, type: '怪異札', season: '秋', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (2).jpg' },
+  { number: 1917, name: 'さとり', cost: 0, power: 0, type: '怪異札', season: '秋', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (3).jpg' },
+  { number: 1918, name: '山姥', cost: 4, power: 0, type: '怪異札', season: '秋', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (17).jpg' },
+  { number: 1919, name: '唐笠おばけ', cost: 0, power: 0, type: '道具札', season: '秋', tribe: '墓地', qty: 2, img: 'images/card_12_p (19).jpg' },
+  { number: 1920, name: 'こなきじじい', cost: 8, power: 0, type: '道具札', season: '秋', tribe: '墓地', qty: 2, img: 'images/card_12_p (18).jpg', effect: 'draw_3' },
+  { number: 1922, name: '沼御前', cost: 0, power: 0, type: '怪異札', season: '春', tribe: '妖怪', qty: 1, img: 'images/card_12_p (26).jpg', keyword: '鮮明', effect: 'global_youkai_plus2' },
+  { number: 1924, name: 'いったん木綿', cost: 0, power: 0, type: '季節札', season: '冬', tribe: '妖怪 墓地', qty: 1, effect: 'youkai_power_plus2', img: 'images/card_12_p (24).jpg' },
 ];
 
 const DECK_BACK_IMG = 'images/deck.jpg';
 const TYPE_ORDER = { '場所札': 0, '怪異札': 1, '道具札': 2, '季節札': 3 };
+
+// ===================================================================
+// 属性チェック（tribe は半角スペース区切りで複数属性を持てる）
+// ===================================================================
+function hasTribe(card, name) {
+  if (!card || !card.tribe) return false;
+  return card.tribe.split(' ').includes(name);
+}
 
 // ===================================================================
 // ユーティリティ
@@ -78,15 +82,12 @@ function sortCards(cards) {
 let uidCounter = 1;
 function buildSampleDeck() {
   const pool = [];
-  CARD_DB.forEach(c => pool.push({ ...c }));
-  for (let i = 0; i < 3; i++) {
-    const base = CARD_DB.find(c => c.number === 1924);
-    if (base) pool.push({ ...base });
-  }
-  const extras = [1901, 1902, 1906, 1909, 1911, 1912, 1917, 1919, 1925, 1914, 1903];
-  extras.forEach(num => {
-    const base = CARD_DB.find(c => c.number === num);
-    if (base) pool.push({ ...base });
+  // qtyフィールドで枚数管理（未設定は1枚）
+  CARD_DB.forEach(c => {
+    const count = c.qty || 1;
+    for (let i = 0; i < count; i++) {
+      pool.push({ ...c });
+    }
   });
   pool.forEach(c => { c.uid = uidCounter++; });
   return shuffle(pool);
@@ -174,6 +175,12 @@ const dom = {
   pDouguBtn: $('p-dougu-btn'), pSeasonBtn: $('p-season-btn'),
   oBashoBtn: $('o-basho-btn'), oKaiiBtn: $('o-kaii-btn'),
   oDouguBtn: $('o-dougu-btn'), oSeasonBtn: $('o-season-btn'),
+  playerExile: $('player-exile'),
+  oppExile: $('opp-exile'),
+  exileModal: $('exile-modal'),
+  exileModalTitle: $('exile-modal-title'),
+  exileModalCards: $('exile-modal-cards'),
+  exileModalEmpty: $('exile-modal-empty'),
 };
 
 // ===================================================================
@@ -343,13 +350,13 @@ function getEffectivePower(group, who) {
   // 季節札の効果チェック
   if (group.season && group.season.effect === 'youkai_power_plus2') {
     // いったん木綿：妖怪属性の場所札なら+2
-    if (group.basho.tribe === '妖怪') {
+    if (hasTribe(group.basho, '妖怪')) {
       power += 2;
     }
   }
   // 沼御前のグローバルバフ：場全体の怪異札をチェック
   // global_youkai_plus2を持つ怪異札が場のどこかに装備されていれば、妖怪属性の場所札全てに+2
-  if (group.basho.tribe === '妖怪') {
+  if (hasTribe(group.basho, '妖怪')) {
     const st = (who === 'player') ? player : (who === 'opponent') ? opponent : null;
     if (st) {
       st.field.forEach(g => {
@@ -464,6 +471,80 @@ function updateDeckImg(zone, who) {
     }
   } else { if (img) img.remove(); }
 }
+
+// ===================================================================
+// 除外ゾーン：最後に除外されたカードを表示
+// ===================================================================
+function updateExileDisplay(who) {
+  const st = (who === 'player') ? player : opponent;
+  const zone = (who === 'player') ? dom.playerExile : dom.oppExile;
+  // 既存の除外カード画像を削除
+  const oldImg = zone.querySelector('.exile-top-card');
+  if (oldImg) oldImg.remove();
+  // 除外カードがあれば最後のカードを表示
+  if (st.exile.length > 0) {
+    const lastCard = st.exile[st.exile.length - 1];
+    const img = document.createElement('img');
+    img.src = lastCard.img;
+    img.className = 'exile-top-card';
+    img.draggable = false;
+    zone.appendChild(img);
+  }
+}
+
+// 除外カード一覧モーダル
+let exileModalActive = false;
+function showExileModal(who) {
+  const st = (who === 'player') ? player : opponent;
+  const label = (who === 'player') ? '自分の' : '相手の';
+  dom.exileModalTitle.textContent = label + '除外カード一覧';
+  dom.exileModalCards.innerHTML = '';
+
+  if (st.exile.length === 0) {
+    dom.exileModalEmpty.style.display = '';
+  } else {
+    dom.exileModalEmpty.style.display = 'none';
+    st.exile.forEach(card => {
+      const el = createCardEl(card, false);
+      setupCardInteraction(el, card, who);
+      dom.exileModalCards.appendChild(el);
+    });
+  }
+
+  dom.exileModal.style.display = 'flex';
+  dom.exileModal.classList.add('active');
+  exileModalActive = true;
+}
+function hideExileModal() {
+  dom.exileModal.style.display = 'none';
+  dom.exileModal.classList.remove('active');
+  exileModalActive = false;
+}
+// モーダル外クリックで閉じる
+dom.exileModal.addEventListener('click', (e) => {
+  if (e.target === dom.exileModal) hideExileModal();
+});
+dom.exileModal.addEventListener('touchend', (e) => {
+  if (e.target === dom.exileModal) { e.preventDefault(); hideExileModal(); }
+});
+
+// 除外ゾーンクリックでモーダル表示
+dom.playerExile.addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (exileModalActive) hideExileModal(); else showExileModal('player');
+});
+dom.playerExile.addEventListener('touchend', (e) => {
+  e.stopPropagation(); e.preventDefault();
+  if (exileModalActive) hideExileModal(); else showExileModal('player');
+});
+dom.oppExile.addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (exileModalActive) hideExileModal(); else showExileModal('opponent');
+});
+dom.oppExile.addEventListener('touchend', (e) => {
+  e.stopPropagation(); e.preventDefault();
+  if (exileModalActive) hideExileModal(); else showExileModal('opponent');
+});
 
 // ===================================================================
 // 描画：手札
@@ -1401,6 +1482,8 @@ function startGame() {
   dom.effectOverlay.querySelectorAll('.sparkle-particle').forEach(e => e.remove());
 
   updateDeckImg(dom.playerDeck, 'player'); updateDeckImg(dom.oppDeck, 'opponent');
+  updateExileDisplay('player'); updateExileDisplay('opponent');
+  hideExileModal();
   resetTurnFlags();
   updateAllCounts();
   dom.startOverlay.style.display = 'none';
@@ -1542,13 +1625,51 @@ function endTurn() {
   proceedEndTurn();
 }
 
+let overflowSelectedUids = new Set(); // 手札超過タップ選択中のuid
+
 function startHandOverflowPhase() {
   handOverflowPhase = true;
   turnLocked = true; // ターン終了ボタン等を無効化（ドラッグはhandOverflowPhaseで許可）
+  overflowSelectedUids.clear();
   dom.handOverflowOverlay.style.display = 'flex';
   dom.handOverflowOverlay.classList.add('active');
   hidePreview(); hideAttackBtn(); clearAllGlow();
   clearPlayableAura(); // 手札超過中は緑オーラ非表示
+}
+
+function handleOverflowTap(card, el) {
+  if (!handOverflowPhase) return false;
+  // トグル選択
+  const uid = String(card.uid);
+  if (overflowSelectedUids.has(uid)) {
+    overflowSelectedUids.delete(uid);
+    el.classList.remove('overflow-selected');
+  } else {
+    overflowSelectedUids.add(uid);
+    el.classList.add('overflow-selected');
+  }
+  // 選択数で超過が解消するかチェック
+  const total = player.hand.length + player.open.length;
+  const remaining = total - overflowSelectedUids.size;
+  if (remaining <= 8 && overflowSelectedUids.size > 0) {
+    // 選択されたカードを全て魂へ送る
+    const uidsToDiscard = new Set(overflowSelectedUids);
+    overflowSelectedUids.clear();
+    uidsToDiscard.forEach(discardUid => {
+      let idx = player.hand.findIndex(c => String(c.uid) === discardUid);
+      if (idx !== -1) {
+        player.soul.push(player.hand.splice(idx, 1)[0]);
+      } else {
+        idx = player.open.findIndex(c => String(c.uid) === discardUid);
+        if (idx !== -1) {
+          player.soul.push(player.open.splice(idx, 1)[0]);
+        }
+      }
+    });
+    renderPlayerHand(); renderPlayerOpen(); renderSoul('player'); updateAllCounts();
+    checkHandOverflowDone();
+  }
+  return true;
 }
 
 function checkHandOverflowDone() {
@@ -1556,6 +1677,7 @@ function checkHandOverflowDone() {
   // 手札＋手札公開場の合計が8枚以下になったらOK
   if (player.hand.length + player.open.length <= 8) {
     handOverflowPhase = false;
+    overflowSelectedUids.clear();
     dom.handOverflowOverlay.style.display = 'none';
     dom.handOverflowOverlay.classList.remove('active');
     proceedEndTurn();
@@ -1698,7 +1820,7 @@ function handleSummonEffect(card, who) {
       (async () => {
         await showEffectActivation(card, '召喚時効果');
         // 手札＆公開場に墓地属性カードがあるかチェック
-        const hasGraveyard = [...player.hand, ...player.open].some(c => c.graveyard);
+        const hasGraveyard = [...player.hand, ...player.open].some(c => hasTribe(c, '墓地'));
         if (!hasGraveyard) {
           // 対象カードなし→スキップ
           turnLocked = false;
@@ -1708,7 +1830,7 @@ function handleSummonEffect(card, who) {
         startCardSelectPhase({
           title: 'カード選択',
           desc: '手札から「墓地」属性のカードを1枚選択して除外してもいい。<br>除外した場合、相手に3点のダメージ。',
-          filter: (c) => !!c.graveyard,
+          filter: (c) => hasTribe(c, '墓地'),
           onConfirm: (selectedCard) => {
             // 手札から除外
             let idx = player.hand.findIndex(c => c.uid === selectedCard.uid);
@@ -1720,6 +1842,7 @@ function handleSummonEffect(card, who) {
             }
             player.exile.push(selectedCard);
             renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
+            updateExileDisplay('player');
             // 相手に3点ダメージ
             opponent.life -= 3;
             if (opponent.life < 0) opponent.life = 0;
@@ -1747,7 +1870,7 @@ async function handleCpuSummonEffect(card) {
   if (card.summonEffect === 'exile_graveyard_damage3') {
     await showEffectActivation(card, '召喚時効果');
     // CPUの手札から墓地属性カードを探す（最もコストが低いものを選択）
-    const graveyardCards = opponent.hand.filter(c => c.graveyard);
+    const graveyardCards = opponent.hand.filter(c => hasTribe(c, '墓地'));
     if (graveyardCards.length > 0) {
       // 最低コストのカードを選択
       graveyardCards.sort((a, b) => (a.cost || 0) - (b.cost || 0));
@@ -1757,6 +1880,7 @@ async function handleCpuSummonEffect(card) {
         opponent.hand.splice(idx, 1);
         opponent.exile.push(target);
         renderOppHand(); updateAllCounts();
+        updateExileDisplay('opponent');
         // プレイヤーに3点ダメージ
         player.life -= 3;
         if (player.life < 0) player.life = 0;

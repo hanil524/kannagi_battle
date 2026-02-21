@@ -32,7 +32,7 @@
     </div>
     <!-- 相手ミッドゾーン: 除外(左端)→山札→手札公開場(右に広がる) -->
     <div class="triple-zone" id="opp-mid-zones">
-      <div class="zone triple-sub" id="opp-exile">
+      <div class="zone triple-sub exile-zone" id="opp-exile">
         <span class="zone-label" style="font-size:10px;">除外</span>
         <span class="zone-count" id="opp-exile-count">0</span>
       </div>
@@ -104,7 +104,7 @@
         <span class="zone-label" style="font-size:10px;">山札</span>
         <span class="zone-count" id="player-deck-count">0</span>
       </div>
-      <div class="zone triple-sub" id="player-exile">
+      <div class="zone triple-sub exile-zone" id="player-exile">
         <span class="zone-label" style="font-size:10px;">除外</span>
         <span class="zone-count" id="player-exile-count">0</span>
       </div>
@@ -211,6 +211,13 @@
   <!-- 相手怪異札ブロック -->
   <div id="kaii-block-msg" style="display:none;">
     <div id="kaii-block-text">対戦相手が憑依している怪異札は、<br>確認することができません。</div>
+  </div>
+
+  <!-- 除外カード一覧モーダル -->
+  <div id="exile-modal" style="display:none;">
+    <div id="exile-modal-title">除外カード一覧</div>
+    <div id="exile-modal-cards"></div>
+    <div id="exile-modal-empty" style="display:none;">除外されたカードはありません。</div>
   </div>
 
   <!-- 効果発動オーバーレイ -->

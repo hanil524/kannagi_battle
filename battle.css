@@ -449,6 +449,21 @@ html, body {
   opacity: 0.6;
   pointer-events: none;
 }
+/* 除外ゾーン：最後のカード表示 */
+.exile-zone {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.exile-zone:hover {
+  background: rgba(255,255,255,0.08) !important;
+}
+.exile-top-card {
+  height: 72%; aspect-ratio: 5/7;
+  border-radius: 2px;
+  object-fit: cover;
+  opacity: 0.85;
+  pointer-events: none;
+}
 /* 山札クリッカブル */
 #player-deck, #opp-deck {
   cursor: pointer;
@@ -511,7 +526,7 @@ html, body {
   display: none;
   align-items: center;
   justify-content: center;
-  z-index: 200;
+  z-index: 410;
   pointer-events: none;
   padding: 4px;
 }
@@ -533,7 +548,7 @@ html, body {
   display: none;
   align-items: center;
   justify-content: center;
-  z-index: 400;
+  z-index: 420;
   pointer-events: auto;
   background: rgba(0,0,0,0.5);
 }
@@ -810,6 +825,52 @@ html, body {
   padding-bottom: 0 !important;
 }
 
+/* ===== 除外カード一覧モーダル ===== */
+#exile-modal {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  z-index: 400;
+  background: rgba(0,0,0,0.8);
+  pointer-events: auto;
+}
+#exile-modal.active { display: flex; }
+#exile-modal-title {
+  color: rgba(255,255,255,0.9);
+  font-size: 15px; font-weight: bold;
+  letter-spacing: 3px;
+}
+#exile-modal-cards {
+  display: flex; gap: 8px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  max-width: 90%;
+  max-height: 70%;
+  overflow-y: auto;
+  padding: 8px;
+}
+#exile-modal-cards .battle-card {
+  width: 80px; height: 112px;
+  aspect-ratio: auto;
+  border: 1px solid rgba(255,255,255,0.25);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+  flex-shrink: 0;
+}
+#exile-modal-cards .battle-card.glow {
+  transform: none !important;
+}
+#exile-modal-empty {
+  color: rgba(255,255,255,0.5);
+  font-size: 13px;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
 /* ===== 相手怪異札ブロック（小型中央ポップアップ） ===== */
 #kaii-block-msg {
   position: absolute;
@@ -905,6 +966,14 @@ html, body {
   line-height: 1.7;
   letter-spacing: 0.5px;
   max-width: 90%;
+}
+
+/* ===== 手札超過：タップ選択ハイライト ===== */
+.battle-card.overflow-selected {
+  border: 2px solid rgba(255,200,50,0.8) !important;
+  box-shadow: 0 0 10px 3px rgba(255,200,50,0.5), 0 0 20px 6px rgba(255,200,50,0.2) !important;
+  transform: translateY(-6px);
+  opacity: 0.7;
 }
 
 /* ===== カード選択フェイズオーバーレイ ===== */
