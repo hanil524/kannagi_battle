@@ -216,8 +216,13 @@
   <!-- 除外カード一覧モーダル -->
   <div id="exile-modal" style="display:none;">
     <div id="exile-modal-title">除外カード一覧</div>
+    <div id="exile-modal-desc"></div>
     <div id="exile-modal-cards"></div>
     <div id="exile-modal-empty" style="display:none;">除外されたカードはありません。</div>
+    <div id="exile-modal-buttons" style="display:none;">
+      <button id="exile-modal-confirm" disabled>決定する</button>
+      <button id="exile-modal-skip">選択しない</button>
+    </div>
   </div>
 
   <!-- 効果発動オーバーレイ -->
@@ -254,6 +259,7 @@
     <span id="hand-overflow-desc">手札が9枚以上の状態でターンを終了しました。<br>8枚になるまで魂に捨ててください。<br>※カードをタップで選択、または掴んで魂の上で離す。</span>
     <div id="hand-overflow-buttons">
       <button id="hand-overflow-confirm" disabled>決定する</button>
+      <div id="hand-overflow-remaining"></div>
     </div>
   </div>
 
@@ -264,6 +270,24 @@
     <div id="card-select-buttons">
       <button id="card-select-confirm" disabled>決定する</button>
       <button id="card-select-skip">選択しない</button>
+    </div>
+  </div>
+
+  <!-- 魂ダメージ吸収：質問ポップアップ -->
+  <div id="soul-absorb-ask" style="display:none;">
+    <span id="soul-absorb-ask-title">ダメージを魂で受けますか？</span>
+    <div id="soul-absorb-ask-buttons">
+      <button id="soul-absorb-yes">はい</button>
+      <button id="soul-absorb-no">いいえ</button>
+    </div>
+  </div>
+
+  <!-- 魂ダメージ吸収：魂選択フェイズ -->
+  <div id="soul-absorb-select" style="display:none;">
+    <span id="soul-absorb-select-title">除外する魂を選択</span>
+    <span id="soul-absorb-select-desc"></span>
+    <div id="soul-absorb-select-buttons">
+      <button id="soul-absorb-confirm">決定する</button>
     </div>
   </div>
 
