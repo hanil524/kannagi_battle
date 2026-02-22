@@ -3,14 +3,14 @@
 // ===================================================================
 const CARD_DB = [
   { number: 1901, name: '先祖代々之墓', cost: 0, power: 1, type: '場所札', season: '夏', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (7).jpg', summonEffect: 'exile_graveyard_damage3' },
-  { number: 1902, name: '妖蟲の墓', cost: 0, power: 1, type: '場所札', season: '夏', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (9).jpg' },
+  { number: 1902, name: '妖蟲の墓', cost: 0, power: 1, type: '場所札', season: '夏', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (9).jpg', attackEffect: 'exile_hand_graveyard_damage4' },
   { number: 1903, name: 'まよい火', cost: 3, power: 3, type: '場所札', season: '夏', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (10).jpg' },
   { number: 1904, name: '赤えい', cost: 5, power: 5, type: '場所札', season: '夏', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (11).jpg' },
   { number: 1905, name: 'のづち', cost: 7, power: 7, type: '場所札', season: '夏', tribe: '妖怪', qty: 2, img: 'images/card_12_p (12).jpg', keyword: '速攻' },
-  { number: 1906, name: 'ねこ娘', cost: 0, power: 0, type: '怪異札', season: '夏', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (4).jpg' },
+  { number: 1906, name: 'ねこ娘', cost: 0, power: 0, type: '怪異札', season: '夏', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (4).jpg', kaiiEffect: 'exile_hand_graveyard_damage3' },
   { number: 1907, name: 'かに坊主', cost: 5, power: 0, type: '怪異札', season: '夏', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (13).jpg' },
   { number: 1908, name: '蟲憑', cost: 8, power: 0, type: '怪異札', season: '夏', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (14).jpg' },
-  { number: 1909, name: '私の墓', cost: 1, power: 0, type: '道具札', season: '夏', tribe: '墓地', qty: 2, img: 'images/card_12_p (22).jpg' },
+  { number: 1909, name: '私の墓', cost: 1, power: 0, type: '道具札', season: '夏', tribe: '墓地', qty: 2, img: 'images/card_12_p (22).jpg', effect: 'retrieve_exile_graveyard_damage4' },
   { number: 1910, name: '沈めてあげる', cost: 9, power: 0, type: '道具札', season: '夏', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (20).jpg', effect: 'damage_8' },
   { number: 1911, name: '霊道', cost: 0, power: 1, type: '場所札', season: '秋', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (8).jpg', attackEffect: 'retrieve_graveyard_exile' },
   { number: 1912, name: '木霊の森', cost: 1, power: 1, type: '場所札', season: '秋', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (27).jpg' },
@@ -1004,13 +1004,18 @@ async function performAttack() {
     for (let i = 0; i < group.kaii.length; i++) {
       const kCard = group.kaii[i];
       await showEffectActivation(kCard, '効果発動');
-      // ここで将来的に実際の効果処理を追加可能
+      // 怪異札効果処理
+      if (kCard.kaiiEffect) {
+        await handleKaiiEffect(kCard, 'player');
+        if (gameEnded) return;
+      }
     }
   }
 
   // 2. 攻撃時効果がある場所札の効果
   if (hasAttackEffect) {
     await handleAttackEffect(group.basho, 'player');
+    if (gameEnded) return;
   }
 
   // 3. 通常のアタック演出
@@ -1057,6 +1062,47 @@ async function handleAttackEffect(basho, who) {
       await handleCpuAttackEffect(basho, st);
     }
   }
+
+  if (basho.attackEffect === 'exile_hand_graveyard_damage4') {
+    const st = (who === 'player') ? player : opponent;
+    const dmg = 4;
+
+    if (who === 'player') {
+      await showEffectActivation(basho, '攻撃時効果');
+      const hasGraveyard = [...st.hand, ...st.open].some(c => hasTribe(c, '墓地'));
+      if (!hasGraveyard) return;
+
+      await new Promise((resolve) => {
+        startCardSelectPhase({
+          title: '攻撃時効果：妖蟲の墓',
+          desc: '手札から「墓地」属性のカードを1枚選択して除外してもいい。<br>除外した場合、相手に' + dmg + '点のダメージ。',
+          filter: (c) => hasTribe(c, '墓地'),
+          onConfirm: (selectedCard) => {
+            let idx = st.hand.findIndex(c => c.uid === selectedCard.uid);
+            if (idx !== -1) {
+              st.hand.splice(idx, 1);
+            } else {
+              idx = st.open.findIndex(c => c.uid === selectedCard.uid);
+              if (idx !== -1) st.open.splice(idx, 1);
+            }
+            st.exile.push(selectedCard);
+            renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
+            updateExileDisplay('player');
+            requestAnimationFrame(() => {
+              showFloatingText(dom.playerExile, '除外', 'exile');
+            });
+            applyDamageWithSoulAbsorb(dmg, 'top').then(() => {
+              checkWinLose();
+              resolve();
+            });
+          },
+          onSkip: () => { resolve(); }
+        });
+      });
+    } else {
+      await handleCpuAttackEffect(basho, st);
+    }
+  }
 }
 
 // CPU攻撃時効果
@@ -1075,6 +1121,98 @@ async function handleCpuAttackEffect(basho, st) {
         updateExileDisplay('opponent');
         updateAllCounts();
         drawCards('opponent', 1);
+      }
+    }
+  }
+
+  if (basho.attackEffect === 'exile_hand_graveyard_damage4') {
+    await showEffectActivation(basho, '攻撃時効果');
+    const graveyardCards = st.hand.filter(c => hasTribe(c, '墓地'));
+    if (graveyardCards.length > 0) {
+      graveyardCards.sort((a, b) => (a.cost || 0) - (b.cost || 0));
+      const target = graveyardCards[0];
+      const idx = st.hand.findIndex(c => c.uid === target.uid);
+      if (idx !== -1) {
+        st.hand.splice(idx, 1);
+        st.exile.push(target);
+        renderOppHand(); updateAllCounts();
+        updateExileDisplay('opponent');
+        requestAnimationFrame(() => {
+          showFloatingText(dom.oppExile, '除外', 'exile');
+        });
+        await applyDamageWithSoulAbsorb(4, 'bottom');
+        checkWinLose();
+      }
+    }
+  }
+}
+
+// ===================================================================
+// 怪異札効果処理
+// ===================================================================
+async function handleKaiiEffect(kCard, who) {
+  if (!kCard || !kCard.kaiiEffect) return;
+
+  if (kCard.kaiiEffect === 'exile_hand_graveyard_damage3') {
+    const st = (who === 'player') ? player : opponent;
+    const dmg = 3;
+
+    if (who === 'player') {
+      // 手札＆公開場に墓地属性カードがあるかチェック
+      const hasGraveyard = [...st.hand, ...st.open].some(c => hasTribe(c, '墓地'));
+      if (!hasGraveyard) return;
+
+      await new Promise((resolve) => {
+        startCardSelectPhase({
+          title: 'カード選択',
+          desc: '手札から「墓地」属性のカードを1枚選択して除外してもいい。<br>除外した場合、相手に' + dmg + '点のダメージ。',
+          filter: (c) => hasTribe(c, '墓地'),
+          onConfirm: (selectedCard) => {
+            let idx = st.hand.findIndex(c => c.uid === selectedCard.uid);
+            if (idx !== -1) {
+              st.hand.splice(idx, 1);
+            } else {
+              idx = st.open.findIndex(c => c.uid === selectedCard.uid);
+              if (idx !== -1) st.open.splice(idx, 1);
+            }
+            st.exile.push(selectedCard);
+            renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
+            updateExileDisplay('player');
+            requestAnimationFrame(() => {
+              showFloatingText(dom.playerExile, '除外', 'exile');
+            });
+            applyDamageWithSoulAbsorb(dmg, 'top').then(() => {
+              checkWinLose();
+              resolve();
+            });
+          },
+          onSkip: () => { resolve(); }
+        });
+      });
+    } else {
+      await handleCpuKaiiEffect(kCard, st, dmg);
+    }
+  }
+}
+
+async function handleCpuKaiiEffect(kCard, st, dmg) {
+  if (kCard.kaiiEffect === 'exile_hand_graveyard_damage3') {
+    // CPUの手札から墓地属性カードを探す（最低コスト優先）
+    const graveyardCards = st.hand.filter(c => hasTribe(c, '墓地'));
+    if (graveyardCards.length > 0) {
+      graveyardCards.sort((a, b) => (a.cost || 0) - (b.cost || 0));
+      const target = graveyardCards[0];
+      const idx = st.hand.findIndex(c => c.uid === target.uid);
+      if (idx !== -1) {
+        st.hand.splice(idx, 1);
+        st.exile.push(target);
+        renderOppHand(); updateAllCounts();
+        updateExileDisplay('opponent');
+        requestAnimationFrame(() => {
+          showFloatingText(dom.oppExile, '除外', 'exile');
+        });
+        await applyDamageWithSoulAbsorb(dmg, 'bottom');
+        checkWinLose();
       }
     }
   }
@@ -1252,6 +1390,18 @@ function showDamage(amount, side, isFinish) {
     dom.damageOverlay.style.display = 'none';
     dom.damageOverlay.className = '';
   }, duration);
+}
+
+// 魂ダメージ表示（魂ゾーンに「−○」を表示）
+function showSoulDamage(absorbCount, who) {
+  if (absorbCount <= 0) return;
+  const soulZone = (who === 'player') ? $('player-soul-zone') : $('opp-soul-zone');
+  const el = document.createElement('div');
+  el.className = 'soul-damage-num';
+  el.textContent = '−' + absorbCount;
+  soulZone.style.position = 'relative';
+  soulZone.appendChild(el);
+  setTimeout(() => { el.remove(); }, 900);
 }
 
 dom.attackBtn.addEventListener('click', (e) => { e.stopPropagation(); performAttack().catch(()=>{}); });
@@ -1669,6 +1819,28 @@ function placeCard(card) {
         checkWinLose();
       } else if (card.effect === 'draw_3') {
         drawCards('player', 3);
+      } else if (card.effect === 'retrieve_exile_graveyard_damage4') {
+        const hasGraveyardInExile = player.exile.some(c => hasTribe(c, '墓地'));
+        if (hasGraveyardInExile) {
+          const selected = await startExileSelectPhase({
+            who: 'player',
+            title: '効果：私の墓',
+            desc: '除外から「墓地」属性のカードを1枚選び、手札公開場に置く。<br>成功した場合、相手に4点のダメージ。',
+            filter: (c) => hasTribe(c, '墓地'),
+          });
+          if (selected) {
+            const idx = player.exile.findIndex(c => c.uid === selected.uid);
+            if (idx !== -1) {
+              player.exile.splice(idx, 1);
+              player.open.push(selected);
+              renderPlayerOpen();
+              updateExileDisplay('player');
+              updateAllCounts();
+              await applyDamageWithSoulAbsorb(4, 'top');
+              checkWinLose();
+            }
+          }
+        }
       }
       player.soul.push(card);
       renderSoul('player');
@@ -2329,6 +2501,7 @@ function applyDamageWithSoulAbsorb(amount, side) {
           requestAnimationFrame(() => {
             showFloatingText(dom.oppExile, '除外', 'exile');
           });
+          showSoulDamage(cpuAbsorbed, 'opponent');
         }
         st.life -= actualDmg;
         if (st.life < 0) st.life = 0;
@@ -2480,6 +2653,7 @@ function finishSoulAbsorbSelect(totalDamage, side, st, resolve) {
     requestAnimationFrame(() => {
       showFloatingText(dom.playerExile, '除外', 'exile');
     });
+    showSoulDamage(absorbCount, 'player');
   }
 
   // ダメージ適用
@@ -2680,6 +2854,22 @@ async function cpuPlaceCard(card) {
       checkWinLose();
     } else if (card.effect === 'draw_3') {
       drawCards('opponent', 3);
+    } else if (card.effect === 'retrieve_exile_graveyard_damage4') {
+      // CPUの除外から墓地属性カードを探す（最高コスト優先）
+      const graveyardCards = opponent.exile.filter(c => hasTribe(c, '墓地'));
+      if (graveyardCards.length > 0) {
+        graveyardCards.sort((a, b) => (b.cost || 0) - (a.cost || 0));
+        const target = graveyardCards[0];
+        const idx = opponent.exile.findIndex(c => c.uid === target.uid);
+        if (idx !== -1) {
+          opponent.exile.splice(idx, 1);
+          opponent.open.push(target);
+          updateExileDisplay('opponent');
+          updateAllCounts();
+          await applyDamageWithSoulAbsorb(4, 'bottom');
+          checkWinLose();
+        }
+      }
     }
     opponent.soul.push(card);
     renderSoul('opponent');
@@ -2737,9 +2927,22 @@ async function executeCpuAttack(groupIdx, done) {
   const group = opponent.field[groupIdx];
   if (!group || !group.basho) { done(); return; }
 
+  // 怪異札効果処理（アニメーション前）
+  if (group.kaii.length > 0) {
+    for (let i = 0; i < group.kaii.length; i++) {
+      const kCard = group.kaii[i];
+      await showEffectActivation(kCard, '効果発動');
+      if (kCard.kaiiEffect) {
+        await handleKaiiEffect(kCard, 'opponent');
+        if (gameEnded) { done(); return; }
+      }
+    }
+  }
+
   // 攻撃時効果処理（アニメーション前）
   if (group.basho.attackEffect) {
     await handleAttackEffect(group.basho, 'opponent');
+    if (gameEnded) { done(); return; }
   }
 
   const power = getEffectivePower(group, 'opponent');
