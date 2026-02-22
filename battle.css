@@ -1360,10 +1360,21 @@ html, body {
   z-index: 9001;
   position: relative;
 }
-/* フィニッシュダメージ：スロー＋拡大 */
+/* フィニッシュダメージ：ズーム＋スロー（全ライフ0共通） */
+#damage-overlay.finish-damage {
+  z-index: 470;
+  animation: finishDmgZoom 1.5s ease-out forwards;
+}
 #damage-overlay.finish-damage #damage-text {
   animation: dmgAppearSlow 1.5s ease-out forwards;
-  font-size: 72px;
+  font-size: 80px;
+}
+@keyframes finishDmgZoom {
+  0%   { transform: scale(1.0); }
+  15%  { transform: scale(1.5); }
+  50%  { transform: scale(1.4); }
+  85%  { transform: scale(1.35); }
+  100% { transform: scale(1.3); opacity: 0; }
 }
 @keyframes dmgAppearSlow {
   0%   { opacity: 0; transform: rotate(-12deg) scale(0.3) translateY(20px); }
@@ -1371,14 +1382,6 @@ html, body {
   50%  { opacity: 1; transform: rotate(-12deg) scale(1.15); }
   80%  { opacity: 0.9; transform: rotate(-12deg) scale(1.1); }
   100% { opacity: 0; transform: rotate(-12deg) scale(1.0) translateY(-10px); }
-}
-/* 非攻撃フィニッシュ（道具札等）：ダメージ演出ズーム */
-#damage-overlay.finish-damage-zoom {
-  z-index: 470;
-}
-#damage-overlay.finish-damage-zoom #damage-text {
-  font-size: 80px;
-  animation: dmgAppearSlow 1.5s ease-out forwards;
 }
 
 /* スロー攻撃アニメ（プレイヤー：3倍遅い） */
@@ -1495,6 +1498,10 @@ html, body {
   text-indent: 6px;
   text-shadow: 0 0 30px rgba(255,255,255,0.5), 0 2px 8px rgba(0,0,0,0.7);
 }
+#effect-label.effect-failed {
+  color: #ff4444;
+  text-shadow: 0 0 20px rgba(255,68,68,0.5), 0 2px 8px rgba(0,0,0,0.7);
+}
 #effect-card-img {
   max-height: 45%;
   max-width: 55%;
@@ -1563,6 +1570,9 @@ html, body {
 .floating-text.ft-tenkai {
   color: rgba(255,220,80,0.95);
 }
+.floating-text.ft-handdes {
+  color: rgba(180,80,255,0.95);
+}
 
 /* ===== 魂ダメージ吸収：質問ポップアップ ===== */
 #soul-absorb-ask {
@@ -1614,6 +1624,12 @@ html, body {
   box-shadow: 0 0 12px rgba(255,80,80,0.2);
 }
 #soul-absorb-no:active { transform: scale(0.96); }
+#soul-absorb-ask-img {
+  width: 80px;
+  border-radius: 8px;
+  box-shadow: 0 0 16px rgba(255,100,100,0.4), 0 4px 12px rgba(0,0,0,0.6);
+  margin-bottom: 8px;
+}
 
 /* ===== 魂ダメージ吸収：魂選択フェイズ ===== */
 #soul-absorb-select {
@@ -1706,6 +1722,127 @@ html, body {
   45%  { opacity: 1; transform: translate(-50%, -50%) scale(1.0); }
   75%  { opacity: 0.8; transform: translate(-50%, -50%) scale(1.0); }
   100% { opacity: 0; transform: translate(-50%, -50%) scale(0.95) translateY(-8px); }
+}
+.soul-damage-num.soul-damage-finish {
+  font-size: 48px;
+  z-index: 470;
+  animation: soulDmgAppearSlow 1.5s ease-out forwards;
+}
+@keyframes soulDmgAppearSlow {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+  20%  { opacity: 1; transform: translate(-50%, -50%) scale(1.3); }
+  50%  { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
+  80%  { opacity: 0.9; transform: translate(-50%, -50%) scale(1.1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.0) translateY(-8px); }
+}
+
+/* ===== 除外カード順番選択 ===== */
+.exile-order-done {
+  opacity: 0.5;
+  position: relative;
+  cursor: pointer;
+}
+.exile-order-badge {
+  position: absolute;
+  top: 2px; right: 2px;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  color: #000;
+  font-size: 13px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}
+
+/* ===== 相手手札除外選択モーダル ===== */
+#opp-hand-exile-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  z-index: 390;
+  background: rgba(0,0,0,0.85);
+}
+#opp-hand-exile-overlay.active { display: flex; }
+#opp-hand-exile-title {
+  color: #ff6644;
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: 4px;
+  text-shadow: 0 0 20px rgba(255,102,68,0.4);
+}
+#opp-hand-exile-desc {
+  color: rgba(255,255,255,0.9);
+  font-size: 13px;
+  font-weight: bold;
+  text-align: center;
+  line-height: 1.7;
+  max-width: 90%;
+}
+#opp-hand-exile-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  padding: 12px;
+  max-width: 95%;
+  max-height: 55%;
+  overflow-y: auto;
+}
+#opp-hand-exile-cards .battle-card {
+  width: 70px;
+  height: 98px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+  border-radius: 6px;
+}
+#opp-hand-exile-cards .battle-card.opp-exile-selected {
+  border-color: #ff6644;
+  box-shadow: 0 0 12px rgba(255,102,68,0.7);
+  transform: scale(1.05);
+}
+#opp-hand-exile-cards .battle-card.opp-exile-done {
+  opacity: 0.3;
+  pointer-events: none;
+}
+#opp-hand-exile-cards .opp-exile-label {
+  color: rgba(255,255,255,0.5);
+  font-size: 11px;
+  font-weight: bold;
+  text-align: center;
+  width: 100%;
+  margin-top: 4px;
+}
+#opp-hand-exile-buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+#opp-hand-exile-confirm {
+  background: linear-gradient(135deg,#555,#444);
+  color: #888;
+  border: 1px solid rgba(255,255,255,0.15);
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  cursor: default;
+  transition: all 0.2s ease;
+}
+#opp-hand-exile-confirm.ready {
+  background: linear-gradient(135deg,#ff6644,#ee4422);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 0 12px rgba(255,102,68,0.5);
 }
 
 /* ===== スクロールバー非表示 ===== */

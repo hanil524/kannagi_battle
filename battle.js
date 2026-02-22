@@ -4,23 +4,23 @@
 const CARD_DB = [
   { number: 1901, name: '先祖代々之墓', cost: 0, power: 1, type: '場所札', season: '夏', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (7).jpg', summonEffect: 'exile_graveyard_damage3' },
   { number: 1902, name: '妖蟲の墓', cost: 0, power: 1, type: '場所札', season: '夏', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (9).jpg', attackEffect: 'exile_hand_graveyard_damage4' },
-  { number: 1903, name: 'まよい火', cost: 3, power: 3, type: '場所札', season: '夏', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (10).jpg' },
-  { number: 1904, name: '赤えい', cost: 5, power: 5, type: '場所札', season: '夏', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (11).jpg' },
+  { number: 1903, name: 'まよい火', cost: 3, power: 3, type: '場所札', season: '夏', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (10).jpg', attackEffect: 'exile_hand_graveyard_damage3_field3' },
+  { number: 1904, name: '赤えい', cost: 5, power: 5, type: '場所札', season: '夏', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (11).jpg', summonEffect: 'retrieve_exile_graveyard_damage4' },
   { number: 1905, name: 'のづち', cost: 7, power: 7, type: '場所札', season: '夏', tribe: '妖怪', qty: 2, img: 'images/card_12_p (12).jpg', keyword: '速攻' },
   { number: 1906, name: 'ねこ娘', cost: 0, power: 0, type: '怪異札', season: '夏', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (4).jpg', kaiiEffect: 'exile_hand_graveyard_damage3' },
-  { number: 1907, name: 'かに坊主', cost: 5, power: 0, type: '怪異札', season: '夏', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (13).jpg' },
-  { number: 1908, name: '蟲憑', cost: 8, power: 0, type: '怪異札', season: '夏', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (14).jpg' },
+  { number: 1907, name: 'かに坊主', cost: 5, power: 0, type: '怪異札', season: '夏', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (13).jpg', kaiiEffect: 'retrieve_exile_graveyard_damage7' },
+  { number: 1908, name: '蟲憑', cost: 8, power: 0, type: '怪異札', season: '夏', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (14).jpg', kaiiEffect: 'exile_all_hand_soul_graveyard_damage' },
   { number: 1909, name: '私の墓', cost: 1, power: 0, type: '道具札', season: '夏', tribe: '墓地', qty: 2, img: 'images/card_12_p (22).jpg', effect: 'retrieve_exile_graveyard_damage4' },
   { number: 1910, name: '沈めてあげる', cost: 9, power: 0, type: '道具札', season: '夏', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (20).jpg', effect: 'damage_8' },
   { number: 1911, name: '霊道', cost: 0, power: 1, type: '場所札', season: '秋', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (8).jpg', attackEffect: 'retrieve_graveyard_exile' },
-  { number: 1912, name: '木霊の森', cost: 1, power: 1, type: '場所札', season: '秋', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (27).jpg' },
-  { number: 1913, name: '砂の竹林', cost: 4, power: 3, type: '場所札', season: '秋', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (25).jpg' },
-  { number: 1914, name: 'べとべと', cost: 2, power: 2, type: '場所札', season: '秋', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (15).jpg' },
-  { number: 1915, name: 'うぶめ', cost: 8, power: 1, type: '場所札', season: '秋', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (23).jpg' },
-  { number: 1916, name: 'あずき洗い', cost: 0, power: 0, type: '怪異札', season: '秋', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (2).jpg' },
-  { number: 1917, name: 'さとり', cost: 0, power: 0, type: '怪異札', season: '秋', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (3).jpg' },
+  { number: 1912, name: '木霊の森', cost: 1, power: 1, type: '場所札', season: '秋', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (27).jpg', summonEffect: 'exile_hand_graveyard_draw1' },
+  { number: 1913, name: '砂の竹林', cost: 4, power: 3, type: '場所札', season: '秋', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (25).jpg', summonEffect: 'retrieve_exile_graveyard_exile2_opponent_hand' },
+  { number: 1914, name: 'べとべと', cost: 2, power: 2, type: '場所札', season: '秋', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (15).jpg', attackEffect: 'return_opponent_exile_to_deck' },
+  { number: 1915, name: 'うぶめ', cost: 8, power: 1, type: '場所札', season: '秋', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (23).jpg', summonEffect: 'exile_graveyard_count_damage' },
+  { number: 1916, name: 'あずき洗い', cost: 0, power: 0, type: '怪異札', season: '秋', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (2).jpg', kaiiEffect: 'search_deck_graveyard_shuffle_exile_hand' },
+  { number: 1917, name: 'さとり', cost: 0, power: 0, type: '怪異札', season: '秋', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (3).jpg', kaiiEffect: 'retrieve_exile_graveyard_draw2' },
   { number: 1918, name: '山姥', cost: 4, power: 0, type: '怪異札', season: '秋', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (17).jpg' },
-  { number: 1919, name: '唐笠おばけ', cost: 0, power: 0, type: '道具札', season: '秋', tribe: '墓地', qty: 2, img: 'images/card_12_p (19).jpg' },
+  { number: 1919, name: '唐笠おばけ', cost: 0, power: 0, type: '道具札', season: '秋', tribe: '墓地', qty: 2, img: 'images/card_12_p (19).jpg', effect: 'retrieve_exile_graveyard_draw1' },
   { number: 1920, name: 'こなきじじい', cost: 8, power: 0, type: '道具札', season: '秋', tribe: '墓地', qty: 2, img: 'images/card_12_p (18).jpg', effect: 'draw_3' },
   { number: 1922, name: '沼御前', cost: 0, power: 0, type: '怪異札', season: '春', tribe: '妖怪', qty: 1, img: 'images/card_12_p (26).jpg', keyword: '鮮明', effect: 'global_youkai_plus2' },
   { number: 1924, name: 'いったん木綿', cost: 0, power: 0, type: '季節札', season: '冬', tribe: '妖怪 墓地', qty: 1, effect: 'youkai_power_plus2', img: 'images/card_12_p (24).jpg' },
@@ -171,6 +171,7 @@ const dom = {
   cardSelectSkip: $('card-select-skip'),
   finishZoomOverlay: $('finish-zoom-overlay'),
   soulAbsorbAsk: $('soul-absorb-ask'),
+  soulAbsorbAskTitle: $('soul-absorb-ask-title'),
   soulAbsorbYes: $('soul-absorb-yes'),
   soulAbsorbNo: $('soul-absorb-no'),
   soulAbsorbSelect: $('soul-absorb-select'),
@@ -392,7 +393,65 @@ function getEffectivePower(group, who) {
       });
     }
   }
-  return power;
+  // 場ダメージによる一時的なパワー低下
+  if (group._fieldDamage) {
+    power -= group._fieldDamage;
+  }
+  return Math.max(0, power);
+}
+
+// 場ダメージ適用：対象の場の場所札全てにダメージ
+// who: ダメージを受ける側（'player' or 'opponent'）
+// amount: ダメージ量
+// 返り値: 破壊されたグループ数
+function applyFieldDamage(who, amount) {
+  const st = (who === 'player') ? player : opponent;
+  let destroyed = 0;
+  // 後ろから処理（spliceで削除しても前のインデックスに影響しない）
+  for (let i = st.field.length - 1; i >= 0; i--) {
+    const g = st.field[i];
+    if (!g.basho) continue;
+    const currentPower = getEffectivePower(g, who);
+    if (currentPower <= amount) {
+      // 破壊：場所札と怪異札を魂へ
+      st.soul.push(g.basho);
+      g.kaii.forEach(k => st.soul.push(k));
+      if (g.season) {
+        // 季節スロットは残す
+        g.basho = null;
+        g.kaii = [];
+        g._summonedThisTurn = false;
+        g._fieldDamage = 0;
+      } else {
+        st.field.splice(i, 1);
+      }
+      destroyed++;
+    } else {
+      // ダメージを受けるが破壊されない
+      g._fieldDamage = (g._fieldDamage || 0) + amount;
+    }
+  }
+  if (destroyed > 0 || amount > 0) {
+    renderField(who);
+    renderSoul(who);
+    updateAllCounts();
+  }
+  return destroyed;
+}
+
+// ターン終了時の場ダメージ回復
+function resetFieldDamage(who) {
+  const st = (who === 'player') ? player : opponent;
+  let changed = false;
+  st.field.forEach(g => {
+    if (g._fieldDamage && g._fieldDamage > 0) {
+      g._fieldDamage = 0;
+      changed = true;
+    }
+  });
+  if (changed) {
+    renderField(who);
+  }
 }
 
 // ===================================================================
@@ -414,12 +473,15 @@ function createBashoEl(card, who, group) {
   el.classList.add('on-field');
   if (card.power !== undefined) {
     const effectivePower = group ? getEffectivePower(group, who) : (card.power || 0);
+    const basePower = card.power || 0;
     const badge = document.createElement('div');
     badge.className = 'power-badge';
     const span = document.createElement('span');
     span.textContent = effectivePower;
-    // パワーがブーストされていれば色を変える
-    if (effectivePower > (card.power || 0)) {
+    // パワーがブーストされていれば緑、ダメージで減っていれば赤
+    if (group && group._fieldDamage > 0) {
+      span.style.color = '#ff4444';
+    } else if (effectivePower > basePower) {
       span.style.color = '#4caf50';
     }
     badge.appendChild(span);
@@ -646,9 +708,10 @@ function renderField(who) {
       row.className = 'kaii-row';
       const vis = Math.min(group.kaii.length, 3);
       for (let i = 0; i < vis; i++) {
-        // 鮮明キーワード持ちは表向きで装備
-        const isFaceDown = group.kaii[i].keyword !== '鮮明';
-        const kEl = createCardEl(group.kaii[i], isFaceDown);
+        // 鮮明キーワード持ち、または手札公開場から装備は表向き
+        const k = group.kaii[i];
+        const isFaceDown = k.keyword !== '鮮明' && !k._fromOpen;
+        const kEl = createCardEl(k, isFaceDown);
         kEl.classList.add('kaii-attached');
         setupKaiiInteraction(kEl, group, who, group.kaii[i]);
         row.appendChild(kEl);
@@ -929,6 +992,40 @@ function showEffectActivation(card, label) {
   });
 }
 
+// 効果不発演出（コスト不足時）
+function showEffectFailed(card) {
+  return new Promise(resolve => {
+    dom.effectCardImg.src = card.img;
+    dom.effectLabel.textContent = '効果不発';
+    dom.effectLabel.classList.add('effect-failed');
+    dom.effectOverlay.classList.remove('active');
+    dom.effectCardImg.style.animation = 'none';
+    void dom.effectOverlay.offsetHeight;
+    dom.effectCardImg.style.animation = '';
+    dom.effectOverlay.style.display = 'flex';
+    dom.effectOverlay.classList.add('active');
+    // キラキラパーティクルなし
+    let resolved = false;
+    const finish = () => {
+      if (resolved) return;
+      resolved = true;
+      dom.effectOverlay.style.display = 'none';
+      dom.effectOverlay.classList.remove('active');
+      dom.effectLabel.classList.remove('effect-failed');
+      resolve();
+    };
+    const skipHandler = (e) => {
+      e.stopPropagation();
+      dom.effectOverlay.removeEventListener('click', skipHandler);
+      dom.effectOverlay.removeEventListener('touchend', skipHandler);
+      finish();
+    };
+    dom.effectOverlay.addEventListener('click', skipHandler);
+    dom.effectOverlay.addEventListener('touchend', skipHandler);
+    setTimeout(finish, 800);
+  });
+}
+
 // ===================================================================
 // 怪異札フリップアニメ（裏→表）
 // ===================================================================
@@ -1003,11 +1100,18 @@ async function performAttack() {
     // 怪異札の効果を順番に発動
     for (let i = 0; i < group.kaii.length; i++) {
       const kCard = group.kaii[i];
-      await showEffectActivation(kCard, '効果発動');
-      // 怪異札効果処理
+      // コスト以上の魂がないと効果不発
       if (kCard.kaiiEffect) {
+        const kaiiCost = kCard.cost || 0;
+        if (player.soul.length < kaiiCost) {
+          await showEffectFailed(kCard);
+          continue;
+        }
+        await showEffectActivation(kCard, '効果発動');
         await handleKaiiEffect(kCard, 'player');
         if (gameEnded) return;
+      } else {
+        await showEffectActivation(kCard, '効果発動');
       }
     }
   }
@@ -1075,7 +1179,7 @@ async function handleAttackEffect(basho, who) {
       await new Promise((resolve) => {
         startCardSelectPhase({
           title: '攻撃時効果：妖蟲の墓',
-          desc: '手札から「墓地」属性のカードを1枚選択して除外してもいい。<br>除外した場合、相手に' + dmg + '点のダメージ。',
+          desc: '手札から「墓地」属性のカードを1枚選択して除外しても良い。<br>除外した場合、相手に' + dmg + '点のダメージ。',
           filter: (c) => hasTribe(c, '墓地'),
           onConfirm: (selectedCard) => {
             let idx = st.hand.findIndex(c => c.uid === selectedCard.uid);
@@ -1091,8 +1195,85 @@ async function handleAttackEffect(basho, who) {
             requestAnimationFrame(() => {
               showFloatingText(dom.playerExile, '除外', 'exile');
             });
-            applyDamageWithSoulAbsorb(dmg, 'top').then(() => {
+            applyDamageWithSoulAbsorb(dmg, 'top', basho).then(() => {
               checkWinLose();
+              resolve();
+            });
+          },
+          onSkip: () => { resolve(); }
+        });
+      });
+    } else {
+      await handleCpuAttackEffect(basho, st);
+    }
+  }
+
+  if (basho.attackEffect === 'return_opponent_exile_to_deck') {
+    if (who === 'player') {
+      // プレイヤーが攻撃：相手の除外カードをランダム順で相手デッキの一番下へ
+      await showEffectActivation(basho, '攻撃時効果');
+      if (opponent.exile.length > 0) {
+        const shuffled = shuffle([...opponent.exile]);
+        opponent.exile = [];
+        opponent.deck.push(...shuffled);
+        updateExileDisplay('opponent');
+        updateDeckImg(dom.oppDeck, 'opponent');
+        updateAllCounts();
+      }
+    } else {
+      // CPUが攻撃：プレイヤーの除外カードをプレイヤーが好きな順番でデッキの一番下へ
+      await showEffectActivation(basho, '攻撃時効果');
+      if (player.exile.length > 0) {
+        const ordered = await startExileOrderPhase({
+          who: 'player',
+          title: '攻撃時効果：べとべと',
+          desc: '除外カードをデッキの一番下に戻す順番を選んでください。<br>タップした順にデッキの底へ入ります。',
+        });
+        // ordered = 選択順の配列
+        player.exile = [];
+        player.deck.push(...ordered);
+        updateExileDisplay('player');
+        updateDeckImg(dom.playerDeck, 'player');
+        updateAllCounts();
+      }
+    }
+  }
+
+  if (basho.attackEffect === 'exile_hand_graveyard_damage3_field3') {
+    const st = (who === 'player') ? player : opponent;
+    const oppWho = (who === 'player') ? 'opponent' : 'player';
+
+    if (who === 'player') {
+      await showEffectActivation(basho, '攻撃時効果');
+      const hasGraveyard = [...st.hand, ...st.open].some(c => hasTribe(c, '墓地'));
+      if (!hasGraveyard) return;
+
+      await new Promise((resolve) => {
+        startCardSelectPhase({
+          title: '攻撃時効果：まよい火',
+          desc: '手札から「墓地」属性のカードを1枚除外しても良い。<br>除外した場合、相手に3点ダメージ＋相手の場所札全てに3ダメージ。',
+          filter: (c) => hasTribe(c, '墓地'),
+          onConfirm: (selectedCard) => {
+            let idx = st.hand.findIndex(c => c.uid === selectedCard.uid);
+            if (idx !== -1) {
+              st.hand.splice(idx, 1);
+            } else {
+              idx = st.open.findIndex(c => c.uid === selectedCard.uid);
+              if (idx !== -1) st.open.splice(idx, 1);
+            }
+            st.exile.push(selectedCard);
+            renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
+            updateExileDisplay('player');
+            requestAnimationFrame(() => {
+              showFloatingText(dom.playerExile, '除外', 'exile');
+            });
+            // 相手に3点ライフダメージ
+            applyDamageWithSoulAbsorb(3, 'top', basho).then(() => {
+              checkWinLose();
+              if (!gameEnded) {
+                // 相手の場の場所札全てに3ダメージ
+                applyFieldDamage(oppWho, 3);
+              }
               resolve();
             });
           },
@@ -1140,8 +1321,35 @@ async function handleCpuAttackEffect(basho, st) {
         requestAnimationFrame(() => {
           showFloatingText(dom.oppExile, '除外', 'exile');
         });
-        await applyDamageWithSoulAbsorb(4, 'bottom');
+        await applyDamageWithSoulAbsorb(4, 'bottom', basho);
         checkWinLose();
+      }
+    }
+  }
+
+  if (basho.attackEffect === 'exile_hand_graveyard_damage3_field3') {
+    await showEffectActivation(basho, '攻撃時効果');
+    // CPUの手札から墓地属性カードを探す（最低コスト優先）
+    const graveyardCards = st.hand.filter(c => hasTribe(c, '墓地'));
+    if (graveyardCards.length > 0) {
+      graveyardCards.sort((a, b) => (a.cost || 0) - (b.cost || 0));
+      const target = graveyardCards[0];
+      const idx = st.hand.findIndex(c => c.uid === target.uid);
+      if (idx !== -1) {
+        st.hand.splice(idx, 1);
+        st.exile.push(target);
+        renderOppHand(); updateAllCounts();
+        updateExileDisplay('opponent');
+        requestAnimationFrame(() => {
+          showFloatingText(dom.oppExile, '除外', 'exile');
+        });
+        // プレイヤーに3点ライフダメージ
+        await applyDamageWithSoulAbsorb(3, 'bottom', basho);
+        checkWinLose();
+        if (!gameEnded) {
+          // プレイヤーの場の場所札全てに3ダメージ
+          applyFieldDamage('player', 3);
+        }
       }
     }
   }
@@ -1165,7 +1373,7 @@ async function handleKaiiEffect(kCard, who) {
       await new Promise((resolve) => {
         startCardSelectPhase({
           title: 'カード選択',
-          desc: '手札から「墓地」属性のカードを1枚選択して除外してもいい。<br>除外した場合、相手に' + dmg + '点のダメージ。',
+          desc: '手札から「墓地」属性のカードを1枚選択して除外しても良い。<br>除外した場合、相手に' + dmg + '点のダメージ。',
           filter: (c) => hasTribe(c, '墓地'),
           onConfirm: (selectedCard) => {
             let idx = st.hand.findIndex(c => c.uid === selectedCard.uid);
@@ -1181,7 +1389,7 @@ async function handleKaiiEffect(kCard, who) {
             requestAnimationFrame(() => {
               showFloatingText(dom.playerExile, '除外', 'exile');
             });
-            applyDamageWithSoulAbsorb(dmg, 'top').then(() => {
+            applyDamageWithSoulAbsorb(dmg, 'top', kCard).then(() => {
               checkWinLose();
               resolve();
             });
@@ -1191,6 +1399,246 @@ async function handleKaiiEffect(kCard, who) {
       });
     } else {
       await handleCpuKaiiEffect(kCard, st, dmg);
+    }
+  }
+
+  if (kCard.kaiiEffect === 'retrieve_exile_graveyard_draw2') {
+    const st = (who === 'player') ? player : opponent;
+
+    if (who === 'player') {
+      const hasGraveyardInExile = st.exile.some(c => hasTribe(c, '墓地'));
+      if (!hasGraveyardInExile) return;
+
+      const selected = await startExileSelectPhase({
+        who: 'player',
+        title: '効果：さとり',
+        desc: '除外から「墓地」属性のカードを1枚選び、手札公開場に置いても良い。<br>置いた場合、山札から2枚ドローする。',
+        filter: (c) => hasTribe(c, '墓地'),
+      });
+
+      if (selected) {
+        const idx = st.exile.findIndex(c => c.uid === selected.uid);
+        if (idx !== -1) {
+          st.exile.splice(idx, 1);
+          st.open.push(selected);
+          renderPlayerOpen();
+          updateExileDisplay('player');
+          updateAllCounts();
+          drawCards('player', 2);
+        }
+      }
+    } else {
+      // CPU版
+      const graveyardCards = st.exile.filter(c => hasTribe(c, '墓地'));
+      if (graveyardCards.length > 0) {
+        graveyardCards.sort((a, b) => (b.cost || 0) - (a.cost || 0));
+        const target = graveyardCards[0];
+        const idx = st.exile.findIndex(c => c.uid === target.uid);
+        if (idx !== -1) {
+          st.exile.splice(idx, 1);
+          st.open.push(target);
+          updateExileDisplay('opponent');
+          updateAllCounts();
+          drawCards('opponent', 2);
+        }
+      }
+    }
+  }
+
+  if (kCard.kaiiEffect === 'retrieve_exile_graveyard_damage7') {
+    const st = (who === 'player') ? player : opponent;
+    const dmg = 7;
+
+    if (who === 'player') {
+      const hasGraveyardInExile = st.exile.some(c => hasTribe(c, '墓地'));
+      if (!hasGraveyardInExile) return;
+
+      const selected = await startExileSelectPhase({
+        who: 'player',
+        title: '効果：かに坊主',
+        desc: '除外から「墓地」属性のカードを1枚選び、手札公開場に置いても良い。<br>置いた場合、相手に' + dmg + '点のダメージ。',
+        filter: (c) => hasTribe(c, '墓地'),
+      });
+
+      if (selected) {
+        const idx = st.exile.findIndex(c => c.uid === selected.uid);
+        if (idx !== -1) {
+          st.exile.splice(idx, 1);
+          st.open.push(selected);
+          renderPlayerOpen();
+          updateExileDisplay('player');
+          updateAllCounts();
+          await applyDamageWithSoulAbsorb(dmg, 'top', kCard);
+          checkWinLose();
+        }
+      }
+    } else {
+      // CPU版
+      const graveyardCards = st.exile.filter(c => hasTribe(c, '墓地'));
+      if (graveyardCards.length > 0) {
+        graveyardCards.sort((a, b) => (b.cost || 0) - (a.cost || 0));
+        const target = graveyardCards[0];
+        const idx = st.exile.findIndex(c => c.uid === target.uid);
+        if (idx !== -1) {
+          st.exile.splice(idx, 1);
+          st.open.push(target);
+          updateExileDisplay('opponent');
+          updateAllCounts();
+          await applyDamageWithSoulAbsorb(dmg, 'bottom', kCard);
+          checkWinLose();
+        }
+      }
+    }
+  }
+
+  if (kCard.kaiiEffect === 'exile_all_hand_soul_graveyard_damage') {
+    const st = (who === 'player') ? player : opponent;
+    const oppSt = (who === 'player') ? opponent : player;
+    const oppWho = (who === 'player') ? 'opponent' : 'player';
+
+    // 手札＋公開場＋魂を全て除外
+    const allCards = [...st.hand, ...st.open, ...st.soul];
+    let graveyardCount = 0;
+    allCards.forEach(c => {
+      st.exile.push(c);
+      if (hasTribe(c, '墓地')) graveyardCount++;
+    });
+    st.hand = [];
+    st.open = [];
+    st.soul = [];
+
+    if (who === 'player') {
+      renderPlayerHand(); renderPlayerOpen(); renderSoul('player');
+      updateExileDisplay('player');
+    } else {
+      renderOppHand(); renderSoul('opponent');
+      updateExileDisplay('opponent');
+    }
+    updateAllCounts();
+
+    if (allCards.length > 0) {
+      const exileEl = (who === 'player') ? dom.playerExile : dom.oppExile;
+      requestAnimationFrame(() => {
+        showFloatingText(exileEl, '全除外', 'exile');
+      });
+    }
+
+    const dmg = graveyardCount * 2;
+    if (dmg > 0) {
+      if (who === 'player') {
+        await applyDamageWithSoulAbsorb(dmg, 'top', kCard);
+      } else {
+        await applyDamageWithSoulAbsorb(dmg, 'bottom', kCard);
+      }
+      checkWinLose();
+    }
+  }
+
+  // あずき洗い：山札から墓地属性カードを1枚探して公開場に置いても良い。
+  // その後、山札をシャッフルし、手札を1枚除外する。
+  if (kCard.kaiiEffect === 'search_deck_graveyard_shuffle_exile_hand') {
+    const st = (who === 'player') ? player : opponent;
+
+    if (who === 'player') {
+      // デッキから墓地属性カードを検索
+      const deckGraveyard = st.deck.filter(c => hasTribe(c, '墓地'));
+      if (deckGraveyard.length > 0) {
+        // デッキ検索モーダルを表示
+        const selected = await startDeckSearchPhase({
+          who: 'player',
+          title: '効果：あずき洗い',
+          desc: '山札から「墓地」属性の札を1枚選び、手札公開場に置いても良い。',
+          filter: (c) => hasTribe(c, '墓地'),
+        });
+        if (selected) {
+          const idx = st.deck.findIndex(c => c.uid === selected.uid);
+          if (idx !== -1) {
+            st.deck.splice(idx, 1);
+            st.open.push(selected);
+            renderPlayerOpen();
+            updateDeckImg(dom.playerDeck, 'player');
+            updateAllCounts();
+          }
+        }
+      }
+      // 山札をシャッフル
+      st.deck = shuffle([...st.deck]);
+      updateDeckImg(dom.playerDeck, 'player');
+      requestAnimationFrame(() => {
+        showFloatingText(dom.playerDeck, 'シャッフル', 'draw');
+      });
+
+      // 手札を1枚除外（強制）
+      const hasHandCards = [...st.hand, ...st.open].length > 0;
+      if (hasHandCards) {
+        await new Promise((resolve) => {
+          startCardSelectPhase({
+            title: '効果：あずき洗い',
+            desc: '手札から1枚選んで除外する。（強制）',
+            filter: () => true, // 全カード対象
+            onConfirm: (selectedCard) => {
+              let idx = st.hand.findIndex(c => c.uid === selectedCard.uid);
+              if (idx !== -1) {
+                st.hand.splice(idx, 1);
+              } else {
+                idx = st.open.findIndex(c => c.uid === selectedCard.uid);
+                if (idx !== -1) st.open.splice(idx, 1);
+              }
+              st.exile.push(selectedCard);
+              renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
+              updateExileDisplay('player');
+              requestAnimationFrame(() => {
+                showFloatingText(dom.playerExile, '除外', 'exile');
+              });
+              resolve();
+            },
+            onSkip: () => { resolve(); } // 手札0の場合のフォールバック
+          });
+          // スキップボタンを非表示にする（強制除外）
+          $('card-select-skip').style.display = 'none';
+        });
+        $('card-select-skip').style.display = '';
+      }
+    } else {
+      // CPU版
+      // デッキから墓地属性カードを探す（最高コスト優先）
+      const deckGraveyard = st.deck.filter(c => hasTribe(c, '墓地'));
+      if (deckGraveyard.length > 0) {
+        deckGraveyard.sort((a, b) => (b.cost || 0) - (a.cost || 0));
+        const target = deckGraveyard[0];
+        const idx = st.deck.findIndex(c => c.uid === target.uid);
+        if (idx !== -1) {
+          st.deck.splice(idx, 1);
+          st.open.push(target);
+          updateDeckImg(dom.oppDeck, 'opponent');
+          updateAllCounts();
+        }
+      }
+      // シャッフル
+      st.deck = shuffle([...st.deck]);
+      updateDeckImg(dom.oppDeck, 'opponent');
+      requestAnimationFrame(() => {
+        showFloatingText(dom.oppDeck, 'シャッフル', 'draw');
+      });
+      // 手札から最低コストカードを除外
+      const allHand = [...st.hand, ...st.open];
+      if (allHand.length > 0) {
+        allHand.sort((a, b) => (a.cost || 0) - (b.cost || 0));
+        const target = allHand[0];
+        let idx = st.hand.findIndex(c => c.uid === target.uid);
+        if (idx !== -1) {
+          st.hand.splice(idx, 1);
+        } else {
+          idx = st.open.findIndex(c => c.uid === target.uid);
+          if (idx !== -1) st.open.splice(idx, 1);
+        }
+        st.exile.push(target);
+        renderOppHand(); updateAllCounts();
+        updateExileDisplay('opponent');
+        requestAnimationFrame(() => {
+          showFloatingText(dom.oppExile, '除外', 'exile');
+        });
+      }
     }
   }
 }
@@ -1211,7 +1659,7 @@ async function handleCpuKaiiEffect(kCard, st, dmg) {
         requestAnimationFrame(() => {
           showFloatingText(dom.oppExile, '除外', 'exile');
         });
-        await applyDamageWithSoulAbsorb(dmg, 'bottom');
+        await applyDamageWithSoulAbsorb(dmg, 'bottom', kCard);
         checkWinLose();
       }
     }
@@ -1329,6 +1777,310 @@ function startExileSelectPhase(config) {
   });
 }
 
+// 山札検索フェイズ（あずき洗い等：デッキからカードを選んで手札公開場に置く）
+function startDeckSearchPhase(config) {
+  // config: { who, title, desc, filter(card)->bool }
+  // 返り値: Promise<card|null> 選択したカードまたはnull
+  return new Promise((resolve) => {
+    const st = (config.who === 'player') ? player : opponent;
+    const matchCards = st.deck.filter(config.filter);
+
+    if (matchCards.length === 0) {
+      resolve(null);
+      return;
+    }
+
+    dom.exileModalTitle.textContent = config.title || '山札検索';
+    dom.exileModalDesc.innerHTML = config.desc || '';
+    dom.exileModalCards.innerHTML = '';
+    dom.exileModalEmpty.style.display = 'none';
+    dom.exileModalButtons.style.display = 'flex';
+
+    let selectedCard = null;
+
+    // フィルタ対象カードを表示
+    matchCards.forEach(card => {
+      const el = createCardEl(card, false);
+      el.classList.add('exile-selectable');
+
+      const onSelect = (e) => {
+        e.stopPropagation();
+        // 既に選択済みの場合→選択解除
+        if (selectedCard && selectedCard.uid === card.uid) {
+          selectedCard = null;
+          dom.exileModalCards.querySelectorAll('.battle-card').forEach(c => c.classList.remove('selected-card'));
+          dom.exileModalConfirm.disabled = true;
+          return;
+        }
+        // 新規選択
+        dom.exileModalCards.querySelectorAll('.battle-card').forEach(c => c.classList.remove('selected-card'));
+        el.classList.add('selected-card');
+        selectedCard = card;
+        dom.exileModalConfirm.disabled = false;
+      };
+      const onSelectTouch = (e) => { e.stopPropagation(); if (e.cancelable) e.preventDefault(); onSelect(e); };
+      el.addEventListener('click', onSelect);
+      el.addEventListener('touchend', onSelectTouch, { passive: false });
+      dom.exileModalCards.appendChild(el);
+    });
+
+    dom.exileModalConfirm.disabled = true;
+
+    const cleanup = () => {
+      dom.exileModalConfirm.removeEventListener('click', onConfirm);
+      dom.exileModalConfirm.removeEventListener('touchend', onConfirmTouch);
+      dom.exileModalSkip.removeEventListener('click', onSkip);
+      dom.exileModalSkip.removeEventListener('touchend', onSkipTouch);
+      exileSelectMode = false;
+      dom.exileModal.style.display = 'none';
+      dom.exileModal.classList.remove('active');
+      exileModalActive = false;
+      dom.exileModalDesc.textContent = '';
+      dom.exileModalButtons.style.display = 'none';
+    };
+    const onConfirm = (e) => {
+      e.stopPropagation();
+      if (!selectedCard) return;
+      cleanup();
+      resolve(selectedCard);
+    };
+    const onConfirmTouch = (e) => { e.preventDefault(); e.stopPropagation(); onConfirm(e); };
+    const onSkip = (e) => {
+      e.stopPropagation();
+      cleanup();
+      resolve(null);
+    };
+    const onSkipTouch = (e) => { e.preventDefault(); e.stopPropagation(); onSkip(e); };
+
+    dom.exileModalConfirm.addEventListener('click', onConfirm);
+    dom.exileModalConfirm.addEventListener('touchend', onConfirmTouch, { passive: false });
+    dom.exileModalSkip.addEventListener('click', onSkip);
+    dom.exileModalSkip.addEventListener('touchend', onSkipTouch, { passive: false });
+
+    dom.exileModal.style.display = 'flex';
+    dom.exileModal.classList.add('active');
+    exileModalActive = true;
+    exileSelectMode = true;
+  });
+}
+
+// 除外カードの順番選択フェイズ（べとべと等：全カードを順番にタップ→デッキ底へ）
+function startExileOrderPhase(config) {
+  // config: { who, title, desc }
+  // 返り値: Promise<card[]> タップ順のカード配列
+  return new Promise((resolve) => {
+    const st = (config.who === 'player') ? player : opponent;
+    const allCards = [...st.exile];
+
+    if (allCards.length === 0) {
+      resolve([]);
+      return;
+    }
+
+    // 1枚なら自動で返す
+    if (allCards.length === 1) {
+      resolve(allCards);
+      return;
+    }
+
+    const ordered = [];
+    let remaining = allCards.length;
+
+    dom.exileModalTitle.textContent = config.title || 'カード順番選択';
+    dom.exileModalDesc.textContent = '';
+    dom.exileModalDesc.innerHTML = (config.desc || '') + '<br><b>残り' + remaining + '枚</b>';
+    dom.exileModalCards.innerHTML = '';
+    dom.exileModalEmpty.style.display = 'none';
+
+    // ボタン非表示（自動完了）
+    dom.exileModalButtons.style.display = 'none';
+
+    // カードエレメントマップ（再描画用）
+    const cardElMap = new Map(); // card.uid -> el
+
+    // バッジ番号を全て再計算
+    function refreshBadges() {
+      remaining = allCards.length - ordered.length;
+      cardElMap.forEach((el, uid) => {
+        const oIdx = ordered.findIndex(c => c.uid === uid);
+        const badge = el.querySelector('.exile-order-badge');
+        if (oIdx !== -1) {
+          el.classList.remove('exile-selectable');
+          el.classList.add('exile-order-done');
+          if (badge) {
+            badge.textContent = oIdx + 1;
+          } else {
+            const b = document.createElement('div');
+            b.className = 'exile-order-badge';
+            b.textContent = oIdx + 1;
+            el.appendChild(b);
+          }
+        } else {
+          el.classList.add('exile-selectable');
+          el.classList.remove('exile-order-done');
+          if (badge) badge.remove();
+        }
+      });
+      if (remaining > 0) {
+        dom.exileModalDesc.innerHTML = (config.desc || '') + '<br><b>残り' + remaining + '枚</b>';
+      }
+    }
+
+    // カード表示
+    allCards.forEach((card, i) => {
+      const el = createCardEl(card, false);
+      el.classList.add('exile-selectable');
+      el.dataset.orderIdx = String(i);
+      cardElMap.set(card.uid, el);
+
+      const onPick = (e) => {
+        e.stopPropagation();
+
+        // 既に選択済みの場合→選択解除
+        const existIdx = ordered.findIndex(c => c.uid === card.uid);
+        if (existIdx !== -1) {
+          ordered.splice(existIdx, 1);
+          refreshBadges();
+          return;
+        }
+
+        // 未選択→選択追加
+        ordered.push(card);
+        remaining--;
+        refreshBadges();
+
+        // 全て選択完了
+        if (remaining <= 0) {
+          setTimeout(() => {
+            exileSelectMode = false;
+            dom.exileModal.style.display = 'none';
+            dom.exileModal.classList.remove('active');
+            exileModalActive = false;
+            dom.exileModalDesc.textContent = '';
+            resolve(ordered);
+          }, 300);
+        }
+      };
+      const onPickTouch = (e) => {
+        e.stopPropagation();
+        if (e.cancelable) e.preventDefault();
+        onPick(e);
+      };
+
+      el.addEventListener('click', onPick);
+      el.addEventListener('touchend', onPickTouch, { passive: false });
+      dom.exileModalCards.appendChild(el);
+    });
+
+    dom.exileModal.style.display = 'flex';
+    dom.exileModal.classList.add('active');
+    exileModalActive = true;
+    exileSelectMode = true;
+  });
+}
+
+// 相手の手札除外選択フェイズ（砂の竹林用）
+// count: 除外する枚数
+// 手札公開場のカードは選択可能、裏の手札を選択するとランダム
+// 自分の手札から強制除外フェイズ（砂の竹林等：プレイヤーが自分の手札からN枚除外）
+function startSelfHandExilePhase(count) {
+  return new Promise((resolve) => {
+    const overlay = $('opp-hand-exile-overlay');
+    const titleEl = $('opp-hand-exile-title');
+    const cardsDiv = $('opp-hand-exile-cards');
+    const confirmBtn = $('opp-hand-exile-confirm');
+    const descEl = $('opp-hand-exile-desc');
+
+    const totalAvailable = player.hand.length + player.open.length;
+    if (totalAvailable === 0) { resolve(0); return; }
+    const maxExile = Math.min(count, totalAvailable);
+
+    titleEl.textContent = '手札除外';
+    descEl.innerHTML = '自分の手札から' + maxExile + '枚選んで除外する。（強制）';
+    cardsDiv.innerHTML = '';
+
+    const selected = new Set(); // uid set
+
+    // 全カードを表示（手札＋公開場）
+    const allCards = [...player.hand, ...player.open];
+    const cardElMap = new Map();
+
+    allCards.forEach(card => {
+      const el = createCardEl(card, false);
+      el.style.width = '70px';
+      el.style.height = '98px';
+      cardElMap.set(card.uid, el);
+      const onClick = () => {
+        if (selected.has(card.uid)) {
+          selected.delete(card.uid);
+          el.classList.remove('opp-exile-selected');
+        } else {
+          if (selected.size >= maxExile) return;
+          selected.add(card.uid);
+          el.classList.add('opp-exile-selected');
+        }
+        updateUI();
+      };
+      el.addEventListener('click', onClick);
+      el.addEventListener('touchend', (e) => { e.preventDefault(); onClick(); }, { passive: false });
+      cardsDiv.appendChild(el);
+    });
+
+    function updateUI() {
+      if (selected.size >= maxExile) {
+        confirmBtn.disabled = false;
+        confirmBtn.classList.add('ready');
+      } else {
+        confirmBtn.disabled = true;
+        confirmBtn.classList.remove('ready');
+      }
+    }
+
+    const onConfirm = () => {
+      if (selected.size < maxExile) return;
+      confirmBtn.removeEventListener('click', onConfirm);
+      confirmBtn.removeEventListener('touchend', onConfirmTouch);
+      overlay.style.display = 'none';
+      overlay.classList.remove('active');
+
+      let exiled = 0;
+      selected.forEach(uid => {
+        let idx = player.hand.findIndex(c => c.uid === uid);
+        if (idx !== -1) {
+          const c = player.hand.splice(idx, 1)[0];
+          player.exile.push(c);
+          exiled++;
+        } else {
+          idx = player.open.findIndex(c => c.uid === uid);
+          if (idx !== -1) {
+            const c = player.open.splice(idx, 1)[0];
+            player.exile.push(c);
+            exiled++;
+          }
+        }
+      });
+
+      if (exiled > 0) {
+        renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
+        updateExileDisplay('player');
+        requestAnimationFrame(() => {
+          showFloatingText(dom.playerHandCards, 'ハンデス', 'handdes');
+        });
+      }
+      resolve(exiled);
+    };
+    const onConfirmTouch = (e) => { e.preventDefault(); onConfirm(); };
+
+    confirmBtn.disabled = true;
+    confirmBtn.classList.remove('ready');
+    confirmBtn.addEventListener('click', onConfirm);
+    confirmBtn.addEventListener('touchend', onConfirmTouch, { passive: false });
+
+    overlay.style.display = 'flex';
+    overlay.classList.add('active');
+  });
+}
+
 function executeAttackAnimation(targetEl, atkIdx, power, group) {
   // アニメーション開始（通常速度）
   turnLocked = true;
@@ -1337,7 +2089,7 @@ function executeAttackAnimation(targetEl, atkIdx, power, group) {
   // アニメーション完了後にダメージ→カード処理を一連で行う
   setTimeout(async () => {
     // applyDamageWithSoulAbsorb経由（CPU魂吸収AI含む）
-    await applyDamageWithSoulAbsorb(power, 'top');
+    await applyDamageWithSoulAbsorb(power, 'top', group.basho);
     const isFinishBlow = (opponent.life <= 0);
 
     // カード処理：攻撃したカードを魂へ
@@ -1360,15 +2112,14 @@ function executeAttackAnimation(targetEl, atkIdx, power, group) {
     selectedGroupIdx = null;
 
     if (isFinishBlow) {
-      showWinLoseResult(true);
+      gameEnded = true;
+      setTimeout(() => { showWinLoseResult(true); }, 1500);
     } else {
       turnLocked = false;
       updatePlayableAura();
     }
   }, 500);
 }
-
-// showFinishZoom は削除済み（攻撃シーンズームに移行）
 
 function showWinLoseResult(isWin) {
   gameEnded = true;
@@ -1393,15 +2144,16 @@ function showDamage(amount, side, isFinish) {
 }
 
 // 魂ダメージ表示（魂ゾーンに「−○」を表示）
-function showSoulDamage(absorbCount, who) {
+function showSoulDamage(absorbCount, who, isFinish) {
   if (absorbCount <= 0) return;
   const soulZone = (who === 'player') ? $('player-soul-zone') : $('opp-soul-zone');
   const el = document.createElement('div');
-  el.className = 'soul-damage-num';
+  el.className = 'soul-damage-num' + (isFinish ? ' soul-damage-finish' : '');
   el.textContent = '−' + absorbCount;
   soulZone.style.position = 'relative';
   soulZone.appendChild(el);
-  setTimeout(() => { el.remove(); }, 900);
+  const duration = isFinish ? 1600 : 900;
+  setTimeout(() => { el.remove(); }, duration);
 }
 
 dom.attackBtn.addEventListener('click', (e) => { e.stopPropagation(); performAttack().catch(()=>{}); });
@@ -1647,7 +2399,7 @@ function setupDrag(el, card) {
       else {
         // 手札公開場から探す
         idx = player.open.findIndex(c => c.uid === card.uid);
-        if (idx !== -1) { player.open.splice(idx, 1); placeCard(card); renderPlayerOpen(); }
+        if (idx !== -1) { player.open.splice(idx, 1); card._fromOpen = true; placeCard(card); renderPlayerOpen(); }
       }
     }
     cleanup();
@@ -1815,7 +2567,7 @@ function placeCard(card) {
       await showEffectActivation(card, '効果発動');
       // 効果処理
       if (card.effect === 'damage_8') {
-        await applyDamageWithSoulAbsorb(8, 'top');
+        await applyDamageWithSoulAbsorb(8, 'top', card);
         checkWinLose();
       } else if (card.effect === 'draw_3') {
         drawCards('player', 3);
@@ -1836,8 +2588,29 @@ function placeCard(card) {
               renderPlayerOpen();
               updateExileDisplay('player');
               updateAllCounts();
-              await applyDamageWithSoulAbsorb(4, 'top');
+              await applyDamageWithSoulAbsorb(4, 'top', card);
               checkWinLose();
+            }
+          }
+        }
+      } else if (card.effect === 'retrieve_exile_graveyard_draw1') {
+        const hasGraveyardInExile = player.exile.some(c => hasTribe(c, '墓地'));
+        if (hasGraveyardInExile) {
+          const selected = await startExileSelectPhase({
+            who: 'player',
+            title: '効果：唐笠おばけ',
+            desc: '除外から「墓地」属性のカードを1枚選び、手札公開場に置いても良い。<br>置いた場合、山札から1枚ドローする。',
+            filter: (c) => hasTribe(c, '墓地'),
+          });
+          if (selected) {
+            const idx = player.exile.findIndex(c => c.uid === selected.uid);
+            if (idx !== -1) {
+              player.exile.splice(idx, 1);
+              player.open.push(selected);
+              renderPlayerOpen();
+              updateExileDisplay('player');
+              updateAllCounts();
+              drawCards('player', 1);
             }
           }
         }
@@ -2023,23 +2796,17 @@ function showTurnAnnounce(text, cb) {
 // ===================================================================
 function checkWinLose() {
   if (gameEnded) return;
-  // 攻撃によるフィニッシュブローはexecuteAttackAnimation/executeCpuAttackが処理する
-  // ここでは道具札ダメージなど非攻撃のライフ0のみ処理（ズーム＋スロー演出付き）
+  // ライフ0判定：showDamage/showSoulDamageでフィニッシュ演出は既に開始済み
   if (opponent.life <= 0) {
     gameEnded = true;
     turnLocked = true;
-    // ダメージ演出にスロー＋ズーム（damageOverlayをズームで表示）
-    dom.damageOverlay.classList.add('finish-damage-zoom');
     setTimeout(() => {
-      dom.damageOverlay.classList.remove('finish-damage-zoom');
       showWinLoseResult(true);
     }, 1500);
   } else if (player.life <= 0) {
     gameEnded = true;
     turnLocked = true;
-    dom.damageOverlay.classList.add('finish-damage-zoom');
     setTimeout(() => {
-      dom.damageOverlay.classList.remove('finish-damage-zoom');
       showWinLoseResult(false);
     }, 1500);
   }
@@ -2334,7 +3101,7 @@ function handleSummonEffect(card, who) {
         }
         startCardSelectPhase({
           title: 'カード選択',
-          desc: '手札から「墓地」属性のカードを1枚選択して除外してもいい。<br>除外した場合、相手に3点のダメージ。',
+          desc: '手札から「墓地」属性のカードを1枚選択して除外しても良い。<br>除外した場合、相手に3点のダメージ。',
           filter: (c) => hasTribe(c, '墓地'),
           onConfirm: (selectedCard) => {
             // 手札から除外
@@ -2354,7 +3121,7 @@ function handleSummonEffect(card, who) {
               if (exileImg) showFloatingText(dom.playerExile, '除外', 'exile');
             });
             // 相手に3点ダメージ
-            applyDamageWithSoulAbsorb(3, 'top').then(() => {
+            applyDamageWithSoulAbsorb(3, 'top', card).then(() => {
               checkWinLose();
               turnLocked = false;
               updatePlayableAura();
@@ -2369,6 +3136,166 @@ function handleSummonEffect(card, who) {
       })();
     } else {
       // CPU処理（別関数）
+      handleCpuSummonEffect(card);
+    }
+  }
+
+  if (card.summonEffect === 'retrieve_exile_graveyard_damage4') {
+    if (who === 'player') {
+      (async () => {
+        await showEffectActivation(card, '召喚時効果');
+        const hasGraveyardInExile = player.exile.some(c => hasTribe(c, '墓地'));
+        if (!hasGraveyardInExile) {
+          turnLocked = false;
+          updatePlayableAura();
+          return;
+        }
+        const selected = await startExileSelectPhase({
+          who: 'player',
+          title: '召喚時効果：赤えい',
+          desc: '除外から「墓地」属性のカードを1枚選び、手札公開場に置いても良い。<br>置いた場合、相手に4点のダメージ。',
+          filter: (c) => hasTribe(c, '墓地'),
+        });
+        if (selected) {
+          const idx = player.exile.findIndex(c => c.uid === selected.uid);
+          if (idx !== -1) {
+            player.exile.splice(idx, 1);
+            player.open.push(selected);
+            renderPlayerOpen();
+            updateExileDisplay('player');
+            updateAllCounts();
+            await applyDamageWithSoulAbsorb(4, 'top', card);
+            checkWinLose();
+          }
+        }
+        turnLocked = false;
+        updatePlayableAura();
+      })();
+    } else {
+      handleCpuSummonEffect(card);
+    }
+  }
+
+  if (card.summonEffect === 'exile_graveyard_count_damage') {
+    if (who === 'player') {
+      (async () => {
+        await showEffectActivation(card, '召喚時効果');
+        // 自分と相手の除外にある墓地属性カードを数える
+        const playerGraveyardCount = player.exile.filter(c => hasTribe(c, '墓地')).length;
+        const oppGraveyardCount = opponent.exile.filter(c => hasTribe(c, '墓地')).length;
+        const totalCount = playerGraveyardCount + oppGraveyardCount;
+        const dmg = totalCount * 2;
+        if (dmg > 0) {
+          await applyDamageWithSoulAbsorb(dmg, 'top', card);
+          checkWinLose();
+        }
+        turnLocked = false;
+        updatePlayableAura();
+      })();
+    } else {
+      handleCpuSummonEffect(card);
+    }
+  }
+
+  // 木霊の森：手札から墓地属性カードを1枚除外→1ドロー
+  if (card.summonEffect === 'exile_hand_graveyard_draw1') {
+    if (who === 'player') {
+      (async () => {
+        await showEffectActivation(card, '召喚時効果');
+        const hasGraveyard = [...player.hand, ...player.open].some(c => hasTribe(c, '墓地'));
+        if (!hasGraveyard) {
+          turnLocked = false;
+          updatePlayableAura();
+          return;
+        }
+        startCardSelectPhase({
+          title: '召喚時効果：木霊の森',
+          desc: '手札から「墓地」属性のカードを1枚除外しても良い。<br>除外した場合、山札から1枚ドローする。',
+          filter: (c) => hasTribe(c, '墓地'),
+          onConfirm: (selectedCard) => {
+            let idx = player.hand.findIndex(c => c.uid === selectedCard.uid);
+            if (idx !== -1) {
+              player.hand.splice(idx, 1);
+            } else {
+              idx = player.open.findIndex(c => c.uid === selectedCard.uid);
+              if (idx !== -1) player.open.splice(idx, 1);
+            }
+            player.exile.push(selectedCard);
+            renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
+            updateExileDisplay('player');
+            requestAnimationFrame(() => {
+              showFloatingText(dom.playerExile, '除外', 'exile');
+            });
+            drawCards('player', 1);
+            turnLocked = false;
+            updatePlayableAura();
+          },
+          onSkip: () => {
+            turnLocked = false;
+            updatePlayableAura();
+          }
+        });
+      })();
+    } else {
+      handleCpuSummonEffect(card);
+    }
+  }
+
+  // 砂の竹林：除外から墓地属性カードを1枚回収→相手は自身の手札を2枚除外
+  if (card.summonEffect === 'retrieve_exile_graveyard_exile2_opponent_hand') {
+    if (who === 'player') {
+      (async () => {
+        await showEffectActivation(card, '召喚時効果');
+        const hasGraveyardInExile = player.exile.some(c => hasTribe(c, '墓地'));
+        if (!hasGraveyardInExile) {
+          turnLocked = false;
+          updatePlayableAura();
+          return;
+        }
+        const selected = await startExileSelectPhase({
+          who: 'player',
+          title: '召喚時効果：砂の竹林',
+          desc: '除外から「墓地」属性のカードを1枚選び、手札公開場に置いても良い。<br>置いた場合、相手は自身の手札を2枚除外する。',
+          filter: (c) => hasTribe(c, '墓地'),
+        });
+        if (selected) {
+          const idx = player.exile.findIndex(c => c.uid === selected.uid);
+          if (idx !== -1) {
+            player.exile.splice(idx, 1);
+            player.open.push(selected);
+            renderPlayerOpen();
+            updateExileDisplay('player');
+            updateAllCounts();
+          }
+          // 相手（CPU）が自身の手札からランダムに2枚除外
+          const oppAllHand = [...opponent.hand, ...opponent.open];
+          const exileCount = Math.min(2, oppAllHand.length);
+          for (let i = 0; i < exileCount; i++) {
+            const available = [...opponent.hand, ...opponent.open];
+            if (available.length === 0) break;
+            const rIdx = Math.floor(Math.random() * available.length);
+            const chosen = available[rIdx];
+            let hIdx = opponent.hand.findIndex(c => c.uid === chosen.uid);
+            if (hIdx !== -1) {
+              opponent.hand.splice(hIdx, 1);
+            } else {
+              hIdx = opponent.open.findIndex(c => c.uid === chosen.uid);
+              if (hIdx !== -1) opponent.open.splice(hIdx, 1);
+            }
+            opponent.exile.push(chosen);
+          }
+          if (exileCount > 0) {
+            renderOppHand(); updateAllCounts();
+            updateExileDisplay('opponent');
+            requestAnimationFrame(() => {
+              showFloatingText(dom.oppHandCards, 'ハンデス', 'handdes');
+            });
+          }
+        }
+        turnLocked = false;
+        updatePlayableAura();
+      })();
+    } else {
       handleCpuSummonEffect(card);
     }
   }
@@ -2394,11 +3321,101 @@ async function handleCpuSummonEffect(card) {
           showFloatingText(dom.oppExile, '除外', 'exile');
         });
         // プレイヤーに3点ダメージ（魂吸収選択あり）
-        await applyDamageWithSoulAbsorb(3, 'bottom');
+        await applyDamageWithSoulAbsorb(3, 'bottom', card);
         checkWinLose();
       }
     }
     // 墓地カードがなければ何もしない（CPUは必ず除外する）
+  }
+
+  if (card.summonEffect === 'retrieve_exile_graveyard_damage4') {
+    await showEffectActivation(card, '召喚時効果');
+    // CPUの除外から墓地属性カードを探す（最高コスト優先）
+    const graveyardCards = opponent.exile.filter(c => hasTribe(c, '墓地'));
+    if (graveyardCards.length > 0) {
+      graveyardCards.sort((a, b) => (b.cost || 0) - (a.cost || 0));
+      const target = graveyardCards[0];
+      const idx = opponent.exile.findIndex(c => c.uid === target.uid);
+      if (idx !== -1) {
+        opponent.exile.splice(idx, 1);
+        opponent.open.push(target);
+        updateExileDisplay('opponent');
+        updateAllCounts();
+        await applyDamageWithSoulAbsorb(4, 'bottom', card);
+        checkWinLose();
+      }
+    }
+  }
+
+  if (card.summonEffect === 'exile_graveyard_count_damage') {
+    await showEffectActivation(card, '召喚時効果');
+    // 自分と相手の除外にある墓地属性カードを数える
+    const cpuGraveyardCount = opponent.exile.filter(c => hasTribe(c, '墓地')).length;
+    const playerGraveyardCount = player.exile.filter(c => hasTribe(c, '墓地')).length;
+    const totalCount = cpuGraveyardCount + playerGraveyardCount;
+    const dmg = totalCount * 2;
+    if (dmg > 0) {
+      await applyDamageWithSoulAbsorb(dmg, 'bottom', card);
+      checkWinLose();
+    }
+  }
+
+  // 木霊の森CPU版：手札から墓地属性カードを除外→1ドロー
+  if (card.summonEffect === 'exile_hand_graveyard_draw1') {
+    await showEffectActivation(card, '召喚時効果');
+    const graveyardCards = opponent.hand.filter(c => hasTribe(c, '墓地'));
+    if (graveyardCards.length > 0) {
+      graveyardCards.sort((a, b) => (a.cost || 0) - (b.cost || 0));
+      const target = graveyardCards[0];
+      const idx = opponent.hand.findIndex(c => c.uid === target.uid);
+      if (idx !== -1) {
+        opponent.hand.splice(idx, 1);
+        opponent.exile.push(target);
+        renderOppHand(); updateAllCounts();
+        updateExileDisplay('opponent');
+        requestAnimationFrame(() => {
+          showFloatingText(dom.oppExile, '除外', 'exile');
+        });
+        drawCards('opponent', 1);
+      }
+    }
+  }
+
+  // 砂の竹林CPU版：除外から墓地属性カードを回収→プレイヤーが自身の手札から2枚除外
+  if (card.summonEffect === 'retrieve_exile_graveyard_exile2_opponent_hand') {
+    await showEffectActivation(card, '召喚時効果');
+    const graveyardCards = opponent.exile.filter(c => hasTribe(c, '墓地'));
+    if (graveyardCards.length > 0) {
+      graveyardCards.sort((a, b) => (b.cost || 0) - (a.cost || 0));
+      const target = graveyardCards[0];
+      const idx = opponent.exile.findIndex(c => c.uid === target.uid);
+      if (idx !== -1) {
+        opponent.exile.splice(idx, 1);
+        opponent.open.push(target);
+        updateExileDisplay('opponent');
+        updateAllCounts();
+      }
+      // プレイヤーが自身の手札から2枚除外（強制）
+      const playerAllHand = [...player.hand, ...player.open];
+      if (playerAllHand.length > 0) {
+        if (playerAllHand.length <= 2) {
+          // 2枚以下→全て自動除外
+          [...player.hand].forEach(c => player.exile.push(c));
+          [...player.open].forEach(c => player.exile.push(c));
+          const exiled = player.hand.length + player.open.length;
+          player.hand = [];
+          player.open = [];
+          renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
+          updateExileDisplay('player');
+          requestAnimationFrame(() => {
+            showFloatingText(dom.playerHandCards, 'ハンデス', 'handdes');
+          });
+        } else {
+          // 3枚以上→プレイヤーが2枚選択
+          await startSelfHandExilePhase(2);
+        }
+      }
+    }
   }
 }
 
@@ -2473,7 +3490,7 @@ function cpuSoulAbsorbAI(st, amount) {
   return toExile.length;
 }
 
-function applyDamageWithSoulAbsorb(amount, side) {
+function applyDamageWithSoulAbsorb(amount, side, sourceCard) {
   return new Promise((resolve) => {
     const who = (side === 'bottom') ? 'player' : 'opponent';
     const st = (who === 'player') ? player : opponent;
@@ -2484,7 +3501,8 @@ function applyDamageWithSoulAbsorb(amount, side) {
       if (st.life < 0) st.life = 0;
       if (who === 'player') dom.playerLife.textContent = st.life;
       else dom.oppLife.textContent = st.life;
-      showDamage(amount, side);
+      const isLethal = (st.life <= 0);
+      showDamage(amount, side, isLethal);
       resolve(amount);
       return;
     }
@@ -2501,12 +3519,15 @@ function applyDamageWithSoulAbsorb(amount, side) {
           requestAnimationFrame(() => {
             showFloatingText(dom.oppExile, '除外', 'exile');
           });
-          showSoulDamage(cpuAbsorbed, 'opponent');
         }
         st.life -= actualDmg;
         if (st.life < 0) st.life = 0;
         dom.oppLife.textContent = st.life;
-        if (actualDmg > 0) showDamage(actualDmg, side);
+        const isLethal = (st.life <= 0);
+        if (cpuAbsorbed > 0) {
+          showSoulDamage(cpuAbsorbed, 'opponent', isLethal);
+        }
+        if (actualDmg > 0) showDamage(actualDmg, side, isLethal);
         resolve(actualDmg);
       } else {
         // 致死でなければそのままダメージ
@@ -2521,7 +3542,17 @@ function applyDamageWithSoulAbsorb(amount, side) {
 
     // プレイヤーで魂が0の場合はそのままダメージ（上で処理済み）
 
-    // プレイヤーに質問：「ダメージを魂で受けますか？」
+    // プレイヤーに質問：「○○からのダメージを魂で受けますか？」
+    const askImg = $('soul-absorb-ask-img');
+    if (sourceCard && sourceCard.img) {
+      askImg.src = sourceCard.img;
+      askImg.alt = sourceCard.name || '';
+      askImg.style.display = '';
+      dom.soulAbsorbAskTitle.innerHTML = '<b>' + (sourceCard.name || '') + '</b>からの' + amount + 'ダメージを<br>魂で受けますか？';
+    } else {
+      askImg.style.display = 'none';
+      dom.soulAbsorbAskTitle.innerHTML = amount + 'ダメージを魂で受けますか？';
+    }
     dom.soulAbsorbAsk.style.display = 'flex';
     dom.soulAbsorbAsk.classList.add('active');
 
@@ -2541,7 +3572,8 @@ function applyDamageWithSoulAbsorb(amount, side) {
       st.life -= amount;
       if (st.life < 0) st.life = 0;
       dom.playerLife.textContent = st.life;
-      showDamage(amount, side);
+      const isLethal = (st.life <= 0);
+      showDamage(amount, side, isLethal);
       resolve(amount);
     };
     const onNoTouch = (e) => { e.preventDefault(); onNo(e); };
@@ -2648,20 +3680,25 @@ function finishSoulAbsorbSelect(totalDamage, side, st, resolve) {
   updateExileDisplay('player');
   updateAllCounts();
 
-  // 除外フローティングテキスト（魂を除外した場合）
-  if (absorbCount > 0) {
-    requestAnimationFrame(() => {
-      showFloatingText(dom.playerExile, '除外', 'exile');
-    });
-    showSoulDamage(absorbCount, 'player');
-  }
-
   // ダメージ適用
   if (remainingDamage > 0) {
     st.life -= remainingDamage;
     if (st.life < 0) st.life = 0;
     dom.playerLife.textContent = st.life;
-    showDamage(remainingDamage, side);
+  }
+  const isLethal = (st.life <= 0);
+
+  // 除外フローティングテキスト（魂を除外した場合）
+  if (absorbCount > 0) {
+    requestAnimationFrame(() => {
+      showFloatingText(dom.playerExile, '除外', 'exile');
+    });
+    showSoulDamage(absorbCount, 'player', isLethal);
+  }
+
+  // ダメージ表示
+  if (remainingDamage > 0) {
+    showDamage(remainingDamage, side, isLethal);
   }
 
   resolve(remainingDamage);
@@ -2672,6 +3709,9 @@ function proceedEndTurn() {
   resetTurnFlags();
   attackUsedThisTurn = false;
   hidePreview(); hideAttackBtn(); clearAllGlow();
+  // ターン終了時：場ダメージ回復（両方）
+  resetFieldDamage('player');
+  resetFieldDamage('opponent');
   renderField('player');
   updatePlayableAura();
 
@@ -2850,7 +3890,7 @@ async function cpuPlaceCard(card) {
     // 道具札：効果発動演出を表示
     await showEffectActivation(card, '効果発動');
     if (card.effect === 'damage_8') {
-      await applyDamageWithSoulAbsorb(8, 'bottom');
+      await applyDamageWithSoulAbsorb(8, 'bottom', card);
       checkWinLose();
     } else if (card.effect === 'draw_3') {
       drawCards('opponent', 3);
@@ -2866,8 +3906,23 @@ async function cpuPlaceCard(card) {
           opponent.open.push(target);
           updateExileDisplay('opponent');
           updateAllCounts();
-          await applyDamageWithSoulAbsorb(4, 'bottom');
+          await applyDamageWithSoulAbsorb(4, 'bottom', card);
           checkWinLose();
+        }
+      }
+    } else if (card.effect === 'retrieve_exile_graveyard_draw1') {
+      // CPUの除外から墓地属性カードを探す（最高コスト優先）
+      const graveyardCards = opponent.exile.filter(c => hasTribe(c, '墓地'));
+      if (graveyardCards.length > 0) {
+        graveyardCards.sort((a, b) => (b.cost || 0) - (a.cost || 0));
+        const target = graveyardCards[0];
+        const idx = opponent.exile.findIndex(c => c.uid === target.uid);
+        if (idx !== -1) {
+          opponent.exile.splice(idx, 1);
+          opponent.open.push(target);
+          updateExileDisplay('opponent');
+          updateAllCounts();
+          drawCards('opponent', 1);
         }
       }
     }
@@ -2931,10 +3986,18 @@ async function executeCpuAttack(groupIdx, done) {
   if (group.kaii.length > 0) {
     for (let i = 0; i < group.kaii.length; i++) {
       const kCard = group.kaii[i];
-      await showEffectActivation(kCard, '効果発動');
+      // コスト以上の魂がないと効果不発
       if (kCard.kaiiEffect) {
+        const kaiiCost = kCard.cost || 0;
+        if (opponent.soul.length < kaiiCost) {
+          await showEffectFailed(kCard);
+          continue;
+        }
+        await showEffectActivation(kCard, '効果発動');
         await handleKaiiEffect(kCard, 'opponent');
         if (gameEnded) { done(); return; }
+      } else {
+        await showEffectActivation(kCard, '効果発動');
       }
     }
   }
@@ -2958,16 +4021,8 @@ async function executeCpuAttack(groupIdx, done) {
   // アニメーション完了後に魂吸収選択→ダメージ処理
   setTimeout(async () => {
     // 魂吸収選択（プレイヤーが受けるダメージ）
-    const actualDamage = await applyDamageWithSoulAbsorb(power, 'bottom');
+    const actualDamage = await applyDamageWithSoulAbsorb(power, 'bottom', group.basho);
     const isFinishBlow = (player.life <= 0);
-
-    // フィニッシュブローの場合のズーム演出
-    if (isFinishBlow) {
-      dom.damageOverlay.classList.add('finish-damage-zoom');
-      setTimeout(() => {
-        dom.damageOverlay.classList.remove('finish-damage-zoom');
-      }, 1500);
-    }
 
     // カード処理
     if (group.basho) opponent.soul.push(group.basho);
@@ -2984,7 +4039,8 @@ async function executeCpuAttack(groupIdx, done) {
     updateAllCounts();
 
     if (isFinishBlow) {
-      showWinLoseResult(false);
+      gameEnded = true;
+      setTimeout(() => { showWinLoseResult(false); }, 1500);
     } else {
       done();
     }
@@ -3002,6 +4058,9 @@ function finishCpuTurn() {
       opponent.soul.push(discard);
     } else break;
   }
+  // ターン終了時：場ダメージ回復（両方）
+  resetFieldDamage('player');
+  resetFieldDamage('opponent');
   renderOppHand(); renderSoul('opponent'); updateAllCounts();
   startPlayerTurn();
 }

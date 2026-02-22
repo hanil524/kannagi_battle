@@ -273,8 +273,19 @@
     </div>
   </div>
 
+  <!-- 相手手札除外選択モーダル -->
+  <div id="opp-hand-exile-overlay" style="display:none;">
+    <span id="opp-hand-exile-title">相手の手札を除外</span>
+    <span id="opp-hand-exile-desc"></span>
+    <div id="opp-hand-exile-cards"></div>
+    <div id="opp-hand-exile-buttons">
+      <button id="opp-hand-exile-confirm" disabled>決定する</button>
+    </div>
+  </div>
+
   <!-- 魂ダメージ吸収：質問ポップアップ -->
   <div id="soul-absorb-ask" style="display:none;">
+    <img id="soul-absorb-ask-img" src="" alt="" style="display:none;">
     <span id="soul-absorb-ask-title">ダメージを魂で受けますか？</span>
     <div id="soul-absorb-ask-buttons">
       <button id="soul-absorb-yes">はい</button>
