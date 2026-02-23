@@ -19,10 +19,10 @@ const CARD_DB = [
   { number: 1915, name: 'うぶめ', cost: 8, power: 1, type: '場所札', season: '秋', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (23).jpg', summonEffect: 'exile_graveyard_count_damage' },
   { number: 1916, name: 'あずき洗い', cost: 0, power: 0, type: '怪異札', season: '秋', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (2).jpg', kaiiEffect: 'search_deck_graveyard_shuffle_exile_hand' },
   { number: 1917, name: 'さとり', cost: 0, power: 0, type: '怪異札', season: '秋', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (3).jpg', kaiiEffect: 'retrieve_exile_graveyard_draw2' },
-  { number: 1918, name: '山姥', cost: 4, power: 0, type: '怪異札', season: '秋', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (17).jpg' },
+  { number: 1918, name: '山姥', cost: 4, power: 0, type: '怪異札', season: '秋', tribe: '妖怪 墓地', qty: 2, img: 'images/card_12_p (17).jpg', kaiiEffect: 'exile_hand_graveyard_opponent_exile2' },
   { number: 1919, name: '唐笠おばけ', cost: 0, power: 0, type: '道具札', season: '秋', tribe: '墓地', qty: 2, img: 'images/card_12_p (19).jpg', effect: 'retrieve_exile_graveyard_draw1' },
   { number: 1920, name: 'こなきじじい', cost: 8, power: 0, type: '道具札', season: '秋', tribe: '墓地', qty: 2, img: 'images/card_12_p (18).jpg', effect: 'draw_3' },
-  { number: 1922, name: '沼御前', cost: 0, power: 0, type: '怪異札', season: '春', tribe: '妖怪', qty: 1, img: 'images/card_12_p (26).jpg', keyword: '鮮明', effect: 'global_youkai_plus2' },
+  { number: 1922, name: '沼御前', cost: 0, power: 0, type: '怪異札', season: '春', tribe: '妖怪', qty: 1, img: 'images/card_12_p (26).jpg', keyword: '鮮明 不屈', effect: 'global_youkai_plus2' },
   { number: 1924, name: 'いったん木綿', cost: 0, power: 0, type: '季節札', season: '冬', tribe: '妖怪 墓地', qty: 1, effect: 'youkai_power_plus2', img: 'images/card_12_p (24).jpg' },
 ];
 
@@ -35,6 +35,31 @@ const TYPE_ORDER = { '場所札': 0, '怪異札': 1, '道具札': 2, '季節札'
 function hasTribe(card, name) {
   if (!card || !card.tribe) return false;
   return card.tribe.split(' ').includes(name);
+}
+
+function hasKeyword(card, kw) {
+  if (!card || !card.keyword) return false;
+  return card.keyword.split(' ').includes(kw);
+}
+
+// 除外処理（不屈キーワード対応）
+// 不屈を持つカードは除外されず手札公開場に戻る
+function exileCard(who, card) {
+  const st = (who === 'player') ? player : opponent;
+  if (hasKeyword(card, '不屈')) {
+    st.open.push(card);
+    if (who === 'player') {
+      renderPlayerOpen();
+    }
+    updateAllCounts();
+    const openEl = (who === 'player') ? dom.playerOpenCards : dom.oppOpenCards;
+    requestAnimationFrame(() => {
+      showFloatingText(openEl, '不屈', 'draw');
+    });
+    return false; // 除外されなかった
+  }
+  st.exile.push(card);
+  return true; // 除外された
 }
 
 // ===================================================================
@@ -169,6 +194,8 @@ const dom = {
   cardSelectDesc: $('card-select-desc'),
   cardSelectConfirm: $('card-select-confirm'),
   cardSelectSkip: $('card-select-skip'),
+  cardSelectPreviewImg: $('card-select-preview-img'),
+  cardSelectPlaceholder: $('card-select-placeholder'),
   finishZoomOverlay: $('finish-zoom-overlay'),
   soulAbsorbAsk: $('soul-absorb-ask'),
   soulAbsorbAskTitle: $('soul-absorb-ask-title'),
@@ -542,6 +569,10 @@ function resetTurnFlags() {
   });
   updateTypeButtons();
 }
+function resetSideFlags(who) {
+  usedFlags[who] = { basho: false, kaii: false, dougu: false, season: false };
+  updateTypeButtons();
+}
 
 // ===================================================================
 // 山札裏面
@@ -595,6 +626,7 @@ function showExileModal(who) {
     st.exile.forEach(card => {
       const el = createCardEl(card, false);
       setupCardInteraction(el, card, who);
+      attachModalPreview(el, card);
       dom.exileModalCards.appendChild(el);
     });
   }
@@ -806,6 +838,55 @@ function hidePreview() {
   dom.kaiiPreviewOverlay.style.display = 'none';
 }
 
+// モーダル/オーバーレイ内カードプレビュー（PC: hover, スマホ: 長押し）
+function attachModalPreview(el, card) {
+  const mp = $('modal-preview');
+  const mpImg = $('modal-preview-img');
+  let longPressTimer = null;
+
+  // PC: hover
+  el.addEventListener('mouseenter', () => {
+    mpImg.src = card.img;
+    mp.classList.add('active');
+    mp.style.display = 'flex';
+  });
+  el.addEventListener('mouseleave', () => {
+    mp.classList.remove('active');
+    mp.style.display = 'none';
+  });
+
+  // スマホ: 長押し（500ms）
+  el.addEventListener('touchstart', (e) => {
+    longPressTimer = setTimeout(() => {
+      longPressTimer = null;
+      mpImg.src = card.img;
+      mp.classList.add('active');
+      mp.style.display = 'flex';
+    }, 500);
+  }, { passive: true });
+  el.addEventListener('touchend', () => {
+    if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+    mp.classList.remove('active');
+    mp.style.display = 'none';
+  });
+  el.addEventListener('touchmove', () => {
+    if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+  }, { passive: true });
+}
+// モーダルプレビューをタップで閉じる
+document.addEventListener('DOMContentLoaded', () => {
+  const mp = $('modal-preview');
+  if (mp) {
+    mp.addEventListener('click', () => { mp.classList.remove('active'); mp.style.display = 'none'; });
+    mp.addEventListener('touchend', (e) => { e.preventDefault(); mp.classList.remove('active'); mp.style.display = 'none'; });
+  }
+});
+
+// フェイズ中判定（プレビュー抑制に使用）
+function isAnyPhaseActive() {
+  return cardSelectPhase || handOverflowPhase || soulAbsorbPhase || turnLocked;
+}
+
 function setupCardInteraction(el, card, owner) {
   el.addEventListener('touchstart', (e) => {
     e.stopPropagation();
@@ -813,7 +894,7 @@ function setupCardInteraction(el, card, owner) {
   }, { passive: true });
   el.addEventListener('touchend', (e) => {
     e.stopPropagation();
-    e.preventDefault();
+    if (e.cancelable) e.preventDefault(); // FIX: スクロール中はcancelable=falseなためガード
     // 魂吸収フェイズ中：魂カードをタップで選択/解除
     if (soulAbsorbPhase && owner === 'player') {
       if (handleSoulAbsorbTap(card, el)) return;
@@ -826,6 +907,8 @@ function setupCardInteraction(el, card, owner) {
     if (cardSelectPhase && owner === 'player') {
       if (handleCardSelectTap(card, el)) return;
     }
+    // フェイズ中はプレビュー無効
+    if (isAnyPhaseActive()) { el.classList.remove('glow'); return; }
     if (suppressPreview) return;
     if (currentPreviewCard && currentPreviewCard.uid === card.uid) {
       hidePreview(); el.classList.remove('glow');
@@ -834,7 +917,11 @@ function setupCardInteraction(el, card, owner) {
       showPreview(card, owner);
     }
   });
-  el.addEventListener('mouseenter', () => { el.classList.add('glow'); showPreview(card, owner); });
+  el.addEventListener('mouseenter', () => {
+    // フェイズ中はプレビュー無効
+    if (isAnyPhaseActive()) return;
+    el.classList.add('glow'); showPreview(card, owner);
+  });
   el.addEventListener('mouseleave', () => { el.classList.remove('glow'); if (!insideKaiiPopup) hidePreview(); });
   el.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -850,6 +937,8 @@ function setupCardInteraction(el, card, owner) {
     if (cardSelectPhase && owner === 'player') {
       if (handleCardSelectTap(card, el)) return;
     }
+    // フェイズ中はプレビュー無効
+    if (isAnyPhaseActive()) return;
     if (suppressPreview) return;
     if (currentPreviewCard && currentPreviewCard.uid === card.uid) hidePreview();
     else showPreview(card, owner);
@@ -882,13 +971,13 @@ document.addEventListener('touchend', (e) => {
       dom.kaiiPreviewOverlay.style.display = 'none';
       currentPreviewCard = null;
       clearAllGlow();
-      e.preventDefault();
+      if (e.cancelable) e.preventDefault(); // FIX
       return;
     }
     if (dom.preview.style.display === 'flex') {
       hidePreview();
       clearAllGlow();
-      e.preventDefault();
+      if (e.cancelable) e.preventDefault(); // FIX
       return;
     }
   }
@@ -1189,7 +1278,7 @@ async function handleAttackEffect(basho, who) {
               idx = st.open.findIndex(c => c.uid === selectedCard.uid);
               if (idx !== -1) st.open.splice(idx, 1);
             }
-            st.exile.push(selectedCard);
+            exileCard(who, selectedCard);
             renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
             updateExileDisplay('player');
             requestAnimationFrame(() => {
@@ -1261,7 +1350,7 @@ async function handleAttackEffect(basho, who) {
               idx = st.open.findIndex(c => c.uid === selectedCard.uid);
               if (idx !== -1) st.open.splice(idx, 1);
             }
-            st.exile.push(selectedCard);
+            exileCard(who, selectedCard);
             renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
             updateExileDisplay('player');
             requestAnimationFrame(() => {
@@ -1315,7 +1404,7 @@ async function handleCpuAttackEffect(basho, st) {
       const idx = st.hand.findIndex(c => c.uid === target.uid);
       if (idx !== -1) {
         st.hand.splice(idx, 1);
-        st.exile.push(target);
+        exileCard('opponent', target); // FIX: 'who'は未定義 → 'opponent'に固定
         renderOppHand(); updateAllCounts();
         updateExileDisplay('opponent');
         requestAnimationFrame(() => {
@@ -1337,7 +1426,7 @@ async function handleCpuAttackEffect(basho, st) {
       const idx = st.hand.findIndex(c => c.uid === target.uid);
       if (idx !== -1) {
         st.hand.splice(idx, 1);
-        st.exile.push(target);
+        exileCard('opponent', target); // FIX: 'who'は未定義 → 'opponent'に固定
         renderOppHand(); updateAllCounts();
         updateExileDisplay('opponent');
         requestAnimationFrame(() => {
@@ -1383,7 +1472,7 @@ async function handleKaiiEffect(kCard, who) {
               idx = st.open.findIndex(c => c.uid === selectedCard.uid);
               if (idx !== -1) st.open.splice(idx, 1);
             }
-            st.exile.push(selectedCard);
+            exileCard(who, selectedCard);
             renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
             updateExileDisplay('player');
             requestAnimationFrame(() => {
@@ -1499,13 +1588,13 @@ async function handleKaiiEffect(kCard, who) {
     // 手札＋公開場＋魂を全て除外
     const allCards = [...st.hand, ...st.open, ...st.soul];
     let graveyardCount = 0;
-    allCards.forEach(c => {
-      st.exile.push(c);
-      if (hasTribe(c, '墓地')) graveyardCount++;
-    });
     st.hand = [];
     st.open = [];
     st.soul = [];
+    allCards.forEach(c => {
+      exileCard(who, c);
+      if (hasTribe(c, '墓地')) graveyardCount++;
+    });
 
     if (who === 'player') {
       renderPlayerHand(); renderPlayerOpen(); renderSoul('player');
@@ -1584,7 +1673,7 @@ async function handleKaiiEffect(kCard, who) {
                 idx = st.open.findIndex(c => c.uid === selectedCard.uid);
                 if (idx !== -1) st.open.splice(idx, 1);
               }
-              st.exile.push(selectedCard);
+              exileCard(who, selectedCard);
               renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
               updateExileDisplay('player');
               requestAnimationFrame(() => {
@@ -1632,12 +1721,126 @@ async function handleKaiiEffect(kCard, who) {
           idx = st.open.findIndex(c => c.uid === target.uid);
           if (idx !== -1) st.open.splice(idx, 1);
         }
-        st.exile.push(target);
+        exileCard(who, target);
         renderOppHand(); updateAllCounts();
         updateExileDisplay('opponent');
         requestAnimationFrame(() => {
           showFloatingText(dom.oppExile, '除外', 'exile');
         });
+      }
+    }
+  }
+
+  // 山姥：手札の墓地属性カード1枚除外→相手が自身の手札を2枚除外
+  if (kCard.kaiiEffect === 'exile_hand_graveyard_opponent_exile2') {
+    const st = (who === 'player') ? player : opponent;
+    const oppSt = (who === 'player') ? opponent : player;
+    const oppWho = (who === 'player') ? 'opponent' : 'player';
+
+    if (who === 'player') {
+      const hasGraveyard = [...st.hand, ...st.open].some(c => hasTribe(c, '墓地'));
+      if (!hasGraveyard) return;
+
+      let exiled = false;
+      await new Promise((resolve) => {
+        startCardSelectPhase({
+          title: '効果：山姥',
+          desc: '手札から「墓地」属性のカードを1枚選択して除外しても良い。<br>除外した場合、相手は自身の手札を2枚除外する。',
+          filter: (c) => hasTribe(c, '墓地'),
+          onConfirm: (selectedCard) => {
+            let idx = st.hand.findIndex(c => c.uid === selectedCard.uid);
+            if (idx !== -1) {
+              st.hand.splice(idx, 1);
+            } else {
+              idx = st.open.findIndex(c => c.uid === selectedCard.uid);
+              if (idx !== -1) st.open.splice(idx, 1);
+            }
+            exileCard(who, selectedCard);
+            renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
+            updateExileDisplay('player');
+            requestAnimationFrame(() => {
+              showFloatingText(dom.playerExile, '除外', 'exile');
+            });
+            exiled = true;
+            resolve();
+          },
+          onSkip: () => { resolve(); }
+        });
+      });
+
+      if (exiled) {
+        // 相手（CPU）が自身の手札を2枚ランダム除外
+        const oppAllHand = [...oppSt.hand, ...oppSt.open];
+        const exileCount = Math.min(2, oppAllHand.length);
+        if (exileCount > 0) {
+          const shuffled = shuffle([...oppAllHand]);
+          for (let i = 0; i < exileCount; i++) {
+            const target = shuffled[i];
+            let idx = oppSt.hand.findIndex(c => c.uid === target.uid);
+            if (idx !== -1) {
+              oppSt.hand.splice(idx, 1);
+              exileCard(oppWho, target);
+            } else {
+              idx = oppSt.open.findIndex(c => c.uid === target.uid);
+              if (idx !== -1) {
+                oppSt.open.splice(idx, 1);
+                exileCard(oppWho, target);
+              }
+            }
+          }
+          renderOppHand(); updateAllCounts();
+          updateExileDisplay('opponent');
+          requestAnimationFrame(() => {
+            showFloatingText(dom.oppHandCards, 'ハンデス', 'handdes');
+          });
+        }
+      }
+    } else {
+      // CPU版：CPU手札の墓地属性を最低コスト優先で除外
+      const graveyardCards = [...st.hand, ...st.open].filter(c => hasTribe(c, '墓地'));
+      if (graveyardCards.length === 0) return;
+      graveyardCards.sort((a, b) => (a.cost || 0) - (b.cost || 0));
+      const target = graveyardCards[0];
+      let idx = st.hand.findIndex(c => c.uid === target.uid);
+      if (idx !== -1) {
+        st.hand.splice(idx, 1);
+      } else {
+        idx = st.open.findIndex(c => c.uid === target.uid);
+        if (idx !== -1) st.open.splice(idx, 1);
+      }
+      exileCard(who, target);
+      renderOppHand(); updateAllCounts();
+      updateExileDisplay('opponent');
+      requestAnimationFrame(() => {
+        showFloatingText(dom.oppExile, '除外', 'exile');
+      });
+
+      // プレイヤーが自身の手札2枚を除外
+      const playerAllHand = [...oppSt.hand, ...oppSt.open];
+      if (playerAllHand.length > 0) {
+        if (playerAllHand.length <= 2) {
+          // 2枚以下なら全部除外
+          playerAllHand.forEach(c => {
+            let idx = oppSt.hand.findIndex(x => x.uid === c.uid);
+            if (idx !== -1) {
+              oppSt.hand.splice(idx, 1);
+              exileCard(oppWho, c);
+            } else {
+              idx = oppSt.open.findIndex(x => x.uid === c.uid);
+              if (idx !== -1) {
+                oppSt.open.splice(idx, 1);
+                exileCard(oppWho, c);
+              }
+            }
+          });
+          renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
+          updateExileDisplay('player');
+          requestAnimationFrame(() => {
+            showFloatingText(dom.playerHandCards, 'ハンデス', 'handdes');
+          });
+        } else {
+          await startSelfHandExilePhase(2);
+        }
       }
     }
   }
@@ -1653,7 +1856,7 @@ async function handleCpuKaiiEffect(kCard, st, dmg) {
       const idx = st.hand.findIndex(c => c.uid === target.uid);
       if (idx !== -1) {
         st.hand.splice(idx, 1);
-        st.exile.push(target);
+        exileCard('opponent', target);
         renderOppHand(); updateAllCounts();
         updateExileDisplay('opponent');
         requestAnimationFrame(() => {
@@ -1734,6 +1937,7 @@ function startExileSelectPhase(config) {
       };
       el.addEventListener('click', onSelectClick);
       el.addEventListener('touchend', onSelectTouch, { passive: false });
+      attachModalPreview(el, card);
       dom.exileModalCards.appendChild(el);
     });
 
@@ -1803,24 +2007,39 @@ function startDeckSearchPhase(config) {
       const el = createCardEl(card, false);
       el.classList.add('exile-selectable');
 
+      let touchStartY = 0; // スクロール判定用
+
       const onSelect = (e) => {
         e.stopPropagation();
         // 既に選択済みの場合→選択解除
         if (selectedCard && selectedCard.uid === card.uid) {
           selectedCard = null;
-          dom.exileModalCards.querySelectorAll('.battle-card').forEach(c => c.classList.remove('selected-card'));
+          dom.exileModalCards.querySelectorAll('.battle-card').forEach(c => { c.classList.remove('selected-card'); c.classList.remove('exile-selected'); });
           dom.exileModalConfirm.disabled = true;
+          dom.exileModalConfirm.classList.remove('ready');
           return;
         }
         // 新規選択
-        dom.exileModalCards.querySelectorAll('.battle-card').forEach(c => c.classList.remove('selected-card'));
+        dom.exileModalCards.querySelectorAll('.battle-card').forEach(c => { c.classList.remove('selected-card'); c.classList.remove('exile-selected'); });
         el.classList.add('selected-card');
         selectedCard = card;
         dom.exileModalConfirm.disabled = false;
+        dom.exileModalConfirm.classList.add('ready'); // FIX: readyクラスで青くなる
       };
-      const onSelectTouch = (e) => { e.stopPropagation(); if (e.cancelable) e.preventDefault(); onSelect(e); };
+      el.addEventListener('touchstart', (e) => {
+        touchStartY = e.touches[0] ? e.touches[0].clientY : 0;
+      }, { passive: true });
+      const onSelectTouch = (e) => {
+        e.stopPropagation();
+        // スクロール中の誤タップ防止：10px以上動いていたらスクロールとみなす
+        const touchEndY = e.changedTouches[0] ? e.changedTouches[0].clientY : touchStartY;
+        if (Math.abs(touchEndY - touchStartY) > 10) return;
+        if (e.cancelable) e.preventDefault();
+        onSelect(e);
+      };
       el.addEventListener('click', onSelect);
       el.addEventListener('touchend', onSelectTouch, { passive: false });
+      attachModalPreview(el, card);
       dom.exileModalCards.appendChild(el);
     });
 
@@ -1969,6 +2188,7 @@ function startExileOrderPhase(config) {
 
       el.addEventListener('click', onPick);
       el.addEventListener('touchend', onPickTouch, { passive: false });
+      attachModalPreview(el, card);
       dom.exileModalCards.appendChild(el);
     });
 
@@ -2022,7 +2242,8 @@ function startSelfHandExilePhase(count) {
         updateUI();
       };
       el.addEventListener('click', onClick);
-      el.addEventListener('touchend', (e) => { e.preventDefault(); onClick(); }, { passive: false });
+      el.addEventListener('touchend', (e) => { e.stopPropagation(); if (e.cancelable) e.preventDefault(); onClick(); }, { passive: false });
+      attachModalPreview(el, card);
       cardsDiv.appendChild(el);
     });
 
@@ -2048,13 +2269,13 @@ function startSelfHandExilePhase(count) {
         let idx = player.hand.findIndex(c => c.uid === uid);
         if (idx !== -1) {
           const c = player.hand.splice(idx, 1)[0];
-          player.exile.push(c);
+          exileCard('player', c);
           exiled++;
         } else {
           idx = player.open.findIndex(c => c.uid === uid);
           if (idx !== -1) {
             const c = player.open.splice(idx, 1)[0];
-            player.exile.push(c);
+            exileCard('player', c);
             exiled++;
           }
         }
@@ -2113,7 +2334,8 @@ function executeAttackAnimation(targetEl, atkIdx, power, group) {
 
     if (isFinishBlow) {
       gameEnded = true;
-      setTimeout(() => { showWinLoseResult(true); }, 1500);
+      showFinishBlowZoom('top');
+      setTimeout(() => { showWinLoseResult(true); }, 1800);
     } else {
       turnLocked = false;
       updatePlayableAura();
@@ -2121,11 +2343,65 @@ function executeAttackAnimation(targetEl, atkIdx, power, group) {
   }, 500);
 }
 
+function showFinishBlowZoom(targetSide) {
+  // targetSide: 'top' = 相手陣地ズーム（プレイヤー勝利時）, 'bottom' = 自分陣地ズーム（CPU勝利時）
+  const overlay = $('finish-blow-overlay');
+  const fieldDiv = $('finish-blow-field');
+  overlay.style.display = '';
+  overlay.className = 'active' + (targetSide === 'bottom' ? ' target-bottom' : '');
+  fieldDiv.innerHTML = '';
+
+  // 画面フラッシュ
+  const flash = document.createElement('div');
+  flash.className = 'finish-screen-flash';
+  fieldDiv.appendChild(flash);
+
+  // 衝撃波リング
+  const ring = document.createElement('div');
+  ring.className = 'finish-shock-ring';
+  fieldDiv.appendChild(ring);
+
+  // 放射状バースト
+  const burst = document.createElement('div');
+  burst.className = 'finish-radial-burst';
+  fieldDiv.appendChild(burst);
+
+  // インパクトライン（複数）
+  for (let i = 0; i < 5; i++) {
+    const line = document.createElement('div');
+    line.className = 'finish-impact-line';
+    const yPos = 30 + Math.random() * 40;
+    line.style.top = yPos + '%';
+    line.style.animationDelay = (i * 0.08) + 's';
+    fieldDiv.appendChild(line);
+  }
+
+  // 1.8秒後にクリーンアップ
+  setTimeout(() => {
+    overlay.className = '';
+    overlay.style.display = 'none';
+    fieldDiv.innerHTML = '';
+  }, 1800);
+}
+
 function showWinLoseResult(isWin) {
   gameEnded = true;
   dom.resultText.textContent = isWin ? 'YOU WIN!' : 'YOU LOSE!';
   dom.resultOverlay.className = isWin ? 'active win' : 'active lose';
   dom.resultOverlay.style.display = 'flex';
+
+  // 連勝カウンター
+  const streakEl = $('win-streak');
+  if (isWin) {
+    let streak = parseInt(localStorage.getItem('kannagi_win_streak') || '0', 10);
+    streak++;
+    localStorage.setItem('kannagi_win_streak', String(streak));
+    streakEl.textContent = streak + '連勝';
+    streakEl.style.display = 'block'; // FIX: ''ではCSSのdisplay:noneが残る
+  } else {
+    localStorage.setItem('kannagi_win_streak', '0');
+    streakEl.style.display = 'none';
+  }
 }
 
 function showDamage(amount, side, isFinish) {
@@ -2156,8 +2432,8 @@ function showSoulDamage(absorbCount, who, isFinish) {
   setTimeout(() => { el.remove(); }, duration);
 }
 
-dom.attackBtn.addEventListener('click', (e) => { e.stopPropagation(); performAttack().catch(()=>{}); });
-dom.attackBtn.addEventListener('touchend', (e) => { e.preventDefault(); e.stopPropagation(); performAttack().catch(()=>{}); });
+dom.attackBtn.addEventListener('click', (e) => { e.stopPropagation(); performAttack().catch(() => { }); });
+dom.attackBtn.addEventListener('touchend', (e) => { e.preventDefault(); e.stopPropagation(); performAttack().catch(() => { }); });
 
 // ===================================================================
 // 怪異札ポップアップ
@@ -2251,6 +2527,14 @@ function setupKaiiInteraction(el, group, owner, kCard) {
 dom.kaiiPopup.addEventListener('click', (e) => {
   if (e.target === dom.kaiiPopup || e.target.id === 'kaii-popup-title') hideKaiiPopup();
 });
+// FIX E: ポップアップ外クリック/タップで閉じる
+document.addEventListener('click', (e) => {
+  if (kaiiPopupActive && !dom.kaiiPopup.contains(e.target)) hideKaiiPopup();
+});
+document.addEventListener('touchend', (e) => {
+  // NOTE: passive:true でpreventDefaultは呼ばない（スクロール中のIntervention回避）
+  if (kaiiPopupActive && !dom.kaiiPopup.contains(e.target)) hideKaiiPopup();
+}, { passive: true });
 dom.kaiiPopup.addEventListener('touchend', (e) => {
   if (e.target === dom.kaiiPopup || e.target.id === 'kaii-popup-title') { e.preventDefault(); hideKaiiPopup(); }
 });
@@ -2700,6 +2984,9 @@ function startGame() {
   // フィニッシュズーム非表示
   dom.finishZoomOverlay.style.display = 'none';
   dom.finishZoomOverlay.classList.remove('active');
+  // フィニッシュブロー演出非表示
+  const fbo = $('finish-blow-overlay');
+  if (fbo) { fbo.className = ''; fbo.style.display = 'none'; $('finish-blow-field').innerHTML = ''; }
 
   // 全ポップアップクリア
   hideAllPopups();
@@ -2762,16 +3049,138 @@ function initGameAfterGate() {
   renderField('player'); renderField('opponent'); renderOppHand(); updateAllCounts();
   updatePlayableAura();
 
-  if (isFirstTurn) {
-    startPlayerTurn();
-  } else {
-    turnLocked = true;
-    showTurnAnnounce('相手のターン', () => {
-      setTimeout(() => {
-        cpuTurn();
-      }, 500);
+  // 零探し（両プレイヤー順に実行）
+  showZeroSearch('player').then(() => {
+    // CPU側はランダムで0〜3枚を底に戻してドロー
+    const cpuCount = Math.floor(Math.random() * 4); // 0〜3枚
+    if (cpuCount > 0) {
+      const shuffled = [...opponent.hand].sort(() => Math.random() - 0.5);
+      const toBottom = shuffled.slice(0, cpuCount);
+      toBottom.forEach(c => {
+        const idx = opponent.hand.findIndex(x => x.uid === c.uid);
+        if (idx !== -1) opponent.hand.splice(idx, 1);
+        opponent.deck.push(c); // デッキ底へ
+      });
+      drawCards('opponent', cpuCount);
+    }
+    renderOppHand(); updateAllCounts();
+
+    // ターン開始
+    if (isFirstTurn) {
+      startPlayerTurn();
+    } else {
+      turnLocked = true;
+      showTurnAnnounce('相手のターン', () => {
+        setTimeout(() => { cpuTurn(); }, 500);
+      });
+    }
+  });
+}
+
+// ===================================================================
+// 零探し：ゲーム開始時のマリガン的フェイズ
+// ===================================================================
+function showZeroSearch(who) {
+  return new Promise((resolve) => {
+    const st = (who === 'player') ? player : opponent;
+    const overlay = $('zero-search-overlay');
+    const orderEl = $('zero-search-order');
+    const cardsEl = $('zero-search-cards');
+    const previewImg = $('zero-search-preview-img');
+    const confirmBtn = $('zero-search-confirm');
+
+    // 先後テキスト
+    const orderText = isFirstTurn
+      ? (who === 'player' ? 'あなたは【先行】です。' : '相手は【後攻】です。')
+      : (who === 'player' ? 'あなたは【後攻】です。' : '相手は【先行】です。');
+    orderEl.textContent = orderText;
+
+    // 選択状態
+    const selectedUids = new Set();
+
+    // カード一覧をリセット
+    cardsEl.innerHTML = '';
+    previewImg.src = '';
+    previewImg.classList.remove('active');
+    confirmBtn.classList.add('ready'); // 0枚でも決定可能
+
+    // 手札8枚を表示
+    st.hand.forEach(card => {
+      const el = createCardEl(card, false);
+      let touchStartY = 0;
+
+      el.addEventListener('touchstart', (e) => {
+        touchStartY = e.touches[0] ? e.touches[0].clientY : 0;
+      }, { passive: true });
+
+      const onSelect = () => {
+        if (selectedUids.has(card.uid)) {
+          // 解除
+          selectedUids.delete(card.uid);
+          el.classList.remove('zs-selected');
+        } else {
+          // 選択
+          selectedUids.add(card.uid);
+          el.classList.add('zs-selected');
+        }
+        // プレビュー表示（最後にタップしたカード）
+        if (card.img) {
+          previewImg.src = card.img;
+          previewImg.classList.add('active');
+        }
+        updateCount();
+      };
+
+      el.addEventListener('click', onSelect);
+      el.addEventListener('touchend', (e) => {
+        const endY = e.changedTouches[0] ? e.changedTouches[0].clientY : touchStartY;
+        if (Math.abs(endY - touchStartY) > 10) return; // スクロール判定
+        if (e.cancelable) e.preventDefault();
+        onSelect();
+      }, { passive: false });
+
+      cardsEl.appendChild(el);
     });
-  }
+
+    // 選択枚数表示
+    const countEl = $('zero-search-count');
+    const updateCount = () => {
+      const n = selectedUids.size;
+      countEl.textContent = n === 0 ? 'カードを選んでデッキ底に戻す（任意）' : `${n}枚を選択中 → デッキ底に戻してドロー`;
+    };
+    updateCount();
+
+    // 決定ボタン
+    const onConfirm = () => {
+      confirmBtn.removeEventListener('click', onConfirm);
+      confirmBtn.removeEventListener('touchend', onConfirmTouch);
+      overlay.style.display = 'none';
+
+      // 選択したカードをデッキ底に戻す
+      const toBottom = [];
+      selectedUids.forEach(uid => {
+        const idx = st.hand.findIndex(c => c.uid === uid);
+        if (idx !== -1) {
+          toBottom.push(st.hand.splice(idx, 1)[0]);
+        }
+      });
+      toBottom.forEach(c => st.deck.push(c)); // デッキ一番下に追加
+
+      // 戻した枚数分ドロー（デッキ上から）
+      if (toBottom.length > 0) {
+        drawCards(who, toBottom.length);
+      }
+      if (who === 'player') { renderPlayerHand(); } else { renderOppHand(); }
+      updateAllCounts();
+
+      resolve();
+    };
+    const onConfirmTouch = (e) => { if (e.cancelable) e.preventDefault(); onConfirm(); };
+    confirmBtn.addEventListener('click', onConfirm);
+    confirmBtn.addEventListener('touchend', onConfirmTouch, { passive: false });
+
+    overlay.style.display = 'flex';
+  });
 }
 
 // ===================================================================
@@ -2796,19 +3205,20 @@ function showTurnAnnounce(text, cb) {
 // ===================================================================
 function checkWinLose() {
   if (gameEnded) return;
-  // ライフ0判定：showDamage/showSoulDamageでフィニッシュ演出は既に開始済み
   if (opponent.life <= 0) {
     gameEnded = true;
     turnLocked = true;
+    showFinishBlowZoom('top');
     setTimeout(() => {
       showWinLoseResult(true);
-    }, 1500);
+    }, 1800);
   } else if (player.life <= 0) {
     gameEnded = true;
     turnLocked = true;
+    showFinishBlowZoom('bottom');
     setTimeout(() => {
       showWinLoseResult(false);
-    }, 1500);
+    }, 1800);
   }
 }
 
@@ -2818,6 +3228,7 @@ function checkWinLose() {
 function startPlayerTurn() {
   turnLocked = true;
   turnNumber++;
+  resetSideFlags('player');
   // 召喚酔い解除：自分のターン開始時に縦に戻す
   player.field.forEach(g => { g._summonedThisTurn = false; });
   renderField('player');
@@ -2975,6 +3386,13 @@ function startCardSelectPhase(config) {
   dom.cardSelectOverlay.style.display = 'flex';
   dom.cardSelectOverlay.classList.add('active');
 
+  // 上段プレビューリセット
+  if (dom.cardSelectPreviewImg) {
+    dom.cardSelectPreviewImg.src = '';
+    dom.cardSelectPreviewImg.classList.remove('active');
+  }
+  if (dom.cardSelectPlaceholder) dom.cardSelectPlaceholder.style.display = 'block';
+
   // 決定ボタンを灰色（未選択）にリセット
   dom.cardSelectConfirm.disabled = true;
   dom.cardSelectConfirm.classList.remove('ready');
@@ -3025,6 +3443,12 @@ function handleCardSelectTap(card, el) {
     document.querySelectorAll('.battle-card.selected-card').forEach(e => e.classList.remove('selected-card'));
     dom.cardSelectConfirm.disabled = true;
     dom.cardSelectConfirm.classList.remove('ready');
+    // 上段プレビューをリセット
+    if (dom.cardSelectPreviewImg) {
+      dom.cardSelectPreviewImg.src = '';
+      dom.cardSelectPreviewImg.classList.remove('active');
+    }
+    if (dom.cardSelectPlaceholder) dom.cardSelectPlaceholder.style.display = 'block';
     return true;
   }
 
@@ -3034,6 +3458,12 @@ function handleCardSelectTap(card, el) {
   el.classList.add('selected-card');
   dom.cardSelectConfirm.disabled = false;
   dom.cardSelectConfirm.classList.add('ready');
+  // 上段に選択カードを拡大表示
+  if (dom.cardSelectPreviewImg && card.img) {
+    dom.cardSelectPreviewImg.src = card.img; // card.imgはすでに'images/'を含む
+    dom.cardSelectPreviewImg.classList.add('active');
+    if (dom.cardSelectPlaceholder) dom.cardSelectPlaceholder.style.display = 'none';
+  }
   return true;
 }
 
@@ -3112,7 +3542,7 @@ function handleSummonEffect(card, who) {
               idx = player.open.findIndex(c => c.uid === selectedCard.uid);
               if (idx !== -1) player.open.splice(idx, 1);
             }
-            player.exile.push(selectedCard);
+            exileCard('player', selectedCard);
             renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
             updateExileDisplay('player');
             // 除外フローティングテキスト
@@ -3220,7 +3650,7 @@ function handleSummonEffect(card, who) {
               idx = player.open.findIndex(c => c.uid === selectedCard.uid);
               if (idx !== -1) player.open.splice(idx, 1);
             }
-            player.exile.push(selectedCard);
+            exileCard('player', selectedCard);
             renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
             updateExileDisplay('player');
             requestAnimationFrame(() => {
@@ -3282,7 +3712,7 @@ function handleSummonEffect(card, who) {
               hIdx = opponent.open.findIndex(c => c.uid === chosen.uid);
               if (hIdx !== -1) opponent.open.splice(hIdx, 1);
             }
-            opponent.exile.push(chosen);
+            exileCard('opponent', chosen);
           }
           if (exileCount > 0) {
             renderOppHand(); updateAllCounts();
@@ -3313,7 +3743,7 @@ async function handleCpuSummonEffect(card) {
       const idx = opponent.hand.findIndex(c => c.uid === target.uid);
       if (idx !== -1) {
         opponent.hand.splice(idx, 1);
-        opponent.exile.push(target);
+        exileCard('opponent', target);
         renderOppHand(); updateAllCounts();
         updateExileDisplay('opponent');
         // 除外フローティングテキスト
@@ -3370,7 +3800,7 @@ async function handleCpuSummonEffect(card) {
       const idx = opponent.hand.findIndex(c => c.uid === target.uid);
       if (idx !== -1) {
         opponent.hand.splice(idx, 1);
-        opponent.exile.push(target);
+        exileCard('opponent', target);
         renderOppHand(); updateAllCounts();
         updateExileDisplay('opponent');
         requestAnimationFrame(() => {
@@ -3400,9 +3830,9 @@ async function handleCpuSummonEffect(card) {
       if (playerAllHand.length > 0) {
         if (playerAllHand.length <= 2) {
           // 2枚以下→全て自動除外
-          [...player.hand].forEach(c => player.exile.push(c));
-          [...player.open].forEach(c => player.exile.push(c));
           const exiled = player.hand.length + player.open.length;
+          [...player.hand].forEach(c => exileCard('player', c));
+          [...player.open].forEach(c => exileCard('player', c));
           player.hand = [];
           player.open = [];
           renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
@@ -3480,10 +3910,12 @@ function cpuSoulAbsorbAI(st, amount) {
   if (toExile.length > amount) toExile = toExile.slice(0, amount);
 
   // 実際に除外処理
+  const who = (st === player) ? 'player' : 'opponent';
   toExile.forEach(c => {
     const idx = st.soul.findIndex(s => s.uid === c.uid);
     if (idx !== -1) {
-      st.exile.push(st.soul.splice(idx, 1)[0]);
+      const removed = st.soul.splice(idx, 1)[0];
+      exileCard(who, removed);
     }
   });
 
@@ -3657,10 +4089,12 @@ function finishSoulAbsorbSelect(totalDamage, side, st, resolve) {
   const remainingDamage = Math.max(0, totalDamage - absorbCount);
 
   // 選択された魂を除外
+  const who = (st === player) ? 'player' : 'opponent';
   soulAbsorbSelectedUids.forEach(uid => {
     const idx = st.soul.findIndex(c => String(c.uid) === uid);
     if (idx !== -1) {
-      st.exile.push(st.soul.splice(idx, 1)[0]);
+      const removed = st.soul.splice(idx, 1)[0];
+      exileCard(who, removed);
     }
   });
 
@@ -3706,7 +4140,6 @@ function finishSoulAbsorbSelect(totalDamage, side, st, resolve) {
 
 function proceedEndTurn() {
   turnLocked = true;
-  resetTurnFlags();
   attackUsedThisTurn = false;
   hidePreview(); hideAttackBtn(); clearAllGlow();
   // ターン終了時：場ダメージ回復（両方）
@@ -3729,6 +4162,7 @@ const cpuUsedFlags = { basho: false, kaii: false, dougu: false, season: false };
 
 function cpuTurn() {
   turnLocked = true;
+  resetSideFlags('opponent');
   // 召喚酔い解除：相手ターン開始時に縦に戻す
   opponent.field.forEach(g => { g._summonedThisTurn = false; });
   renderField('opponent');
@@ -4040,7 +4474,8 @@ async function executeCpuAttack(groupIdx, done) {
 
     if (isFinishBlow) {
       gameEnded = true;
-      setTimeout(() => { showWinLoseResult(false); }, 1500);
+      showFinishBlowZoom('bottom');
+      setTimeout(() => { showWinLoseResult(false); }, 1800);
     } else {
       done();
     }
