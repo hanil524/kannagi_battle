@@ -132,6 +132,53 @@ let turnNumber = 0;          // ターン数（先行1=1, 後攻1=2, 先行2=3, 
 let turnLocked = false;       // ターン遷移中の操作ロック
 let gameEnded = false;        // 勝敗決定後フラグ
 
+// ===================================================================
+// 行動履歴
+// ===================================================================
+let historyList = []; // { who: 'player'|'opponent'|'system', text: string }
+
+function logHistory(who, text) {
+  historyList.unshift({ who, text }); // 先頭に追加（最新が上）
+  // リストが開いていれば即時更新
+  const modal = $('history-modal');
+  if (modal && modal.classList.contains('active')) {
+    renderHistory();
+  }
+}
+
+function renderHistory() {
+  const listEl = $('history-list');
+  if (!listEl) return;
+  listEl.innerHTML = '';
+  historyList.forEach(entry => {
+    const el = document.createElement('div');
+    el.className = 'history-entry';
+    if (entry.who === 'player') el.classList.add('history-player');
+    else if (entry.who === 'opponent') el.classList.add('history-opponent');
+    else el.classList.add('history-system');
+    el.textContent = entry.text;
+    listEl.appendChild(el);
+  });
+}
+
+function showHistoryModal() {
+  const modal = $('history-modal');
+  if (!modal) return;
+  renderHistory();
+  modal.classList.add('active');
+}
+
+function hideHistoryModal() {
+  const modal = $('history-modal');
+  if (!modal) return;
+  modal.classList.remove('active');
+}
+
+function resetHistory() {
+  historyList = [];
+}
+
+
 const usedFlags = {
   player: { basho: false, kaii: false, dougu: false, season: false },
   opponent: { basho: false, kaii: false, dougu: false, season: false },
@@ -221,6 +268,8 @@ const dom = {
   exileModalButtons: $('exile-modal-buttons'),
   exileModalConfirm: $('exile-modal-confirm'),
   exileModalSkip: $('exile-modal-skip'),
+  exileModalPreviewImg: $('exile-modal-preview-img'),
+  exileModalPreviewPlaceholder: $('exile-modal-preview-placeholder'),
 };
 
 // ===================================================================
@@ -1876,12 +1925,18 @@ function startExileSelectPhase(config) {
           dom.exileModalCards.querySelectorAll('.exile-selected').forEach(x => x.classList.remove('exile-selected'));
           dom.exileModalConfirm.disabled = true;
           dom.exileModalConfirm.classList.remove('ready');
+          // プレビューリセット
+          if (dom.exileModalPreviewImg) { dom.exileModalPreviewImg.src = ''; dom.exileModalPreviewImg.style.display = 'none'; }
+          if (dom.exileModalPreviewPlaceholder) dom.exileModalPreviewPlaceholder.style.display = 'block';
         } else {
           dom.exileModalCards.querySelectorAll('.exile-selected').forEach(x => x.classList.remove('exile-selected'));
           selectedCard = card;
           el.classList.add('exile-selected');
           dom.exileModalConfirm.disabled = false;
           dom.exileModalConfirm.classList.add('ready');
+          // プレビュー更新
+          if (dom.exileModalPreviewImg && card.img) { dom.exileModalPreviewImg.src = card.img; dom.exileModalPreviewImg.style.display = 'block'; }
+          if (dom.exileModalPreviewPlaceholder) dom.exileModalPreviewPlaceholder.style.display = 'none';
         }
       };
       const onSelectTouch = (e) => {
@@ -1893,12 +1948,18 @@ function startExileSelectPhase(config) {
           dom.exileModalCards.querySelectorAll('.exile-selected').forEach(x => x.classList.remove('exile-selected'));
           dom.exileModalConfirm.disabled = true;
           dom.exileModalConfirm.classList.remove('ready');
+          // プレビューリセット
+          if (dom.exileModalPreviewImg) { dom.exileModalPreviewImg.src = ''; dom.exileModalPreviewImg.style.display = 'none'; }
+          if (dom.exileModalPreviewPlaceholder) dom.exileModalPreviewPlaceholder.style.display = 'block';
         } else {
           dom.exileModalCards.querySelectorAll('.exile-selected').forEach(x => x.classList.remove('exile-selected'));
           selectedCard = card;
           el.classList.add('exile-selected');
           dom.exileModalConfirm.disabled = false;
           dom.exileModalConfirm.classList.add('ready');
+          // プレビュー更新
+          if (dom.exileModalPreviewImg && card.img) { dom.exileModalPreviewImg.src = card.img; dom.exileModalPreviewImg.style.display = 'block'; }
+          if (dom.exileModalPreviewPlaceholder) dom.exileModalPreviewPlaceholder.style.display = 'none';
         }
       };
       el.addEventListener('click', onSelectClick);
@@ -1920,6 +1981,9 @@ function startExileSelectPhase(config) {
       exileModalActive = false;
       dom.exileModalButtons.style.display = 'none';
       dom.exileModalDesc.textContent = '';
+      // プレビューリセット
+      if (dom.exileModalPreviewImg) { dom.exileModalPreviewImg.src = ''; dom.exileModalPreviewImg.style.display = 'none'; }
+      if (dom.exileModalPreviewPlaceholder) dom.exileModalPreviewPlaceholder.style.display = 'block';
       dom.exileModalConfirm.removeEventListener('click', onConfirm);
       dom.exileModalConfirm.removeEventListener('touchend', onConfirmTouch);
       dom.exileModalSkip.removeEventListener('click', onSkip);
@@ -1983,6 +2047,9 @@ function startDeckSearchPhase(config) {
           dom.exileModalCards.querySelectorAll('.battle-card').forEach(c => { c.classList.remove('selected-card'); c.classList.remove('exile-selected'); });
           dom.exileModalConfirm.disabled = true;
           dom.exileModalConfirm.classList.remove('ready');
+          // プレビューリセット
+          if (dom.exileModalPreviewImg) { dom.exileModalPreviewImg.src = ''; dom.exileModalPreviewImg.style.display = 'none'; }
+          if (dom.exileModalPreviewPlaceholder) dom.exileModalPreviewPlaceholder.style.display = 'block';
           return;
         }
         // 新規選択
@@ -1991,6 +2058,9 @@ function startDeckSearchPhase(config) {
         selectedCard = card;
         dom.exileModalConfirm.disabled = false;
         dom.exileModalConfirm.classList.add('ready'); // FIX: readyクラスで青くなる
+        // プレビュー更新
+        if (dom.exileModalPreviewImg && card.img) { dom.exileModalPreviewImg.src = card.img; dom.exileModalPreviewImg.style.display = 'block'; }
+        if (dom.exileModalPreviewPlaceholder) dom.exileModalPreviewPlaceholder.style.display = 'none';
       };
       el.addEventListener('touchstart', (e) => {
         touchStartY = e.touches[0] ? e.touches[0].clientY : 0;
@@ -2022,6 +2092,9 @@ function startDeckSearchPhase(config) {
       exileModalActive = false;
       dom.exileModalDesc.textContent = '';
       dom.exileModalButtons.style.display = 'none';
+      // プレビューリセット
+      if (dom.exileModalPreviewImg) { dom.exileModalPreviewImg.src = ''; dom.exileModalPreviewImg.style.display = 'none'; }
+      if (dom.exileModalPreviewPlaceholder) dom.exileModalPreviewPlaceholder.style.display = 'block';
     };
     const onConfirm = (e) => {
       e.stopPropagation();
@@ -2276,6 +2349,7 @@ function executeAttackAnimation(targetEl, atkIdx, power, group) {
   // アニメーション完了後にダメージ→カード処理を一連で行う
   setTimeout(async () => {
     // applyDamageWithSoulAbsorb経由（CPU魂吸収AI含む）
+    logHistory('player', `自分の「${group.basho ? group.basho.name : '場所札'}」が攻撃！（${power}ダメージ）`);
     await applyDamageWithSoulAbsorb(power, 'top', group.basho);
     const isFinishBlow = (opponent.life <= 0);
 
@@ -2371,7 +2445,7 @@ function showWinLoseResult(isWin) {
 }
 
 function showDamage(amount, side, isFinish) {
-  dom.damageText.textContent = '−' + amount;
+  dom.damageText.textContent = 'HP−' + amount;
   const cls = (side === 'top') ? 'show-top' : 'show-bottom';
   dom.damageOverlay.className = cls + (isFinish ? ' finish-damage' : '');
   dom.damageOverlay.style.display = '';
@@ -2391,7 +2465,7 @@ function showSoulDamage(absorbCount, who, isFinish) {
   const soulZone = (who === 'player') ? $('player-soul-zone') : $('opp-soul-zone');
   const el = document.createElement('div');
   el.className = 'soul-damage-num' + (isFinish ? ' soul-damage-finish' : '');
-  el.textContent = '−' + absorbCount;
+  el.textContent = '魂−' + absorbCount;
   soulZone.style.position = 'relative';
   soulZone.appendChild(el);
   const duration = isFinish ? 1600 : 900;
@@ -2743,6 +2817,7 @@ function placeCard(card) {
     showPlayEffect(card);
     markUsed('player', '場所札');
     renderField('player'); renderPlayerHand(); updateAllCounts();
+    logHistory('player', `自分は場所札「${card.name}」を召喚しました。`);
     // 場所札フローティングテキスト
     requestAnimationFrame(() => {
       const bashoUid = String(card.uid);
@@ -2768,6 +2843,7 @@ function placeCard(card) {
     showPlayEffect(card);
     markUsed('player', '季節札');
     renderField('player'); renderPlayerHand(); updateAllCounts();
+    logHistory('player', `自分は季節札「${card.name}」を展開しました。`);
     // 展開フローティングテキスト
     requestAnimationFrame(() => {
       const seasonUid = String(card.uid);
@@ -2788,6 +2864,7 @@ function placeCard(card) {
     tg.kaii.push(card);
     markUsed('player', '怪異札');
     renderField('player'); renderPlayerHand(); updateAllCounts();
+    logHistory('player', `自分は怪異札「${card.name}」を憑依しました。`);
     // 憑依フローティングテキスト
     requestAnimationFrame(() => {
       const kaiiUid = String(card.uid);
@@ -2800,6 +2877,7 @@ function placeCard(card) {
     // 道具札：効果発動演出のみ（全道具札共通）→効果処理→魂へ
     markUsed('player', '道具札');
     renderPlayerHand();
+    logHistory('player', `自分は道具札「${card.name}」を発動しました。`);
     (async () => {
       await showEffectActivation(card, '効果発動');
       // 効果処理
@@ -2886,6 +2964,11 @@ function drawCards(who, count) {
       if (el) showFloatingText(el, 'ドロー', 'draw');
     });
   });
+  // 行動履歴ログ
+  if (drawnUids.length > 0) {
+    const whoName = (who === 'player') ? '自分' : '相手';
+    logHistory(who, `${whoName}が${drawnUids.length}枚ドローしました。`);
+  }
 }
 
 // ===================================================================
@@ -2903,6 +2986,7 @@ function startGame() {
   selectedGroupIdx = null; suppressPreview = false; isAttacking = false; attackUsedThisTurn = false;
   turnNumber = 0; turnLocked = true; gameEnded = false; handOverflowPhase = false; cpuFirstAction = true;
   cardSelectPhase = false; cardSelectConfig = null; cardSelectSelectedCard = null;
+  resetHistory(); // 行動履歴リセット
   dom.handOverflowOverlay.style.display = 'none';
   dom.handOverflowOverlay.classList.remove('active');
   dom.handOverflowConfirm.disabled = true;
@@ -3193,6 +3277,7 @@ function startPlayerTurn() {
     }
     turnLocked = false;
     updatePlayableAura();
+    logHistory('system', `▶あなたのターン (${Math.ceil(turnNumber / 2)}ターン目)`);
   });
 }
 
@@ -4129,6 +4214,7 @@ function cpuTurn() {
     drawCards('opponent', 1);
   }
   cpuFirstAction = false;
+  logHistory('system', `▶相手のターン (${Math.ceil(turnNumber / 2)}ターン目)`);
   // CPUフラグリセット
   cpuUsedFlags.basho = false;
   cpuUsedFlags.kaii = false;
@@ -4236,6 +4322,7 @@ async function cpuPlaceCard(card) {
     }
     cpuUsedFlags.basho = true;
     showPlayEffect(card);
+    logHistory('opponent', `相手が場所札「${card.name}」を召喚した。`);
     // 召喚時効果チェック
     if (card.summonEffect) {
       renderField('opponent'); renderOppHand(); updateAllCounts();
@@ -4262,6 +4349,7 @@ async function cpuPlaceCard(card) {
     opponent.field.push({ season: card, basho: null, kaii: [], _summonedThisTurn: false });
     cpuUsedFlags.season = true;
     showPlayEffect(card);
+    logHistory('opponent', `相手が季節札「${card.name}」を展開した。`);
   } else if (card.type === '怪異札') {
     let best = null, bestPower = -1;
     opponent.field.forEach(g => {
@@ -4272,11 +4360,13 @@ async function cpuPlaceCard(card) {
     });
     if (best) {
       best.kaii.push(card); cpuUsedFlags.kaii = true;
+      logHistory('opponent', `相手が怪異札「${card.name}」を憑依した。`);
     } else { opponent.hand.push(card); return; }
   } else if (card.type === '道具札') {
     cpuUsedFlags.dougu = true;
     renderField('opponent'); renderOppHand(); updateAllCounts();
     markUsed('opponent', card.type);
+    logHistory('opponent', `相手が道具札「${card.name}」を発動した。`);
     // 道具札：効果発動演出を表示
     await showEffectActivation(card, '効果発動');
     if (card.effect === 'damage_8') {
@@ -4512,6 +4602,21 @@ dom.btnEndTurn.addEventListener('click', endTurn);
 // 中央ターン終了ボタン
 dom.endTurnCenter.addEventListener('click', (e) => { e.stopPropagation(); endTurn(); });
 dom.endTurnCenter.addEventListener('touchend', (e) => { e.preventDefault(); e.stopPropagation(); endTurn(); });
+
+// ===================================================================
+// 行動履歴ボタン
+// ===================================================================
+const btnHistory = $('btn-history');
+if (btnHistory) {
+  btnHistory.disabled = false; // 有効化
+  btnHistory.addEventListener('click', showHistoryModal);
+  btnHistory.addEventListener('touchend', (e) => { e.preventDefault(); showHistoryModal(); });
+}
+const historyCloseBtn = $('history-close-btn');
+if (historyCloseBtn) {
+  historyCloseBtn.addEventListener('click', hideHistoryModal);
+  historyCloseBtn.addEventListener('touchend', (e) => { e.preventDefault(); hideHistoryModal(); });
+}
 
 // ===================================================================
 // 空白タップ

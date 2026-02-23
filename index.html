@@ -225,6 +225,11 @@
 
     <!-- 除外カード一覧モーダル -->
     <div id="exile-modal" style="display:none;">
+      <!-- 上部: 選択カード拡大プレビュー -->
+      <div id="exile-modal-preview-wrap">
+        <span id="exile-modal-preview-placeholder">タップしてカードを選択</span>
+        <img id="exile-modal-preview-img" src="" alt="" style="display:none;">
+      </div>
       <div id="exile-modal-title">除外カード一覧</div>
       <div id="exile-modal-desc"></div>
       <div id="exile-modal-cards"></div>
@@ -350,6 +355,15 @@
       <img id="start-deck-img" src="images/hakaabaki.jpg" alt="墓暴き">
       <button id="start-btn">対 戦 開 始</button>
       <div id="start-note">※現在、道具札は自分のターンのみ使える「テスト版」です。</div>
+    </div>
+
+    <!-- 行動履歴モーダル -->
+    <div id="history-modal">
+      <div id="history-modal-header">行動履歴</div>
+      <div id="history-list"></div>
+      <div id="history-modal-footer">
+        <button id="history-close-btn">閉じる</button>
+      </div>
     </div>
   </div>
 
