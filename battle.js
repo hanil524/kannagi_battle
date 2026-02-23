@@ -742,7 +742,7 @@ function renderField(who) {
       for (let i = 0; i < vis; i++) {
         // 鮮明キーワード持ち、または手札公開場から装備は表向き
         const k = group.kaii[i];
-        const isFaceDown = k.keyword !== '鮮明' && !k._fromOpen;
+        const isFaceDown = !hasKeyword(k, '鮮明') && !k._fromOpen; // FIX: keyword完全一致→hasKeyword
         const kEl = createCardEl(k, isFaceDown);
         kEl.classList.add('kaii-attached');
         setupKaiiInteraction(kEl, group, who, group.kaii[i]);
@@ -838,40 +838,10 @@ function hidePreview() {
   dom.kaiiPreviewOverlay.style.display = 'none';
 }
 
-// モーダル/オーバーレイ内カードプレビュー（PC: hover, スマホ: 長押し）
+// モーダル/オーバーレイ内カードプレビュー（長押し・hover廃止。クリック/タップのみ対応）
+// ※PCでのhoverプレビューはモーダル内でカードを隠してしまうため廃止
 function attachModalPreview(el, card) {
-  const mp = $('modal-preview');
-  const mpImg = $('modal-preview-img');
-  let longPressTimer = null;
-
-  // PC: hover
-  el.addEventListener('mouseenter', () => {
-    mpImg.src = card.img;
-    mp.classList.add('active');
-    mp.style.display = 'flex';
-  });
-  el.addEventListener('mouseleave', () => {
-    mp.classList.remove('active');
-    mp.style.display = 'none';
-  });
-
-  // スマホ: 長押し（500ms）
-  el.addEventListener('touchstart', (e) => {
-    longPressTimer = setTimeout(() => {
-      longPressTimer = null;
-      mpImg.src = card.img;
-      mp.classList.add('active');
-      mp.style.display = 'flex';
-    }, 500);
-  }, { passive: true });
-  el.addEventListener('touchend', () => {
-    if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
-    mp.classList.remove('active');
-    mp.style.display = 'none';
-  });
-  el.addEventListener('touchmove', () => {
-    if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
-  }, { passive: true });
+  // 何も追加しない（旧: mouseenter/mouseleaveおよび長押しプレビューをここで設定していたが廃止）
 }
 // モーダルプレビューをタップで閉じる
 document.addEventListener('DOMContentLoaded', () => {
@@ -917,12 +887,8 @@ function setupCardInteraction(el, card, owner) {
       showPreview(card, owner);
     }
   });
-  el.addEventListener('mouseenter', () => {
-    // フェイズ中はプレビュー無効
-    if (isAnyPhaseActive()) return;
-    el.classList.add('glow'); showPreview(card, owner);
-  });
-  el.addEventListener('mouseleave', () => { el.classList.remove('glow'); if (!insideKaiiPopup) hidePreview(); });
+  // ※PCのmouseenter/mouseleaveによるhoverプレビューは廃止（モーダル画面・通常画面問わず）
+  // クリックのみでプレビューを表示する仕様に統一
   el.addEventListener('click', (e) => {
     e.stopPropagation();
     // 魂吸収フェイズ中：魂カードをクリックで選択/解除
@@ -2486,7 +2452,7 @@ function setupKaiiInteraction(el, group, owner, kCard) {
     el.classList.remove('glow'); e.stopPropagation(); e.preventDefault();
     if (owner === 'opponent') {
       // 鮮明カードがあるかチェック
-      const senmeCards = group.kaii.filter(k => k.keyword === '鮮明');
+      const senmeCards = group.kaii.filter(k => hasKeyword(k, '鮮明')); // FIX: hasKeyword化
       if (senmeCards.length > 0) {
         if (kaiiPopupActive) hideKaiiPopup(); else showKaiiPopup({ kaii: senmeCards }, owner);
       } else {
@@ -2496,24 +2462,11 @@ function setupKaiiInteraction(el, group, owner, kCard) {
     }
     if (kaiiPopupActive) hideKaiiPopup(); else showKaiiPopup(group, owner);
   });
-  // 自分の怪異札＆相手の鮮明怪異札：マウスオーバーで拡大表示
-  if (kCard && (owner === 'player' || kCard.keyword === '鮮明')) {
-    el.addEventListener('mouseenter', () => {
-      el.classList.add('glow');
-      showPreview(kCard, owner);
-    });
-    el.addEventListener('mouseleave', () => {
-      el.classList.remove('glow');
-      hidePreview();
-    });
-  } else {
-    el.addEventListener('mouseenter', () => el.classList.add('glow'));
-    el.addEventListener('mouseleave', () => el.classList.remove('glow'));
-  }
+  // ※hover(mouseenter/mouseleave)によるプレビューは廃止（クリックのみに統一）
   el.addEventListener('click', (e) => {
     e.stopPropagation();
     if (owner === 'opponent') {
-      const senmeCards = group.kaii.filter(k => k.keyword === '鮮明');
+      const senmeCards = group.kaii.filter(k => hasKeyword(k, '鮮明')); // FIX: hasKeyword化
       if (senmeCards.length > 0) {
         if (kaiiPopupActive) hideKaiiPopup(); else showKaiiPopup({ kaii: senmeCards }, owner);
       } else {
@@ -3051,17 +3004,16 @@ function initGameAfterGate() {
 
   // 零探し（両プレイヤー順に実行）
   showZeroSearch('player').then(() => {
-    // CPU側はランダムで0〜3枚を底に戻してドロー
-    const cpuCount = Math.floor(Math.random() * 4); // 0〜3枚
-    if (cpuCount > 0) {
-      const shuffled = [...opponent.hand].sort(() => Math.random() - 0.5);
-      const toBottom = shuffled.slice(0, cpuCount);
-      toBottom.forEach(c => {
+    // CPU側はコスト高い順上位3枚を底送りしてドロー
+    const sortedByCost = [...opponent.hand].sort((a, b) => (b.cost || 0) - (a.cost || 0));
+    const cpuToBottom = sortedByCost.slice(0, 3);
+    if (cpuToBottom.length > 0) {
+      cpuToBottom.forEach(c => {
         const idx = opponent.hand.findIndex(x => x.uid === c.uid);
         if (idx !== -1) opponent.hand.splice(idx, 1);
         opponent.deck.push(c); // デッキ底へ
       });
-      drawCards('opponent', cpuCount);
+      drawCards('opponent', cpuToBottom.length);
     }
     renderOppHand(); updateAllCounts();
 
@@ -3101,7 +3053,7 @@ function showZeroSearch(who) {
     // カード一覧をリセット
     cardsEl.innerHTML = '';
     previewImg.src = '';
-    previewImg.classList.remove('active');
+    previewImg.style.display = 'none'; // 初期非表示
     confirmBtn.classList.add('ready'); // 0枚でも決定可能
 
     // 手札8枚を表示
@@ -3126,7 +3078,7 @@ function showZeroSearch(who) {
         // プレビュー表示（最後にタップしたカード）
         if (card.img) {
           previewImg.src = card.img;
-          previewImg.classList.add('active');
+          previewImg.style.display = 'block'; // インラインstyleを直接操作
         }
         updateCount();
       };
@@ -3434,6 +3386,10 @@ function markSelectableCards() {
 
 function handleCardSelectTap(card, el) {
   if (!cardSelectPhase || !cardSelectConfig) return false;
+  // 手札または公開場にあるカードのみ対象（場のカードは除外）FIX: フィールドカード誤選択防止
+  const isInHand = player.hand.some(c => c.uid === card.uid);
+  const isInOpen = player.open.some(c => c.uid === card.uid);
+  if (!isInHand && !isInOpen) return false;
   // 対象外カードは無視
   if (!cardSelectConfig.filter(card)) return false;
 

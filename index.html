@@ -15,6 +15,13 @@
 <body>
 
   <div id="app">
+    <!-- ヘッダー（旧フッター） -->
+    <div id="footer">
+      <button class="footer-btn" id="btn-history" disabled>履歴</button>
+      <button class="footer-btn" id="btn-reset">リセット</button>
+      <button class="footer-btn" id="btn-end-turn">ターン終了</button>
+    </div>
+
     <div id="field">
 
       <!-- ====== 相手側 ====== -->
@@ -133,14 +140,6 @@
         <div id="player-hand-cards" class="card-row"></div>
         <span class="zone-count" id="player-hand-count">0</span>
       </div>
-    </div>
-
-    <!-- フッター -->
-    <div id="footer">
-      <button class="footer-btn" id="btn-history" disabled>履歴</button>
-      <button class="footer-btn" id="btn-reset">リセット</button>
-      <button class="footer-btn" id="btn-test" disabled>テスト</button>
-      <button class="footer-btn" id="btn-end-turn">ターン終了</button>
     </div>
 
     <!-- カード拡大プレビュー -->
@@ -307,7 +306,7 @@
         <div id="zero-search-title">零探し</div>
         <div id="zero-search-desc">手札から好きな枚数選び、デッキの下に送る。<br>戻した枚数分、デッキからドローする。</div>
         <div id="zero-search-preview-wrap">
-          <img id="zero-search-preview-img" src="" alt="" style="display:none;">
+          <img id="zero-search-preview-img" src="" alt="">
         </div>
         <div id="zero-search-count">カードを選んでデッキ底に戻す（任意）</div>
         <button id="zero-search-confirm">決　定</button>
