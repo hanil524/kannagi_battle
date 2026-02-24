@@ -6,7 +6,6 @@
   <meta charset="UTF-8">
   <meta name="viewport"
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="description" content="巫KANNAGIカードゲームの一人回し（一人対戦）ツール。「使い方を覚えるまでイベントに参加するのが不安！」という方も、コッソリ練習しよう。" />
   <title>巫カードバトル | 一人回し、一人対戦ツール</title>
   <link rel="stylesheet" href="battle.css">
   <link rel="icon" type="image/x-icon" href="favicon/favicon.ico" />
@@ -17,355 +16,377 @@
 
   <div id="app">
     <!-- ヘッダー（旧フッター） -->
-    <div id="footer">
-      <button class="footer-btn" id="btn-history" disabled>履歴</button>
-      <button class="footer-btn" id="btn-reset">リセット</button>
-      <button class="footer-btn" id="btn-end-turn">ターン終了</button>
+    <button class="footer-btn" id="btn-menu">メニュー</button>
+    <button class="footer-btn" id="btn-history" disabled>履歴</button>
+    <button class="footer-btn" id="btn-reset">リセット</button>
+    <button class="footer-btn" id="btn-end-turn">ターン終了</button>
+  </div>
+
+  <div id="field">
+
+    <!-- ====== 相手側 ====== -->
+    <div class="row-zone" id="opp-hand-zone">
+      <span class="zone-label">手 札</span>
+      <div id="opp-hand-cards" class="card-row"></div>
+      <span class="zone-count" id="opp-hand-count">0</span>
     </div>
-
-    <div id="field">
-
-      <!-- ====== 相手側 ====== -->
-      <div class="row-zone" id="opp-hand-zone">
-        <span class="zone-label">手 札</span>
-        <div id="opp-hand-cards" class="card-row"></div>
-        <span class="zone-count" id="opp-hand-count">0</span>
+    <div class="row-zone" id="opp-soul-zone">
+      <span class="zone-label">魂</span>
+      <div id="opp-soul-cards" class="card-row"></div>
+      <div class="soul-info-area" id="opp-soul-info">
+        <div class="season-icons">
+          <div class="season-icon" id="opp-season-spring">春</div>
+          <div class="season-icon" id="opp-season-summer">夏</div>
+          <div class="season-icon" id="opp-season-autumn">秋</div>
+          <div class="season-icon" id="opp-season-winter">冬</div>
+        </div>
+        <div class="soul-count-mini" id="opp-soul-count">0</div>
       </div>
-      <div class="row-zone" id="opp-soul-zone">
-        <span class="zone-label">魂</span>
-        <div id="opp-soul-cards" class="card-row"></div>
-        <div class="soul-info-area" id="opp-soul-info">
-          <div class="season-icons">
-            <div class="season-icon" id="opp-season-spring">春</div>
-            <div class="season-icon" id="opp-season-summer">夏</div>
-            <div class="season-icon" id="opp-season-autumn">秋</div>
-            <div class="season-icon" id="opp-season-winter">冬</div>
-          </div>
-          <div class="soul-count-mini" id="opp-soul-count">0</div>
-        </div>
+    </div>
+    <!-- 相手ミッドゾーン: 除外(左端)→山札→手札公開場(右に広がる) -->
+    <div class="triple-zone" id="opp-mid-zones">
+      <div class="zone triple-sub exile-zone" id="opp-exile">
+        <span class="zone-label" style="font-size:10px;">除外</span>
+        <span class="zone-count" id="opp-exile-count">0</span>
       </div>
-      <!-- 相手ミッドゾーン: 除外(左端)→山札→手札公開場(右に広がる) -->
-      <div class="triple-zone" id="opp-mid-zones">
-        <div class="zone triple-sub exile-zone" id="opp-exile">
-          <span class="zone-label" style="font-size:10px;">除外</span>
-          <span class="zone-count" id="opp-exile-count">0</span>
-        </div>
-        <div class="zone triple-sub" id="opp-deck">
-          <span class="zone-label" style="font-size:10px;">山札</span>
-          <span class="zone-count" id="opp-deck-count">0</span>
-        </div>
-        <div class="zone triple-main" id="opp-open">
-          <span class="zone-label" style="font-size:10px;">手札公開場</span>
-          <div id="opp-open-cards" class="card-row"></div>
-          <span class="zone-count" id="opp-open-count">0</span>
-        </div>
+      <div class="zone triple-sub" id="opp-deck">
+        <span class="zone-label" style="font-size:10px;">山札</span>
+        <span class="zone-count" id="opp-deck-count">0</span>
       </div>
-      <!-- 相手の場: ライフは右端 -->
-      <div class="field-row" id="opp-field-row">
-        <div class="row-zone field-zone" id="opp-field">
-          <span class="zone-label">相 手 の 場</span>
-          <div id="opp-field-cards" class="card-row field-card-row"></div>
-        </div>
-        <div class="life-area" id="opp-life-area">
-          <div class="life-label">ライフ</div>
-          <div class="life-value" id="opp-life-value">30</div>
-        </div>
+      <div class="zone triple-main" id="opp-open">
+        <span class="zone-label" style="font-size:10px;">手札公開場</span>
+        <div id="opp-open-cards" class="card-row"></div>
+        <span class="zone-count" id="opp-open-count">0</span>
       </div>
-
-      <!-- 中央コントロール -->
-      <div id="center-area">
-        <div id="center-controls">
-          <!-- 左側＝自分（自陣側＝下寄せ） -->
-          <div class="type-btns left-btns">
-            <button class="type-btn basho-btn" id="p-basho-btn">場所</button>
-            <button class="type-btn kaii-btn" id="p-kaii-btn">怪異</button>
-            <button class="type-btn dougu-btn" id="p-dougu-btn">道具</button>
-            <button class="type-btn season-btn" id="p-season-btn">季節</button>
-          </div>
-          <div id="center-mid">
-            <div id="center-line"></div>
-            <button id="attack-btn" style="display:none;">攻撃</button>
-            <button id="end-turn-center" style="display:none;">ターン終了</button>
-          </div>
-          <!-- 右側＝相手（敵陣側＝上寄せ） -->
-          <div class="type-btns right-btns">
-            <button class="type-btn basho-btn" id="o-basho-btn">場所</button>
-            <button class="type-btn kaii-btn" id="o-kaii-btn">怪異</button>
-            <button class="type-btn dougu-btn" id="o-dougu-btn">道具</button>
-            <button class="type-btn season-btn" id="o-season-btn">季節</button>
-          </div>
-        </div>
+    </div>
+    <!-- 相手の場: ライフは右端 -->
+    <div class="field-row" id="opp-field-row">
+      <div class="row-zone field-zone" id="opp-field">
+        <span class="zone-label">相 手 の 場</span>
+        <div id="opp-field-cards" class="card-row field-card-row"></div>
       </div>
-
-      <!-- 自分側 -->
-      <div class="field-row" id="player-field-row">
-        <div class="life-area" id="player-life-area">
-          <div class="life-label">ライフ</div>
-          <div class="life-value" id="player-life-value">30</div>
-        </div>
-        <div class="row-zone field-zone" id="player-field">
-          <span class="zone-label">自 分 の 場</span>
-          <div id="player-field-cards" class="card-row field-card-row"></div>
-        </div>
-      </div>
-      <div class="triple-zone" id="player-mid-zones">
-        <div class="zone triple-main" id="player-open">
-          <span class="zone-label" style="font-size:10px;">手札公開場</span>
-          <div id="player-open-cards" class="card-row"></div>
-          <span class="zone-count" id="player-open-count">0</span>
-        </div>
-        <div class="zone triple-sub" id="player-deck">
-          <span class="zone-label" style="font-size:10px;">山札</span>
-          <span class="zone-count" id="player-deck-count">0</span>
-        </div>
-        <div class="zone triple-sub exile-zone" id="player-exile">
-          <span class="zone-label" style="font-size:10px;">除外</span>
-          <span class="zone-count" id="player-exile-count">0</span>
-        </div>
-      </div>
-      <div class="row-zone" id="player-soul-zone">
-        <span class="zone-label">魂</span>
-        <div id="player-soul-cards" class="card-row"></div>
-        <div class="soul-info-area" id="player-soul-info">
-          <div class="season-icons">
-            <div class="season-icon" id="player-season-spring">春</div>
-            <div class="season-icon" id="player-season-summer">夏</div>
-            <div class="season-icon" id="player-season-autumn">秋</div>
-            <div class="season-icon" id="player-season-winter">冬</div>
-          </div>
-          <div class="soul-count-mini" id="player-soul-count">0</div>
-        </div>
-      </div>
-      <div class="row-zone" id="player-hand-zone">
-        <span class="zone-label">手 札</span>
-        <div id="player-hand-cards" class="card-row"></div>
-        <span class="zone-count" id="player-hand-count">0</span>
+      <div class="life-area" id="opp-life-area">
+        <div class="life-label">ライフ</div>
+        <div class="life-value" id="opp-life-value">30</div>
       </div>
     </div>
 
-    <!-- カード拡大プレビュー -->
-    <div id="card-preview">
-      <img id="preview-img" src="" alt="preview">
-    </div>
-
-    <!-- モーダル内カードプレビュー（最前面） -->
-    <div id="modal-preview">
-      <img id="modal-preview-img" src="" alt="modal-preview">
-    </div>
-
-    <!-- 怪異札確認中の拡大プレビュー（最前面） -->
-    <div id="kaii-preview-overlay">
-      <img id="kaii-preview-img" src="" alt="kaii-preview">
-    </div>
-
-    <!-- カード使用エフェクト -->
-    <div id="play-effect">
-      <img id="play-effect-img" src="" alt="play">
-    </div>
-
-    <!-- ダメージ演出 -->
-    <div id="damage-overlay" style="display:none;">
-      <span id="damage-text"></span>
-    </div>
-
-    <!-- 季節札警告（画面中央） -->
-    <div id="season-warning">
-      <span>【季節札】が場にある状態で【季節札】を出すと、<br>既にある【季節札】と上に載っているカードが全て魂になります。</span>
-    </div>
-
-    <!-- 魂不足ポップアップ -->
-    <div id="soul-shortage-msg" style="display:none;">
-      <span>使用に必要な魂が足りません。</span>
-    </div>
-
-    <!-- 季節不足ポップアップ -->
-    <div id="season-shortage-msg" style="display:none;">
-      <span>召喚に必要な季節が足りません。</span>
-    </div>
-
-    <!-- 1ターン1回制限ポップアップ -->
-    <div id="type-used-msg" style="display:none;">
-      <span id="type-used-text"></span>
-    </div>
-
-    <!-- 召喚酔いポップアップ -->
-    <div id="summon-sick-msg" style="display:none;">
-      <span>場所札は召喚したターンに攻撃することができません。</span>
-    </div>
-
-    <!-- 攻撃済みポップアップ -->
-    <div id="attack-used-msg" style="display:none;">
-      <span>攻撃は1ターンに1度までです。</span>
-    </div>
-
-    <!-- 怪異札一覧ポップアップ -->
-    <div id="kaii-popup">
-      <div id="kaii-popup-title">憑依されている怪異札</div>
-      <div id="kaii-popup-cards"></div>
-    </div>
-
-    <!-- 場所札なしポップアップ -->
-    <div id="no-basho-msg" style="display:none;">
-      <span>場に場所札がありません。</span>
-    </div>
-
-    <!-- 相手手札タッチポップアップ -->
-    <div id="opp-hand-msg" style="display:none;">
-      <span>相手の手札を勝手に触らないでください！</span>
-    </div>
-
-    <!-- 相手山札タッチポップアップ -->
-    <div id="opp-deck-msg" style="display:none;">
-      <span>相手のデッキを勝手に触らないでください！</span>
-    </div>
-
-    <!-- 相手怪異札ブロック -->
-    <div id="kaii-block-msg" style="display:none;">
-      <div id="kaii-block-text">対戦相手が憑依している怪異札は、<br>確認することができません。</div>
-    </div>
-
-    <!-- 除外カード一覧モーダル -->
-    <div id="exile-modal" style="display:none;">
-      <!-- 上部: 選択カード拡大プレビュー -->
-      <div id="exile-modal-preview-wrap">
-        <span id="exile-modal-preview-placeholder">タップしてカードを選択</span>
-        <img id="exile-modal-preview-img" src="" alt="" style="display:none;">
-      </div>
-      <div id="exile-modal-title">除外カード一覧</div>
-      <div id="exile-modal-desc"></div>
-      <div id="exile-modal-cards"></div>
-      <div id="exile-modal-empty" style="display:none;">除外されたカードはありません。</div>
-      <div id="exile-modal-buttons" style="display:none;">
-        <button id="exile-modal-confirm" disabled>決定する</button>
-        <button id="exile-modal-skip">選択しない</button>
-      </div>
-    </div>
-
-    <!-- 効果発動オーバーレイ -->
-    <div id="effect-overlay">
-      <span id="effect-label">効果発動</span>
-      <img id="effect-card-img" src="" alt="effect">
-    </div>
-
-    <!-- 開門演出 -->
-    <div id="gate-overlay">
-      <span id="gate-text">開門</span>
-      <span id="coin-text"></span>
-    </div>
-
-    <!-- ターン告知 -->
-    <div id="turn-announce">
-      <span id="turn-announce-text"></span>
-    </div>
-
-    <!-- フィニッシュブローズーム（旧） -->
-    <div id="finish-zoom-overlay" style="display:none;">
-      <img id="finish-zoom-img" src="" alt="finish">
-    </div>
-
-    <!-- フィニッシュブロー演出 -->
-    <div id="finish-blow-overlay">
-      <div id="finish-blow-field"></div>
-    </div>
-
-    <!-- 勝敗結果 -->
-    <div id="result-overlay">
-      <span id="result-text"></span>
-      <span id="win-streak"></span>
-      <button id="retry-btn">リトライ</button>
-    </div>
-
-    <!-- 手札超過オーバーレイ -->
-    <div id="hand-overflow-overlay" style="display:none;">
-      <span id="hand-overflow-title">手札超過</span>
-      <span id="hand-overflow-desc">手札が9枚以上の状態でターンを終了しました。<br>8枚になるまで魂に捨ててください。<br>※カードをタップで選択、または掴んで魂の上で離す。</span>
-      <div id="hand-overflow-buttons">
-        <button id="hand-overflow-confirm" disabled>決定する</button>
-        <div id="hand-overflow-remaining"></div>
-      </div>
-    </div>
-
-    <!-- カード選択フェイズオーバーレイ (上55%のみ覆う・3分割) -->
-    <div id="card-select-overlay" style="display:none;">
-      <!-- 上段: 選択中カード拡大表示 -->
-      <div id="card-select-top">
-        <span id="card-select-placeholder">タップしてカードを選択</span>
-        <img id="card-select-preview-img" src="" alt="">
-      </div>
-      <!-- 中段: タイトル + 説明 + ボタン -->
-      <div id="card-select-mid">
-        <span id="card-select-title">カード選択</span>
-        <span id="card-select-desc"></span>
-        <div id="card-select-buttons">
-          <button id="card-select-confirm" disabled>決定する</button>
-          <button id="card-select-skip">選択しない</button>
+    <!-- 中央コントロール -->
+    <div id="center-area">
+      <div id="center-controls">
+        <!-- 左側＝自分（自陣側＝下寄せ） -->
+        <div class="type-btns left-btns">
+          <button class="type-btn basho-btn" id="p-basho-btn">場所</button>
+          <button class="type-btn kaii-btn" id="p-kaii-btn">怪異</button>
+          <button class="type-btn dougu-btn" id="p-dougu-btn">道具</button>
+          <button class="type-btn season-btn" id="p-season-btn">季節</button>
+        </div>
+        <div id="center-mid">
+          <div id="center-line"></div>
+          <button id="attack-btn" style="display:none;">攻撃</button>
+          <button id="end-turn-center" style="display:none;">ターン終了</button>
+        </div>
+        <!-- 右側＝相手（敵陣側＝上寄せ） -->
+        <div class="type-btns right-btns">
+          <button class="type-btn basho-btn" id="o-basho-btn">場所</button>
+          <button class="type-btn kaii-btn" id="o-kaii-btn">怪異</button>
+          <button class="type-btn dougu-btn" id="o-dougu-btn">道具</button>
+          <button class="type-btn season-btn" id="o-season-btn">季節</button>
         </div>
       </div>
     </div>
 
-    <!-- 零探しオーバーレイ -->
-    <div id="zero-search-overlay" style="display:none;">
-      <!-- 上部: 先後案内 -->
-      <div id="zero-search-order"></div>
-      <!-- 中部: タイトル・説明・プレビュー・ボタン -->
-      <div id="zero-search-mid">
-        <div id="zero-search-title">零探し</div>
-        <div id="zero-search-desc">手札から好きな枚数選び、デッキの下に送る。<br>戻した枚数分、デッキからドローする。</div>
-        <div id="zero-search-preview-wrap">
-          <img id="zero-search-preview-img" src="" alt="">
+    <!-- 自分側 -->
+    <div class="field-row" id="player-field-row">
+      <div class="life-area" id="player-life-area">
+        <div class="life-label">ライフ</div>
+        <div class="life-value" id="player-life-value">30</div>
+      </div>
+      <div class="row-zone field-zone" id="player-field">
+        <span class="zone-label">自 分 の 場</span>
+        <div id="player-field-cards" class="card-row field-card-row"></div>
+      </div>
+    </div>
+    <div class="triple-zone" id="player-mid-zones">
+      <div class="zone triple-main" id="player-open">
+        <span class="zone-label" style="font-size:10px;">手札公開場</span>
+        <div id="player-open-cards" class="card-row"></div>
+        <span class="zone-count" id="player-open-count">0</span>
+      </div>
+      <div class="zone triple-sub" id="player-deck">
+        <span class="zone-label" style="font-size:10px;">山札</span>
+        <span class="zone-count" id="player-deck-count">0</span>
+      </div>
+      <div class="zone triple-sub exile-zone" id="player-exile">
+        <span class="zone-label" style="font-size:10px;">除外</span>
+        <span class="zone-count" id="player-exile-count">0</span>
+      </div>
+    </div>
+    <div class="row-zone" id="player-soul-zone">
+      <span class="zone-label">魂</span>
+      <div id="player-soul-cards" class="card-row"></div>
+      <div class="soul-info-area" id="player-soul-info">
+        <div class="season-icons">
+          <div class="season-icon" id="player-season-spring">春</div>
+          <div class="season-icon" id="player-season-summer">夏</div>
+          <div class="season-icon" id="player-season-autumn">秋</div>
+          <div class="season-icon" id="player-season-winter">冬</div>
         </div>
-        <div id="zero-search-count">カードを選んでデッキ底に戻す（任意）</div>
-        <button id="zero-search-confirm">決　定</button>
-      </div>
-      <!-- 下部: 8枚のカード -->
-      <div id="zero-search-cards"></div>
-    </div>
-
-    <!-- 相手手札除外選択モーダル -->
-    <div id="opp-hand-exile-overlay" style="display:none;">
-      <span id="opp-hand-exile-title">相手の手札を除外</span>
-      <span id="opp-hand-exile-desc"></span>
-      <div id="opp-hand-exile-cards"></div>
-      <div id="opp-hand-exile-buttons">
-        <button id="opp-hand-exile-confirm" disabled>決定する</button>
+        <div class="soul-count-mini" id="player-soul-count">0</div>
       </div>
     </div>
+    <div class="row-zone" id="player-hand-zone">
+      <span class="zone-label">手 札</span>
+      <div id="player-hand-cards" class="card-row"></div>
+      <span class="zone-count" id="player-hand-count">0</span>
+    </div>
+  </div>
 
-    <!-- 魂ダメージ吸収：質問ポップアップ -->
-    <div id="soul-absorb-ask" style="display:none;">
-      <img id="soul-absorb-ask-img" src="" alt="" style="display:none;">
-      <span id="soul-absorb-ask-title">ダメージを魂で受けますか？</span>
-      <div id="soul-absorb-ask-buttons">
-        <button id="soul-absorb-yes">はい</button>
-        <button id="soul-absorb-no">いいえ</button>
+  <!-- カード拡大プレビュー -->
+  <div id="card-preview">
+    <img id="preview-img" src="" alt="preview">
+  </div>
+
+  <!-- モーダル内カードプレビュー（最前面） -->
+  <div id="modal-preview">
+    <img id="modal-preview-img" src="" alt="modal-preview">
+  </div>
+
+  <!-- 怪異札確認中の拡大プレビュー（最前面） -->
+  <div id="kaii-preview-overlay">
+    <img id="kaii-preview-img" src="" alt="kaii-preview">
+  </div>
+
+  <!-- カード使用エフェクト -->
+  <div id="play-effect">
+    <img id="play-effect-img" src="" alt="play">
+  </div>
+
+  <!-- ダメージ演出 -->
+  <div id="damage-overlay" style="display:none;">
+    <span id="damage-text"></span>
+  </div>
+
+  <!-- 季節札警告（画面中央） -->
+  <div id="season-warning">
+    <span>【季節札】が場にある状態で【季節札】を出すと、<br>既にある【季節札】と上に載っているカードが全て魂になります。</span>
+  </div>
+
+  <!-- 魂不足ポップアップ -->
+  <div id="soul-shortage-msg" style="display:none;">
+    <span>使用に必要な魂が足りません。</span>
+  </div>
+
+  <!-- 季節不足ポップアップ -->
+  <div id="season-shortage-msg" style="display:none;">
+    <span>召喚に必要な季節が足りません。</span>
+  </div>
+
+  <!-- 1ターン1回制限ポップアップ -->
+  <div id="type-used-msg" style="display:none;">
+    <span id="type-used-text"></span>
+  </div>
+
+  <!-- 召喚酔いポップアップ -->
+  <div id="summon-sick-msg" style="display:none;">
+    <span>場所札は召喚したターンに攻撃することができません。</span>
+  </div>
+
+  <!-- 攻撃済みポップアップ -->
+  <div id="attack-used-msg" style="display:none;">
+    <span>攻撃は1ターンに1度までです。</span>
+  </div>
+
+  <!-- 怪異札一覧ポップアップ -->
+  <div id="kaii-popup">
+    <div id="kaii-popup-title">憑依されている怪異札</div>
+    <div id="kaii-popup-cards"></div>
+  </div>
+
+  <!-- 場所札なしポップアップ -->
+  <div id="no-basho-msg" style="display:none;">
+    <span>場に場所札がありません。</span>
+  </div>
+
+  <!-- 相手手札タッチポップアップ -->
+  <div id="opp-hand-msg" style="display:none;">
+    <span>相手の手札を勝手に触らないでください！</span>
+  </div>
+
+  <!-- 相手山札タッチポップアップ -->
+  <div id="opp-deck-msg" style="display:none;">
+    <span>相手のデッキを勝手に触らないでください！</span>
+  </div>
+
+  <!-- 相手怪異札ブロック -->
+  <div id="kaii-block-msg" style="display:none;">
+    <div id="kaii-block-text">対戦相手が憑依している怪異札は、<br>確認することができません。</div>
+  </div>
+
+  <!-- 除外カード一覧モーダル -->
+  <div id="exile-modal" style="display:none;">
+    <!-- 上部: 選択カード拡大プレビュー -->
+    <div id="exile-modal-preview-wrap">
+      <span id="exile-modal-preview-placeholder">タップしてカードを選択</span>
+      <img id="exile-modal-preview-img" src="" alt="" style="display:none;">
+    </div>
+    <div id="exile-modal-title">除外カード一覧</div>
+    <div id="exile-modal-desc"></div>
+    <div id="exile-modal-cards"></div>
+    <div id="exile-modal-empty" style="display:none;">除外されたカードはありません。</div>
+    <div id="exile-modal-buttons" style="display:none;">
+      <button id="exile-modal-confirm" disabled>決定する</button>
+      <button id="exile-modal-skip">選択しない</button>
+    </div>
+  </div>
+
+  <!-- 効果発動オーバーレイ -->
+  <div id="effect-overlay">
+    <span id="effect-label">効果発動</span>
+    <img id="effect-card-img" src="" alt="effect">
+  </div>
+
+  <!-- 開門演出 -->
+  <div id="gate-overlay">
+    <span id="gate-text">開門</span>
+    <span id="coin-text"></span>
+  </div>
+
+  <!-- ターン告知 -->
+  <div id="turn-announce">
+    <span id="turn-announce-text"></span>
+  </div>
+
+  <!-- フィニッシュブローズーム（旧） -->
+  <div id="finish-zoom-overlay" style="display:none;">
+    <img id="finish-zoom-img" src="" alt="finish">
+  </div>
+
+  <!-- フィニッシュブロー演出 -->
+  <div id="finish-blow-overlay">
+    <div id="finish-blow-field"></div>
+  </div>
+
+  <!-- 勝敗結果 -->
+  <div id="result-overlay">
+    <span id="result-text"></span>
+    <span id="win-streak"></span>
+    <button id="retry-btn">リトライ</button>
+  </div>
+
+  <!-- 手札超過オーバーレイ -->
+  <div id="hand-overflow-overlay" style="display:none;">
+    <span id="hand-overflow-title">手札超過</span>
+    <span id="hand-overflow-desc">手札が9枚以上の状態でターンを終了しました。<br>8枚になるまで魂に捨ててください。<br>※カードをタップで選択、または掴んで魂の上で離す。</span>
+    <div id="hand-overflow-buttons">
+      <button id="hand-overflow-confirm" disabled>決定する</button>
+      <div id="hand-overflow-remaining"></div>
+    </div>
+  </div>
+
+  <!-- カード選択フェイズオーバーレイ (上55%のみ覆う・3分割) -->
+  <div id="card-select-overlay" style="display:none;">
+    <!-- 上段: 選択中カード拡大表示 -->
+    <div id="card-select-top">
+      <span id="card-select-placeholder">タップしてカードを選択</span>
+      <img id="card-select-preview-img" src="" alt="">
+    </div>
+    <!-- 中段: タイトル + 説明 + ボタン -->
+    <div id="card-select-mid">
+      <span id="card-select-title">カード選択</span>
+      <span id="card-select-desc"></span>
+      <div id="card-select-buttons">
+        <button id="card-select-confirm" disabled>決定する</button>
+        <button id="card-select-skip">選択しない</button>
       </div>
     </div>
+  </div>
 
-    <!-- 魂ダメージ吸収：魂選択フェイズ -->
-    <div id="soul-absorb-select" style="display:none;">
-      <span id="soul-absorb-select-title">除外する魂を選択</span>
-      <span id="soul-absorb-select-desc"></span>
-      <div id="soul-absorb-select-buttons">
-        <button id="soul-absorb-confirm">決定する</button>
+  <!-- 零探しオーバーレイ -->
+  <div id="zero-search-overlay" style="display:none;">
+    <!-- 上部: 先後案内 -->
+    <div id="zero-search-order"></div>
+    <!-- 中部: タイトル・説明・プレビュー・ボタン -->
+    <div id="zero-search-mid">
+      <div id="zero-search-title">零探し</div>
+      <div id="zero-search-desc">手札から好きな枚数選び、デッキの下に送る。<br>戻した枚数分、デッキからドローする。</div>
+      <div id="zero-search-preview-wrap">
+        <img id="zero-search-preview-img" src="" alt="">
       </div>
+      <div id="zero-search-count">カードを選んでデッキ底に戻す（任意）</div>
+      <button id="zero-search-confirm">決　定</button>
     </div>
+    <!-- 下部: 8枚のカード -->
+    <div id="zero-search-cards"></div>
+  </div>
 
-    <!-- スタート -->
-    <div id="start-overlay">
-      <div id="start-title">巫KANNAGIカードゲーム<br>一人対戦ツール<br>『妖怪デッキ：墓暴き』編</div>
-      <img id="start-deck-img" src="images/hakaabaki.jpg" alt="墓暴き">
-      <button id="start-btn">対 戦 開 始</button>
-      <div id="start-note">※道具札が自分のターンでのみ使える「カジュアル版」です。</div>
+  <!-- 相手手札除外選択モーダル -->
+  <div id="opp-hand-exile-overlay" style="display:none;">
+    <span id="opp-hand-exile-title">相手の手札を除外</span>
+    <span id="opp-hand-exile-desc"></span>
+    <div id="opp-hand-exile-cards"></div>
+    <div id="opp-hand-exile-buttons">
+      <button id="opp-hand-exile-confirm" disabled>決定する</button>
     </div>
+  </div>
 
-    <!-- 行動履歴モーダル -->
-    <div id="history-modal">
-      <div id="history-modal-header">行動履歴</div>
-      <div id="history-list"></div>
-      <div id="history-modal-footer">
-        <button id="history-close-btn">閉じる</button>
-      </div>
+  <!-- 魂ダメージ吸収：質問ポップアップ -->
+  <div id="soul-absorb-ask" style="display:none;">
+    <img id="soul-absorb-ask-img" src="" alt="" style="display:none;">
+    <span id="soul-absorb-ask-title">ダメージを魂で受けますか？</span>
+    <div id="soul-absorb-ask-buttons">
+      <button id="soul-absorb-yes">はい</button>
+      <button id="soul-absorb-no">いいえ</button>
     </div>
+  </div>
+
+  <!-- 魂ダメージ吸収：魂選択フェイズ -->
+  <div id="soul-absorb-select" style="display:none;">
+    <span id="soul-absorb-select-title">除外する魂を選択</span>
+    <span id="soul-absorb-select-desc"></span>
+    <div id="soul-absorb-select-buttons">
+      <button id="soul-absorb-confirm">決定する</button>
+    </div>
+  </div>
+
+  <!-- スタート -->
+  <div id="start-overlay">
+    <div id="start-title">巫KANNAGIカードゲーム<br>一人対戦ツール<br>『妖怪デッキ：墓暴き』編</div>
+    <img id="start-deck-img" src="images/hakaabaki.jpg" alt="墓暴き">
+    <button id="start-btn">対 戦 開 始</button>
+    <div id="start-note">※道具札が自分のターンでのみ使える「カジュアル版」です。</div>
+  </div>
+
+  <!-- メニューモーダル -->
+  <div id="menu-overlay" style="display:none;"></div>
+  <div id="menu-modal">
+    <div id="menu-modal-header">
+      <button id="menu-close-x">&times;</button>
+      <span>メニュー</span>
+    </div>
+    <nav id="menu-list">
+      <a class="menu-item" href="https://lit.link/hanil524" target="_blank" rel="noopener">巫カード便利ツール集</a>
+      <a class="menu-item" href="https://hanil524.github.io/kannagi-cardlist/" target="_blank"
+        rel="noopener">巫KANNAGI全カードリスト</a>
+      <a class="menu-item" href="https://x.com/hanil524" target="_blank" rel="noopener">管理人：はん（X）</a>
+      <a class="menu-item"
+        href="https://docs.google.com/forms/d/e/1FAIpQLSd8f24mL69hy2xLROsW7yi5ifoMN6DwQPSr7Msj2-q-3vd2gw/viewform"
+        target="_blank" rel="noopener">不具合報告フォーム</a>
+
+    </nav>
+  </div>
+
+  <!-- 行動履歴モーダル -->
+  <div id="history-modal">
+    <div id="history-modal-header">
+      <button id="history-close-x">&times;</button>
+      <span>行動履歴</span>
+    </div>
+    <div id="history-list"></div>
+    <div id="history-modal-footer">
+      <button id="history-close-btn">閉じる</button>
+    </div>
+  </div>
   </div>
 
   <script src="battle.js"></script>

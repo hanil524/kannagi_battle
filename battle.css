@@ -20,17 +20,29 @@ body {
   touch-action: manipulation;
 }
 
-/* ===== アプリ外枠 ===== */
-#app {
-  width: 100%;
+body {
+  display: flex;
+  flex-direction: column;
   max-width: 430px;
   height: 100vh;
   height: 100dvh;
   margin: 0 auto;
-  display: flex;
-  flex-direction: column;
   position: relative;
-  overflow: hidden;
+}
+
+/* ===== アプリ外枠 ===== */
+#app {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  padding: 4px 8px;
+  background: rgba(15, 10, 30, 0.95);
+  border-bottom: 1px solid rgba(80, 80, 140, 0.25);
+  flex-shrink: 0;
+  z-index: 10;
 }
 
 /* ===== ヘッダー（旧フッター） ===== */
@@ -80,19 +92,19 @@ body {
 }
 
 @media (min-width:600px) {
-  #app {
+  body {
     max-width: 520px;
   }
 }
 
 @media (min-width:900px) {
-  #app {
+  body {
     max-width: 600px;
   }
 }
 
 @media (min-width:1200px) {
-  #app {
+  body {
     max-width: 700px;
   }
 }
@@ -237,7 +249,7 @@ body {
   color: #ffd4d4;
   border: 1px solid rgba(255, 100, 100, 0.4);
   padding: 4px 18px;
-  border-radius: 10px;
+  border-radius: 4px;
   font-size: 12px;
   font-weight: bold;
   letter-spacing: 2px;
@@ -258,7 +270,7 @@ body {
   color: #aac4ee;
   border: 1px solid rgba(80, 140, 255, 0.35);
   padding: 4px 14px;
-  border-radius: 10px;
+  border-radius: 4px;
   font-size: 11px;
   font-weight: bold;
   letter-spacing: 2px;
@@ -3036,6 +3048,108 @@ body {
   box-shadow: 0 0 18px 5px rgba(255, 215, 0, 0.40), 0 0 36px 10px rgba(255, 215, 0, 0.15);
 }
 
+/* ===== メニューモーダル ===== */
+#menu-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 899;
+  background: rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+#menu-overlay.active {
+  display: block !important;
+  opacity: 1;
+}
+
+#menu-modal {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 72%;
+  max-width: 300px;
+  z-index: 900;
+  display: flex;
+  flex-direction: column;
+  background: rgba(12, 10, 28, 0.98);
+  border-right: 1px solid rgba(80, 100, 180, 0.3);
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
+  overflow: hidden;
+}
+
+#menu-modal.active {
+  transform: translateX(0);
+}
+
+#menu-modal-header {
+  padding: 12px 16px;
+  font-size: 16px;
+  font-weight: bold;
+  color: #e0e8ff;
+  letter-spacing: 4px;
+  text-align: center;
+  border-bottom: 1px solid rgba(80, 100, 160, 0.3);
+  flex-shrink: 0;
+  background: rgba(15, 12, 35, 0.95);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#menu-close-x {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(80, 120, 220, 0.4);
+  border-radius: 6px;
+  background: rgba(25, 35, 70, 0.8);
+  color: #aac4ff;
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+}
+
+#menu-close-x:active {
+  transform: translateY(-50%) scale(0.92);
+  background: rgba(40, 60, 130, 0.95);
+}
+
+#menu-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.menu-item {
+  display: block;
+  padding: 14px 20px;
+  color: rgba(200, 210, 255, 0.9);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  border-bottom: 1px solid rgba(80, 100, 160, 0.15);
+  transition: background 0.15s ease;
+}
+
+.menu-item:active {
+  background: rgba(60, 50, 120, 0.5);
+}
+
 /* ===== 行動履歴モーダル ===== */
 #history-modal {
   position: absolute;
@@ -3061,6 +3175,35 @@ body {
   border-bottom: 1px solid rgba(80, 100, 160, 0.3);
   flex-shrink: 0;
   background: rgba(15, 12, 35, 0.95);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#history-close-x {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(80, 120, 220, 0.4);
+  border-radius: 6px;
+  background: rgba(25, 35, 70, 0.8);
+  color: #aac4ff;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+#history-close-x:active {
+  transform: translateY(-50%) scale(0.92);
+  background: rgba(40, 60, 130, 0.95);
 }
 
 #history-list {
@@ -3474,33 +3617,29 @@ body {
   transform: scale(0.96);
 }
 
-/* 下部: カード一覧（4列固定グリッド） */
+/* 下部: カード一覧（4×2, 中央密着, 全身像表示） */
 #zero-search-cards {
   flex: 1;
-  overflow-y: auto;
-  padding: 40px 8px 10px;
+  min-height: 0;
+  padding: 6px 8px 10px;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-  align-content: flex-start;
-  touch-action: pan-y;
+  grid-template-rows: auto auto;
+  gap: 4px;
+  align-content: center;
 }
 
 #zero-search-cards .battle-card {
-  width: 100%;
-  overflow: hidden;
   border-radius: 10px;
-  flex-shrink: 0;
   touch-action: pan-y;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
+  overflow: hidden;
 }
 
 #zero-search-cards .battle-card img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center top;
   display: block;
+  width: 100%;
+  height: auto;
 }
 
 #zero-search-cards .battle-card.zs-selected {

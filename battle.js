@@ -680,6 +680,10 @@ function showExileModal(who) {
     });
   }
 
+  // プレビュー：deck.jpgを先行表示（レイアウトシフト防止）
+  if (dom.exileModalPreviewImg) { dom.exileModalPreviewImg.src = DECK_BACK_IMG; dom.exileModalPreviewImg.style.display = 'block'; }
+  if (dom.exileModalPreviewPlaceholder) dom.exileModalPreviewPlaceholder.style.display = 'none';
+
   dom.exileModal.style.display = 'flex';
   dom.exileModal.classList.add('active');
   exileModalActive = true;
@@ -834,6 +838,7 @@ function renderSoul(who) {
 // ===================================================================
 function updateOverflow(container) {
   container.style.justifyContent = '';
+  container.style.paddingLeft = '';
   const items = Array.from(container.children);
   if (items.length === 0) return;
   items.forEach(el => { el.style.marginRight = ''; });
@@ -847,7 +852,7 @@ function updateOverflow(container) {
   let totalW = 0;
   items.forEach(el => { totalW += (el.offsetWidth || 40); });
   const totalG = totalW + (items.length - 1) * defaultGap;
-  if (totalG <= cW) { container.style.justifyContent = 'center'; return; }
+  if (totalG <= cW) { container.style.justifyContent = 'center'; container.style.paddingLeft = ''; return; }
   container.style.justifyContent = 'flex-start';
 
   if (items.length <= 1) return;
@@ -855,6 +860,11 @@ function updateOverflow(container) {
   const ov = totalG - cW;
   const olap = Math.ceil(ov / (items.length - 1)) + defaultGap;
   items.forEach((el, i) => { if (i < items.length - 1) el.style.marginRight = (-olap) + 'px'; });
+  // オーバーラップ後の実幅を計算し、余白があれば中央寄せ
+  const lastItem = items[items.length - 1];
+  const actualW = (items.length > 0) ? (lastItem.offsetLeft + lastItem.offsetWidth - items[0].offsetLeft) : 0;
+  const pad = Math.max(0, Math.floor((cW - actualW) / 2));
+  container.style.paddingLeft = pad > 0 ? pad + 'px' : '';
 }
 
 // ===================================================================
@@ -1910,6 +1920,10 @@ function startExileSelectPhase(config) {
     dom.exileModalConfirm.disabled = true;
     dom.exileModalConfirm.classList.remove('ready');
 
+    // プレビュー：deck.jpgを先行表示（レイアウトシフト防止）
+    if (dom.exileModalPreviewImg) { dom.exileModalPreviewImg.src = DECK_BACK_IMG; dom.exileModalPreviewImg.style.display = 'block'; }
+    if (dom.exileModalPreviewPlaceholder) dom.exileModalPreviewPlaceholder.style.display = 'none';
+
     // カード表示
     st.exile.forEach(card => {
       const el = createCardEl(card, false);
@@ -1926,8 +1940,8 @@ function startExileSelectPhase(config) {
           dom.exileModalConfirm.disabled = true;
           dom.exileModalConfirm.classList.remove('ready');
           // プレビューリセット
-          if (dom.exileModalPreviewImg) { dom.exileModalPreviewImg.src = ''; dom.exileModalPreviewImg.style.display = 'none'; }
-          if (dom.exileModalPreviewPlaceholder) dom.exileModalPreviewPlaceholder.style.display = 'block';
+          if (dom.exileModalPreviewImg) { dom.exileModalPreviewImg.src = DECK_BACK_IMG; dom.exileModalPreviewImg.style.display = 'block'; }
+          if (dom.exileModalPreviewPlaceholder) dom.exileModalPreviewPlaceholder.style.display = 'none';
         } else {
           dom.exileModalCards.querySelectorAll('.exile-selected').forEach(x => x.classList.remove('exile-selected'));
           selectedCard = card;
@@ -1949,8 +1963,8 @@ function startExileSelectPhase(config) {
           dom.exileModalConfirm.disabled = true;
           dom.exileModalConfirm.classList.remove('ready');
           // プレビューリセット
-          if (dom.exileModalPreviewImg) { dom.exileModalPreviewImg.src = ''; dom.exileModalPreviewImg.style.display = 'none'; }
-          if (dom.exileModalPreviewPlaceholder) dom.exileModalPreviewPlaceholder.style.display = 'block';
+          if (dom.exileModalPreviewImg) { dom.exileModalPreviewImg.src = DECK_BACK_IMG; dom.exileModalPreviewImg.style.display = 'block'; }
+          if (dom.exileModalPreviewPlaceholder) dom.exileModalPreviewPlaceholder.style.display = 'none';
         } else {
           dom.exileModalCards.querySelectorAll('.exile-selected').forEach(x => x.classList.remove('exile-selected'));
           selectedCard = card;
@@ -1982,8 +1996,8 @@ function startExileSelectPhase(config) {
       dom.exileModalButtons.style.display = 'none';
       dom.exileModalDesc.textContent = '';
       // プレビューリセット
-      if (dom.exileModalPreviewImg) { dom.exileModalPreviewImg.src = ''; dom.exileModalPreviewImg.style.display = 'none'; }
-      if (dom.exileModalPreviewPlaceholder) dom.exileModalPreviewPlaceholder.style.display = 'block';
+      if (dom.exileModalPreviewImg) { dom.exileModalPreviewImg.src = DECK_BACK_IMG; dom.exileModalPreviewImg.style.display = 'block'; }
+      if (dom.exileModalPreviewPlaceholder) dom.exileModalPreviewPlaceholder.style.display = 'none';
       dom.exileModalConfirm.removeEventListener('click', onConfirm);
       dom.exileModalConfirm.removeEventListener('touchend', onConfirmTouch);
       dom.exileModalSkip.removeEventListener('click', onSkip);
@@ -2048,8 +2062,8 @@ function startDeckSearchPhase(config) {
           dom.exileModalConfirm.disabled = true;
           dom.exileModalConfirm.classList.remove('ready');
           // プレビューリセット
-          if (dom.exileModalPreviewImg) { dom.exileModalPreviewImg.src = ''; dom.exileModalPreviewImg.style.display = 'none'; }
-          if (dom.exileModalPreviewPlaceholder) dom.exileModalPreviewPlaceholder.style.display = 'block';
+          if (dom.exileModalPreviewImg) { dom.exileModalPreviewImg.src = DECK_BACK_IMG; dom.exileModalPreviewImg.style.display = 'block'; }
+          if (dom.exileModalPreviewPlaceholder) dom.exileModalPreviewPlaceholder.style.display = 'none';
           return;
         }
         // 新規選択
@@ -2093,8 +2107,8 @@ function startDeckSearchPhase(config) {
       dom.exileModalDesc.textContent = '';
       dom.exileModalButtons.style.display = 'none';
       // プレビューリセット
-      if (dom.exileModalPreviewImg) { dom.exileModalPreviewImg.src = ''; dom.exileModalPreviewImg.style.display = 'none'; }
-      if (dom.exileModalPreviewPlaceholder) dom.exileModalPreviewPlaceholder.style.display = 'block';
+      if (dom.exileModalPreviewImg) { dom.exileModalPreviewImg.src = DECK_BACK_IMG; dom.exileModalPreviewImg.style.display = 'block'; }
+      if (dom.exileModalPreviewPlaceholder) dom.exileModalPreviewPlaceholder.style.display = 'none';
     };
     const onConfirm = (e) => {
       e.stopPropagation();
@@ -3082,8 +3096,18 @@ function startGame() {
   }, 1200);
 }
 
+function dealInitialHand(who, count) {
+  const st = (who === 'player') ? player : opponent;
+  for (let i = 0; i < count && st.deck.length > 0; i++) {
+    st.hand.push(st.deck.shift());
+  }
+  if (who === 'player') { renderPlayerHand(); updateDeckImg(dom.playerDeck, 'player'); }
+  else { renderOppHand(); updateDeckImg(dom.oppDeck, 'opponent'); }
+  updateAllCounts();
+}
+
 function initGameAfterGate() {
-  drawCards('player', 8); drawCards('opponent', 8);
+  dealInitialHand('player', 8); dealInitialHand('opponent', 8);
   renderField('player'); renderField('opponent'); renderOppHand(); updateAllCounts();
   updatePlayableAura();
 
@@ -3098,7 +3122,7 @@ function initGameAfterGate() {
         if (idx !== -1) opponent.hand.splice(idx, 1);
         opponent.deck.push(c); // デッキ底へ
       });
-      drawCards('opponent', cpuToBottom.length);
+      dealInitialHand('opponent', cpuToBottom.length);
     }
     renderOppHand(); updateAllCounts();
 
@@ -3137,8 +3161,8 @@ function showZeroSearch(who) {
 
     // カード一覧をリセット
     cardsEl.innerHTML = '';
-    previewImg.src = '';
-    previewImg.style.display = 'none'; // 初期非表示
+    previewImg.src = DECK_BACK_IMG;
+    previewImg.style.display = 'block';
     confirmBtn.classList.add('ready'); // 0枚でも決定可能
 
     // 手札8枚を表示
@@ -3203,9 +3227,9 @@ function showZeroSearch(who) {
       });
       toBottom.forEach(c => st.deck.push(c)); // デッキ一番下に追加
 
-      // 戻した枚数分ドロー（デッキ上から）
+      // 戻した枚数分引き直し（ゲーム開始前なのでドロー扱いにしない）
       if (toBottom.length > 0) {
-        drawCards(who, toBottom.length);
+        dealInitialHand(who, toBottom.length);
       }
       if (who === 'player') { renderPlayerHand(); } else { renderOppHand(); }
       updateAllCounts();
@@ -3270,6 +3294,7 @@ function startPlayerTurn() {
   player.field.forEach(g => { g._summonedThisTurn = false; });
   renderField('player');
   showTurnAnnounce('あなたのターン', () => {
+    logHistory('system', `▶あなたのターン (${Math.ceil(turnNumber / 2)}ターン目)`);
     // 先行1ターン目のみドローなし。後攻なら1ターン目からドロー。
     const isPlayerSenkou = isFirstTurn; // isFirstTurn=true → プレイヤーが先行
     const skipDraw = (isPlayerSenkou && turnNumber === 1);
@@ -3278,7 +3303,6 @@ function startPlayerTurn() {
     }
     turnLocked = false;
     updatePlayableAura();
-    logHistory('system', `▶あなたのターン (${Math.ceil(turnNumber / 2)}ターン目)`);
   });
 }
 
@@ -3424,12 +3448,12 @@ function startCardSelectPhase(config) {
   dom.cardSelectOverlay.style.display = 'flex';
   dom.cardSelectOverlay.classList.add('active');
 
-  // 上段プレビューリセット
+  // 上段プレビュー：deck.jpgを先行表示（レイアウトシフト防止）
   if (dom.cardSelectPreviewImg) {
-    dom.cardSelectPreviewImg.src = '';
-    dom.cardSelectPreviewImg.classList.remove('active');
+    dom.cardSelectPreviewImg.src = DECK_BACK_IMG;
+    dom.cardSelectPreviewImg.classList.add('active');
   }
-  if (dom.cardSelectPlaceholder) dom.cardSelectPlaceholder.style.display = 'block';
+  if (dom.cardSelectPlaceholder) dom.cardSelectPlaceholder.style.display = 'none';
 
   // 決定ボタンを灰色（未選択）にリセット
   dom.cardSelectConfirm.disabled = true;
@@ -3485,12 +3509,10 @@ function handleCardSelectTap(card, el) {
     document.querySelectorAll('.battle-card.selected-card').forEach(e => e.classList.remove('selected-card'));
     dom.cardSelectConfirm.disabled = true;
     dom.cardSelectConfirm.classList.remove('ready');
-    // 上段プレビューをリセット
+    // 上段プレビューをdeck.jpgに戻す（レイアウト維持）
     if (dom.cardSelectPreviewImg) {
-      dom.cardSelectPreviewImg.src = '';
-      dom.cardSelectPreviewImg.classList.remove('active');
+      dom.cardSelectPreviewImg.src = DECK_BACK_IMG;
     }
-    if (dom.cardSelectPlaceholder) dom.cardSelectPlaceholder.style.display = 'block';
     return true;
   }
 
@@ -4208,6 +4230,8 @@ function cpuTurn() {
   // 召喚酔い解除：相手ターン開始時に縦に戻す
   opponent.field.forEach(g => { g._summonedThisTurn = false; });
   renderField('opponent');
+  turnNumber++;
+  logHistory('system', `▶相手のターン (${Math.ceil(turnNumber / 2)}ターン目)`);
   // 先行1ターン目のみドローなし。CPUが先行 = isFirstTurn===false
   const isCpuSenkou = !isFirstTurn;
   const skipDraw = (isCpuSenkou && cpuFirstAction);
@@ -4215,7 +4239,6 @@ function cpuTurn() {
     drawCards('opponent', 1);
   }
   cpuFirstAction = false;
-  logHistory('system', `▶相手のターン (${Math.ceil(turnNumber / 2)}ターン目)`);
   // CPUフラグリセット
   cpuUsedFlags.basho = false;
   cpuUsedFlags.kaii = false;
@@ -4361,7 +4384,7 @@ async function cpuPlaceCard(card) {
     });
     if (best) {
       best.kaii.push(card); cpuUsedFlags.kaii = true;
-      logHistory('opponent', `相手が怪異札「${card.name}」を憑依した。`);
+      logHistory('opponent', `相手が怪異札を憑依しました。`);
     } else { opponent.hand.push(card); return; }
   } else if (card.type === '道具札') {
     cpuUsedFlags.dougu = true;
@@ -4502,6 +4525,7 @@ async function executeCpuAttack(groupIdx, done) {
   // アニメーション完了後に魂吸収選択→ダメージ処理
   setTimeout(async () => {
     // 魂吸収選択（プレイヤーが受けるダメージ）
+    logHistory('opponent', `相手の「${group.basho ? group.basho.name : '場所札'}」が攻撃！（${power}ダメージ）`);
     const actualDamage = await applyDamageWithSoulAbsorb(power, 'bottom', group.basho);
     const isFinishBlow = (player.life <= 0);
 
@@ -4617,6 +4641,42 @@ const historyCloseBtn = $('history-close-btn');
 if (historyCloseBtn) {
   historyCloseBtn.addEventListener('click', hideHistoryModal);
   historyCloseBtn.addEventListener('touchend', (e) => { e.preventDefault(); hideHistoryModal(); });
+}
+const historyCloseX = $('history-close-x');
+if (historyCloseX) {
+  historyCloseX.addEventListener('click', hideHistoryModal);
+  historyCloseX.addEventListener('touchend', (e) => { e.preventDefault(); hideHistoryModal(); });
+}
+
+// ===================================================================
+// メニューモーダル
+// ===================================================================
+const menuModal = $('menu-modal');
+const menuOverlay = $('menu-overlay');
+const btnMenu = $('btn-menu');
+const menuCloseX = $('menu-close-x');
+
+function showMenu() {
+  if (menuOverlay) { menuOverlay.style.display = 'block'; requestAnimationFrame(() => menuOverlay.classList.add('active')); }
+  if (menuModal) menuModal.classList.add('active');
+}
+
+function hideMenu() {
+  if (menuModal) menuModal.classList.remove('active');
+  if (menuOverlay) { menuOverlay.classList.remove('active'); setTimeout(() => { menuOverlay.style.display = 'none'; }, 300); }
+}
+
+if (btnMenu) {
+  btnMenu.addEventListener('click', showMenu);
+  btnMenu.addEventListener('touchend', (e) => { e.preventDefault(); showMenu(); });
+}
+if (menuCloseX) {
+  menuCloseX.addEventListener('click', hideMenu);
+  menuCloseX.addEventListener('touchend', (e) => { e.preventDefault(); hideMenu(); });
+}
+if (menuOverlay) {
+  menuOverlay.addEventListener('click', hideMenu);
+  menuOverlay.addEventListener('touchend', (e) => { e.preventDefault(); hideMenu(); });
 }
 
 // ===================================================================
