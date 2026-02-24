@@ -3484,6 +3484,7 @@ body {
   gap: 6px;
   align-content: flex-start;
   touch-action: pan-y;
+  margin: 0 auto;
 }
 
 #zero-search-cards .battle-card {
