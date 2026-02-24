@@ -2361,7 +2361,7 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 24px;
+  gap: 38px;
   z-index: 480;
   pointer-events: none;
   background: rgba(0, 0, 0, 0.7);
@@ -2384,7 +2384,7 @@ body {
 
 #retry-btn {
   background: linear-gradient(135deg, #1e3a5f, #16213e);
-  color: #8892b0;
+  color: #fafafa;
   border: 1px solid rgba(80, 140, 255, 0.25);
   padding: 10px 30px;
   border-radius: 8px;
@@ -2400,6 +2400,35 @@ body {
 #retry-btn:active {
   background: linear-gradient(135deg, #2a4f7f, #1e3a5f);
   transform: scale(0.97);
+}
+
+#result-shop-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  animation: resultFadeIn 1.0s ease-out forwards;
+  animation-delay: 0.7s;
+  opacity: 0;
+}
+
+#result-shop-img {
+  width: 190px;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+}
+
+#result-shop-text {
+  color: rgba(200, 220, 255, 0.9);
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+}
+
+#result-shop-link:active #result-shop-img {
+  opacity: 0.8;
 }
 
 #result-overlay.win #result-text {
