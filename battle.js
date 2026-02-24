@@ -2444,6 +2444,7 @@ function showWinLoseResult(isWin) {
   }
 }
 
+// HPダメージエフェクト
 function showDamage(amount, side, isFinish) {
   dom.damageText.textContent = 'HP−' + amount;
   const cls = (side === 'top') ? 'show-top' : 'show-bottom';
