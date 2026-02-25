@@ -449,7 +449,7 @@ body {
   position: relative;
   cursor: pointer;
   transition: box-shadow 0.15s ease, transform 0.12s ease;
-  border-radius: 3px;
+  border-radius: 6px;
   overflow: hidden;
   touch-action: none;
   height: calc(100% - 2px);
