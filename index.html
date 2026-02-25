@@ -24,6 +24,40 @@
     <button class="footer-btn" id="btn-end-turn">ターン終了</button>
   </div>
 
+  <!-- スタート -->
+  <div id="start-overlay">
+    <div id="start-title">巫KANNAGIカードゲーム<br>一人対戦ツール<br>『妖怪デッキ：墓暴き』編</div>
+    <img id="start-deck-img" src="images/hakaabaki.jpg" alt="墓暴き">
+    <button id="start-btn">対 戦 開 始</button>
+    <div id="start-note">※道具札が自分のターンでのみ使える「カジュアル版」です。<br>固定の40枚デッキに加え、特典の「いったん木綿」「沼御前」のみが追加されています。</div>
+  </div>
+
+  <!-- メニューモーダル -->
+  <div id="menu-overlay" style="display:none;"></div>
+  <div id="menu-modal">
+    <div id="menu-modal-header">
+      <button id="menu-close-x">&times;</button>
+      <span>メニュー</span>
+    </div>
+    <nav id="menu-list">
+      <a class="menu-item" href="https://www.kannagi-cardgame.jp/" target="_blank" rel="noopener">巫カード公式サイト</a>
+      <a class="menu-item" href="https://www.kannagi-cardgame.jp/s-projects-side-by-side" target="_blank"
+        rel="noopener">遊び方</a>
+      <a class="menu-item" href="https://www.kannagi-cardgame.jp/%E3%82%AB%E3%83%BC%E3%83%89" target="_blank"
+        rel="noopener">商品一覧（公式カードリスト）</a>
+      <a class="menu-item" href="https://eglanz.cart.fc2.com/ca42/550/p-r-s/" target="_blank"
+        rel="noopener">妖怪デッキ「墓暴き」通販ページ</a>
+      <a class="menu-item"></a>
+      <a class="menu-item" href="https://lit.link/hanil524" target="_blank" rel="noopener">巫カード便利ツール集</a>
+      <a class="menu-item" href="https://hanil524.github.io/kannagi-cardlist/" target="_blank"
+        rel="noopener">全カードリスト＆デッキ作成</a>
+      <a class="menu-item" href="https://x.com/hanil524" target="_blank" rel="noopener">管理人：はん（X）</a>
+      <a class="menu-item"
+        href="https://docs.google.com/forms/d/e/1FAIpQLSd8f24mL69hy2xLROsW7yi5ifoMN6DwQPSr7Msj2-q-3vd2gw/viewform"
+        target="_blank" rel="noopener">不具合報告フォーム</a>
+    </nav>
+  </div>
+
   <div id="field">
 
     <!-- ====== 相手側 ====== -->
@@ -319,7 +353,7 @@
       <div id="zero-search-preview-wrap">
         <img id="zero-search-preview-img" src="" alt="">
       </div>
-      <div id="zero-search-count">カードを選んでデッキ底に戻す（任意）</div>
+      <div id="zero-search-count">カードを選び、デッキの底に戻す（任意）</div>
       <button id="zero-search-confirm">決　定</button>
     </div>
     <!-- 下部: 8枚のカード -->
@@ -362,40 +396,6 @@
     <div id="soul-absorb-select-buttons">
       <button id="soul-absorb-confirm">決定する</button>
     </div>
-  </div>
-
-  <!-- スタート -->
-  <div id="start-overlay">
-    <div id="start-title">巫KANNAGIカードゲーム<br>一人対戦ツール<br>『妖怪デッキ：墓暴き』編</div>
-    <img id="start-deck-img" src="images/hakaabaki.jpg" alt="墓暴き">
-    <button id="start-btn">対 戦 開 始</button>
-    <div id="start-note">※道具札が自分のターンでのみ使える「カジュアル版」です。<br>固定の40枚デッキに加え、特典の「いったん木綿」「沼御前」のみが追加されています。</div>
-  </div>
-
-  <!-- メニューモーダル -->
-  <div id="menu-overlay" style="display:none;"></div>
-  <div id="menu-modal">
-    <div id="menu-modal-header">
-      <button id="menu-close-x">&times;</button>
-      <span>メニュー</span>
-    </div>
-    <nav id="menu-list">
-      <a class="menu-item" href="https://www.kannagi-cardgame.jp/" target="_blank" rel="noopener">巫カード公式サイト</a>
-      <a class="menu-item" href="https://www.kannagi-cardgame.jp/s-projects-side-by-side" target="_blank"
-        rel="noopener">遊び方</a>
-      <a class="menu-item" href="https://www.kannagi-cardgame.jp/%E3%82%AB%E3%83%BC%E3%83%89" target="_blank"
-        rel="noopener">商品一覧（公式カードリスト）</a>
-      <a class="menu-item" href="https://eglanz.cart.fc2.com/ca42/550/p-r-s/" target="_blank"
-        rel="noopener">妖怪デッキ「墓暴き」通販ページ</a>
-      <a class="menu-item"></a>
-      <a class="menu-item" href="https://lit.link/hanil524" target="_blank" rel="noopener">巫カード便利ツール集</a>
-      <a class="menu-item" href="https://hanil524.github.io/kannagi-cardlist/" target="_blank"
-        rel="noopener">全カードリスト＆デッキ作成</a>
-      <a class="menu-item" href="https://x.com/hanil524" target="_blank" rel="noopener">管理人：はん（X）</a>
-      <a class="menu-item"
-        href="https://docs.google.com/forms/d/e/1FAIpQLSd8f24mL69hy2xLROsW7yi5ifoMN6DwQPSr7Msj2-q-3vd2gw/viewform"
-        target="_blank" rel="noopener">不具合報告フォーム</a>
-    </nav>
   </div>
 
   <!-- 行動履歴モーダル -->

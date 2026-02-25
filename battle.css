@@ -3604,7 +3604,7 @@ body {
 
 /* 上部: 先後案内 */
 #zero-search-order {
-  padding: 14px 0 2px;
+  padding: 8px 0 2px;
   text-align: center;
   color: rgba(180, 200, 255, 0.85);
   font-size: 14px;
@@ -3657,7 +3657,7 @@ body {
   height: 100%;
   object-fit: contain;
   border-radius: 12px;
-  box-shadow: 0 0 20px 6px rgba(255, 215, 0, 0.4), 0 0 40px 10px rgba(255, 215, 0, 0.15);
+  box-shadow: 0 0 15px 6px rgba(255, 215, 0, 0.4), 0 0 10px 10px rgba(255, 215, 0, 0.15);
   /* display:none → JS側でstyle.displayを直接操作するため省略 */
 }
 

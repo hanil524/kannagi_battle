@@ -2345,7 +2345,7 @@ function startSelfHandExilePhase(count) {
       }
       resolve(exiled);
     };
-    const onConfirmTouch = (e) => { e.preventDefault(); onConfirm(); };
+    const onConfirmTouch = (e) => { if (e.cancelable) e.preventDefault(); onConfirm(); };
 
     confirmBtn.disabled = true;
     confirmBtn.classList.remove('ready');
@@ -3241,7 +3241,7 @@ function showZeroSearch(who) {
     const countEl = $('zero-search-count');
     const updateCount = () => {
       const n = selectedUids.size;
-      countEl.textContent = n === 0 ? 'カードを選んでデッキ底に戻す（任意）' : `${n}枚を選択中 → デッキ底に戻してドロー`;
+      countEl.textContent = n === 0 ? 'デッキの底に送るカードを選択（任意）' : `${n}枚をデッキ底に送る→${n}枚ドロー`;
     };
     updateCount();
 
@@ -4279,17 +4279,25 @@ function cpuTurn() {
   cpuUsedFlags.dougu = false;
   cpuUsedFlags.season = false;
 
-  // カード使用キューを構築（高コスト優先）
-  const actions = buildCpuActions();
-  executeCpuActions(actions, 0, () => {
-    // 攻撃フェイズ：怪異札が付いている最も強い場所札で攻撃
+  // フェーズ1: 怪異札・道具札で攻撃準備
+  const preActions = buildCpuPreAttackActions();
+  executeCpuActions(preActions, 0, () => {
+    // フェーズ2: 攻撃
     const atkGroup = pickCpuAttackTarget();
     if (atkGroup !== null) {
       executeCpuAttack(atkGroup, () => {
-        setTimeout(() => { finishCpuTurn(); }, 500);
+        // フェーズ3: 場所札・季節札を召喚
+        const postActions = buildCpuPostAttackActions();
+        executeCpuActions(postActions, 0, () => {
+          setTimeout(() => { finishCpuTurn(); }, 500);
+        });
       });
     } else {
-      setTimeout(() => { finishCpuTurn(); }, 500);
+      // 攻撃できなければ場所札・季節札を召喚
+      const postActions = buildCpuPostAttackActions();
+      executeCpuActions(postActions, 0, () => {
+        setTimeout(() => { finishCpuTurn(); }, 500);
+      });
     }
   });
 }
@@ -4313,18 +4321,36 @@ function canCpuPlay(card) {
   return true;
 }
 
-function buildCpuActions() {
+// 攻撃前アクション：怪異札・道具札のみ
+function buildCpuPreAttackActions() {
   const actions = [];
-  // ソート：高コスト優先、ドロー効果持ちをさらに優先
   const hand = [...opponent.hand].sort((a, b) => {
-    // ドロー効果を持つカードを最優先
     const aHasDraw = (a.effect && a.effect.startsWith('draw')) ? 1 : 0;
     const bHasDraw = (b.effect && b.effect.startsWith('draw')) ? 1 : 0;
     if (aHasDraw !== bHasDraw) return bHasDraw - aHasDraw;
     return (b.cost || 0) - (a.cost || 0);
   });
+  // 怪異札（高コスト優先）
+  for (const c of hand) {
+    if (c.type === '怪異札' && !cpuUsedFlags.kaii && canCpuPlay(c)) { actions.push(c); break; }
+  }
+  // 道具札（ドロー効果持ちを最優先、高コスト優先）
+  for (const c of hand) {
+    if (c.type === '道具札' && !cpuUsedFlags.dougu && canCpuPlay(c)) { actions.push(c); break; }
+  }
+  return actions;
+}
 
-  // 季節札：場所札が載っている場合は使わない（場所札がない状態なら使う）
+// 攻撃後アクション：場所札・季節札
+function buildCpuPostAttackActions() {
+  const actions = [];
+  const hand = [...opponent.hand].sort((a, b) => {
+    const aHasDraw = (a.effect && a.effect.startsWith('draw')) ? 1 : 0;
+    const bHasDraw = (b.effect && b.effect.startsWith('draw')) ? 1 : 0;
+    if (aHasDraw !== bHasDraw) return bHasDraw - aHasDraw;
+    return (b.cost || 0) - (a.cost || 0);
+  });
+  // 季節札：場所札が載っている場合は使わない
   const existingSeason = opponent.field.find(g => g.season !== null);
   const seasonHasBasho = existingSeason && existingSeason.basho !== null;
   if (!seasonHasBasho) {
@@ -4335,14 +4361,6 @@ function buildCpuActions() {
   // 場所札（高コスト優先、ドロー効果持ち最優先）
   for (const c of hand) {
     if (c.type === '場所札' && !cpuUsedFlags.basho && canCpuPlay(c)) { actions.push(c); break; }
-  }
-  // 怪異札（高コスト優先）
-  for (const c of hand) {
-    if (c.type === '怪異札' && !cpuUsedFlags.kaii && canCpuPlay(c)) { actions.push(c); break; }
-  }
-  // 道具札（ドロー効果持ちを最優先、高コスト優先）
-  for (const c of hand) {
-    if (c.type === '道具札' && !cpuUsedFlags.dougu && canCpuPlay(c)) { actions.push(c); break; }
   }
   return actions;
 }
