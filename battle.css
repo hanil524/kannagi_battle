@@ -763,32 +763,33 @@ body {
 /* ===== 場ドラッグオーバー（白く柔らかい光のループ） ===== */
 @keyframes dropGlow {
   0% {
-    box-shadow: inset 0 0 12px rgba(255, 255, 255, 0.06);
+    box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.12), 0 0 12px rgba(255, 255, 255, 0.08);
   }
 
   50% {
-    box-shadow: inset 0 0 22px rgba(255, 255, 255, 0.15);
+    box-shadow: inset 0 0 40px rgba(255, 255, 255, 0.35), 0 0 24px rgba(255, 255, 255, 0.18);
   }
 
   100% {
-    box-shadow: inset 0 0 12px rgba(255, 255, 255, 0.06);
+    box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.12), 0 0 12px rgba(255, 255, 255, 0.08);
   }
 }
 
 .row-zone.field-zone.drag-over {
-  background: rgba(255, 255, 255, 0.04);
-  animation: dropGlow 1.2s ease-in-out infinite;
+  background: rgba(255, 255, 255, 0.10);
+  animation: dropGlow 0.9s ease-in-out infinite;
 }
 
 .row-zone.drag-over-soul {
-  background: rgba(255, 200, 50, 0.08) !important;
-  animation: dropGlow 1.2s ease-in-out infinite;
+  background: rgba(255, 200, 50, 0.15) !important;
+  animation: dropGlow 0.9s ease-in-out infinite;
 }
 
 .field-group.drop-target {
-  outline: 2px solid rgba(80, 140, 255, 0.5);
+  outline: 2px solid rgba(120, 180, 255, 0.7);
   outline-offset: 2px;
   border-radius: 4px;
+  box-shadow: 0 0 10px rgba(120, 180, 255, 0.4);
 }
 
 /* ===== カード拡大プレビュー ===== */
