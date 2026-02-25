@@ -1306,12 +1306,14 @@ async function handleAttackEffect(basho, who) {
               if (idx !== -1) st.open.splice(idx, 1);
             }
             exileCard(who, selectedCard);
+            logHistory('player', `「${basho.name}」の効果で「${selectedCard.name}」を除外しました。`);
             renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
             updateExileDisplay('player');
             requestAnimationFrame(() => {
               showFloatingText(dom.playerExile, '除外', 'exile');
             });
             applyDamageWithSoulAbsorb(dmg, 'top', basho).then(() => {
+              logHistory('player', `「${basho.name}」の効果で相手に${dmg}点のダメージを与えた。`);
               checkWinLose();
               resolve();
             });
@@ -1378,6 +1380,7 @@ async function handleAttackEffect(basho, who) {
               if (idx !== -1) st.open.splice(idx, 1);
             }
             exileCard(who, selectedCard);
+            logHistory('player', `「${basho.name}」の効果で「${selectedCard.name}」を除外しました。`);
             renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
             updateExileDisplay('player');
             requestAnimationFrame(() => {
@@ -1385,6 +1388,7 @@ async function handleAttackEffect(basho, who) {
             });
             // 相手に3点ライフダメージ
             applyDamageWithSoulAbsorb(3, 'top', basho).then(() => {
+              logHistory('player', `「${basho.name}」の効果で相手に3点のダメージを与えた。`);
               checkWinLose();
               if (!gameEnded) {
                 // 相手の場の場所札全てに3ダメージ
@@ -1432,12 +1436,14 @@ async function handleCpuAttackEffect(basho, st) {
       if (idx !== -1) {
         st.hand.splice(idx, 1);
         exileCard('opponent', target); // FIX: 'who'は未定義 → 'opponent'に固定
+        logHistory('opponent', `「${basho.name}」の効果で「${target.name}」を除外しました。`);
         renderOppHand(); updateAllCounts();
         updateExileDisplay('opponent');
         requestAnimationFrame(() => {
           showFloatingText(dom.oppExile, '除外', 'exile');
         });
         await applyDamageWithSoulAbsorb(4, 'bottom', basho);
+        logHistory('opponent', `「${basho.name}」の効果で相手に4点のダメージを与えた。`);
         checkWinLose();
       }
     }
@@ -1454,6 +1460,7 @@ async function handleCpuAttackEffect(basho, st) {
       if (idx !== -1) {
         st.hand.splice(idx, 1);
         exileCard('opponent', target); // FIX: 'who'は未定義 → 'opponent'に固定
+        logHistory('opponent', `「${basho.name}」の効果で「${target.name}」を除外しました。`);
         renderOppHand(); updateAllCounts();
         updateExileDisplay('opponent');
         requestAnimationFrame(() => {
@@ -1461,6 +1468,7 @@ async function handleCpuAttackEffect(basho, st) {
         });
         // プレイヤーに3点ライフダメージ
         await applyDamageWithSoulAbsorb(3, 'bottom', basho);
+        logHistory('opponent', `「${basho.name}」の効果で相手に3点のダメージを与えた。`);
         checkWinLose();
         if (!gameEnded) {
           // プレイヤーの場の場所札全てに3ダメージ
@@ -1500,12 +1508,14 @@ async function handleKaiiEffect(kCard, who) {
               if (idx !== -1) st.open.splice(idx, 1);
             }
             exileCard(who, selectedCard);
+            logHistory('player', `「${kCard.name}」の効果で「${selectedCard.name}」を除外しました。`);
             renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
             updateExileDisplay('player');
             requestAnimationFrame(() => {
               showFloatingText(dom.playerExile, '除外', 'exile');
             });
             applyDamageWithSoulAbsorb(dmg, 'top', kCard).then(() => {
+              logHistory('player', `「${kCard.name}」の効果で相手に${dmg}点のダメージを与えた。`);
               checkWinLose();
               resolve();
             });
@@ -1584,6 +1594,7 @@ async function handleKaiiEffect(kCard, who) {
           renderPlayerOpen();
           updateExileDisplay('player');
           updateAllCounts();
+          logHistory('player', `「${kCard.name}」の効果で相手に${dmg}点のダメージを与えた。`);
           await applyDamageWithSoulAbsorb(dmg, 'top', kCard);
           checkWinLose();
         }
@@ -1600,6 +1611,7 @@ async function handleKaiiEffect(kCard, who) {
           st.open.push(target);
           updateExileDisplay('opponent');
           updateAllCounts();
+          logHistory('opponent', `「${kCard.name}」の効果で相手に${dmg}点のダメージを与えた。`);
           await applyDamageWithSoulAbsorb(dmg, 'bottom', kCard);
           checkWinLose();
         }
@@ -1701,6 +1713,7 @@ async function handleKaiiEffect(kCard, who) {
                 if (idx !== -1) st.open.splice(idx, 1);
               }
               exileCard(who, selectedCard);
+              logHistory('player', `「${kCard.name}」の効果で「${selectedCard.name}」を除外しました。`);
               renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
               updateExileDisplay('player');
               requestAnimationFrame(() => {
@@ -1749,6 +1762,7 @@ async function handleKaiiEffect(kCard, who) {
           if (idx !== -1) st.open.splice(idx, 1);
         }
         exileCard(who, target);
+        logHistory('opponent', `「${kCard.name}」の効果で「${target.name}」を除外しました。`);
         renderOppHand(); updateAllCounts();
         updateExileDisplay('opponent');
         requestAnimationFrame(() => {
@@ -1783,6 +1797,7 @@ async function handleKaiiEffect(kCard, who) {
               if (idx !== -1) st.open.splice(idx, 1);
             }
             exileCard(who, selectedCard);
+            logHistory('player', `「${kCard.name}」の効果で「${selectedCard.name}」を除外しました。`);
             renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
             updateExileDisplay('player');
             requestAnimationFrame(() => {
@@ -1836,6 +1851,7 @@ async function handleKaiiEffect(kCard, who) {
         if (idx !== -1) st.open.splice(idx, 1);
       }
       exileCard(who, target);
+      logHistory('opponent', `「${kCard.name}」の効果で「${target.name}」を除外しました。`);
       renderOppHand(); updateAllCounts();
       updateExileDisplay('opponent');
       requestAnimationFrame(() => {
@@ -1884,12 +1900,14 @@ async function handleCpuKaiiEffect(kCard, st, dmg) {
       if (idx !== -1) {
         st.hand.splice(idx, 1);
         exileCard('opponent', target);
+        logHistory('opponent', `「${kCard.name}」の効果で「${target.name}」を除外しました。`);
         renderOppHand(); updateAllCounts();
         updateExileDisplay('opponent');
         requestAnimationFrame(() => {
           showFloatingText(dom.oppExile, '除外', 'exile');
         });
         await applyDamageWithSoulAbsorb(dmg, 'bottom', kCard);
+        logHistory('opponent', `「${kCard.name}」の効果で相手に${dmg}点のダメージを与えた。`);
         checkWinLose();
       }
     }
@@ -2899,6 +2917,7 @@ function placeCard(card) {
       await showEffectActivation(card, '効果発動');
       // 効果処理
       if (card.effect === 'damage_8') {
+        logHistory('player', `「${card.name}」の効果で相手に8点のダメージを与えた。`);
         await applyDamageWithSoulAbsorb(8, 'top', card);
         checkWinLose();
       } else if (card.effect === 'draw_3') {
@@ -2920,6 +2939,7 @@ function placeCard(card) {
               renderPlayerOpen();
               updateExileDisplay('player');
               updateAllCounts();
+              logHistory('player', `「${card.name}」の効果で相手に4点のダメージを与えた。`);
               await applyDamageWithSoulAbsorb(4, 'top', card);
               checkWinLose();
             }
@@ -2984,7 +3004,7 @@ function drawCards(who, count) {
   // 行動履歴ログ
   if (drawnUids.length > 0) {
     const whoName = (who === 'player') ? '自分' : '相手';
-    logHistory(who, `${whoName}が${drawnUids.length}枚ドローしました。`);
+    logHistory(who, `${whoName}は山札から${drawnUids.length}枚ドローしました。`);
   }
 }
 
@@ -3641,6 +3661,7 @@ function handleSummonEffect(card, who) {
               if (idx !== -1) player.open.splice(idx, 1);
             }
             exileCard('player', selectedCard);
+            logHistory('player', `「${card.name}」の効果で「${selectedCard.name}」を除外しました。`);
             renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
             updateExileDisplay('player');
             // 除外フローティングテキスト
@@ -3650,6 +3671,7 @@ function handleSummonEffect(card, who) {
             });
             // 相手に3点ダメージ
             applyDamageWithSoulAbsorb(3, 'top', card).then(() => {
+              logHistory('player', `「${card.name}」の効果で相手に3点のダメージを与えた。`);
               checkWinLose();
               turnLocked = false;
               updatePlayableAura();
@@ -3714,6 +3736,7 @@ function handleSummonEffect(card, who) {
         const totalCount = playerGraveyardCount + oppGraveyardCount;
         const dmg = totalCount * 2;
         if (dmg > 0) {
+          logHistory('player', `「${card.name}」の効果で相手に${dmg}点のダメージを与えた。`);
           await applyDamageWithSoulAbsorb(dmg, 'top', card);
           checkWinLose();
         }
@@ -3749,6 +3772,7 @@ function handleSummonEffect(card, who) {
               if (idx !== -1) player.open.splice(idx, 1);
             }
             exileCard('player', selectedCard);
+            logHistory('player', `「${card.name}」の効果で「${selectedCard.name}」を除外しました。`);
             renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
             updateExileDisplay('player');
             requestAnimationFrame(() => {
@@ -3842,6 +3866,7 @@ async function handleCpuSummonEffect(card) {
       if (idx !== -1) {
         opponent.hand.splice(idx, 1);
         exileCard('opponent', target);
+        logHistory('opponent', `「${card.name}」の効果で「${target.name}」を除外しました。`);
         renderOppHand(); updateAllCounts();
         updateExileDisplay('opponent');
         // 除外フローティングテキスト
@@ -3850,6 +3875,7 @@ async function handleCpuSummonEffect(card) {
         });
         // プレイヤーに3点ダメージ（魂吸収選択あり）
         await applyDamageWithSoulAbsorb(3, 'bottom', card);
+        logHistory('opponent', `「${card.name}」の効果で相手に3点のダメージを与えた。`);
         checkWinLose();
       }
     }
@@ -3869,6 +3895,7 @@ async function handleCpuSummonEffect(card) {
         opponent.open.push(target);
         updateExileDisplay('opponent');
         updateAllCounts();
+        logHistory('opponent', `「${card.name}」の効果で相手に4点のダメージを与えた。`);
         await applyDamageWithSoulAbsorb(4, 'bottom', card);
         checkWinLose();
       }
@@ -3883,6 +3910,7 @@ async function handleCpuSummonEffect(card) {
     const totalCount = cpuGraveyardCount + playerGraveyardCount;
     const dmg = totalCount * 2;
     if (dmg > 0) {
+      logHistory('opponent', `「${card.name}」の効果で相手に${dmg}点のダメージを与えた。`);
       await applyDamageWithSoulAbsorb(dmg, 'bottom', card);
       checkWinLose();
     }
@@ -3899,6 +3927,7 @@ async function handleCpuSummonEffect(card) {
       if (idx !== -1) {
         opponent.hand.splice(idx, 1);
         exileCard('opponent', target);
+        logHistory('opponent', `「${card.name}」の効果で「${target.name}」を除外しました。`);
         renderOppHand(); updateAllCounts();
         updateExileDisplay('opponent');
         requestAnimationFrame(() => {
@@ -4450,6 +4479,7 @@ async function cpuPlaceCard(card) {
     // 道具札：効果発動演出を表示
     await showEffectActivation(card, '効果発動');
     if (card.effect === 'damage_8') {
+      logHistory('opponent', `「${card.name}」の効果で相手に8点のダメージを与えた。`);
       await applyDamageWithSoulAbsorb(8, 'bottom', card);
       checkWinLose();
     } else if (card.effect === 'draw_3') {
@@ -4466,6 +4496,7 @@ async function cpuPlaceCard(card) {
           opponent.open.push(target);
           updateExileDisplay('opponent');
           updateAllCounts();
+          logHistory('opponent', `「${card.name}」の効果で相手に4点のダメージを与えた。`);
           await applyDamageWithSoulAbsorb(4, 'bottom', card);
           checkWinLose();
         }
