@@ -1863,6 +1863,8 @@ body {
 
 #gate-overlay.active {
   display: flex;
+  pointer-events: auto;
+  cursor: pointer;
 }
 
 #gate-text {
@@ -2666,6 +2668,73 @@ body {
 
 .floating-text.ft-handdes {
   color: rgba(180, 80, 255, 0.95);
+}
+
+/* ===== リセット確認ポップアップ ===== */
+#reset-confirm {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  z-index: 500;
+  background: rgba(0, 0, 0, 0.75);
+}
+
+#reset-confirm.active {
+  display: flex;
+}
+
+#reset-confirm-title {
+  color: #ffcc44;
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 4px;
+  text-shadow: 0 0 20px rgba(255, 200, 50, 0.4), 0 2px 6px rgba(0, 0, 0, 0.7);
+}
+
+#reset-confirm-buttons {
+  display: flex;
+  gap: 16px;
+}
+
+#reset-confirm-yes {
+  background: linear-gradient(135deg, #1a5aab, #103a70);
+  color: #aac4ff;
+  border: 1px solid rgba(80, 160, 255, 0.5);
+  padding: 12px 28px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  letter-spacing: 3px;
+  cursor: pointer;
+  box-shadow: 0 0 12px rgba(80, 160, 255, 0.3);
+}
+
+#reset-confirm-yes:active {
+  transform: scale(0.96);
+}
+
+#reset-confirm-no {
+  background: linear-gradient(135deg, #8b1a1a, #5c1010);
+  color: #ffd4d4;
+  border: 1px solid rgba(255, 100, 100, 0.4);
+  padding: 12px 28px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  letter-spacing: 3px;
+  cursor: pointer;
+  box-shadow: 0 0 12px rgba(255, 80, 80, 0.2);
+}
+
+#reset-confirm-no:active {
+  transform: scale(0.96);
 }
 
 /* ===== 魂ダメージ吸収：質問ポップアップ ===== */

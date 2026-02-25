@@ -1214,10 +1214,12 @@ async function performAttack() {
     // 怪異札の効果を順番に発動
     for (let i = 0; i < group.kaii.length; i++) {
       const kCard = group.kaii[i];
-      // コスト以上の魂がないと効果不発
+      // コスト以上の魂がないと効果不発、季節が魂にないと不発
       if (kCard.kaiiEffect) {
         const kaiiCost = kCard.cost || 0;
-        if (player.soul.length < kaiiCost) {
+        const kaiiSeason = kCard.season;
+        const playerSeasons = getSoulSeasons('player');
+        if (player.soul.length < kaiiCost || (kaiiCost >= 1 && kaiiSeason && kaiiSeason !== '無' && !playerSeasons.has(kaiiSeason))) {
           await showEffectFailed(kCard);
           continue;
         }
@@ -3024,6 +3026,9 @@ function startGame() {
   dom.soulAbsorbSelect.classList.remove('active');
   document.querySelectorAll('.battle-card.soul-selectable').forEach(e => e.classList.remove('soul-selectable'));
   document.querySelectorAll('.battle-card.soul-absorb-selected').forEach(e => e.classList.remove('soul-absorb-selected'));
+  // リセット確認ポップアップ閉じる
+  const rc = $('reset-confirm');
+  if (rc) { rc.style.display = 'none'; rc.classList.remove('active'); }
 
   dom.playerHandCards.innerHTML = ''; dom.oppHandCards.innerHTML = '';
   dom.playerFieldCards.innerHTML = ''; dom.oppFieldCards.innerHTML = '';
@@ -3065,32 +3070,61 @@ function startGame() {
   dom.gateText.style.animation = 'gateAppear 1.2s ease-out forwards';
   dom.coinText.textContent = '';
 
-  setTimeout(() => {
+  let gateSkipped = false;
+  let gateFlipInterval = null;
+  let gateTimer1 = null, gateTimer2 = null, gateTimer3 = null, gateTimer4 = null;
+
+  function finishGate() {
+    if (gateSkipped) return;
+    gateSkipped = true;
+    if (gateFlipInterval) clearInterval(gateFlipInterval);
+    if (gateTimer1) clearTimeout(gateTimer1);
+    if (gateTimer2) clearTimeout(gateTimer2);
+    if (gateTimer3) clearTimeout(gateTimer3);
+    if (gateTimer4) clearTimeout(gateTimer4);
+    dom.gateOverlay.removeEventListener('click', onGateSkip);
+    dom.gateOverlay.removeEventListener('touchend', onGateSkipTouch);
+    dom.coinText.textContent = isFirstTurn ? '先 行' : '後 攻';
+    dom.coinText.style.textShadow = '0 0 30px rgba(255,255,255,0.6), 0 2px 8px rgba(0,0,0,0.7)';
+    dom.gateText.style.animation = '';
+    dom.coinText.style.animation = '';
+    dom.gateOverlay.classList.remove('active');
+    dom.gateOverlay.style.display = 'none';
+    dom.coinText.style.textShadow = '';
+    initGameAfterGate();
+  }
+
+  function onGateSkip() { finishGate(); }
+  function onGateSkipTouch(e) { e.preventDefault(); finishGate(); }
+
+  dom.gateOverlay.addEventListener('click', onGateSkip);
+  dom.gateOverlay.addEventListener('touchend', onGateSkipTouch);
+
+  gateTimer1 = setTimeout(() => {
+    if (gateSkipped) return;
     // 先行/後攻コインフリップアニメーション（1秒間素早く切替）
     let flipCount = 0;
-    const flipInterval = setInterval(() => {
+    gateFlipInterval = setInterval(() => {
       dom.coinText.textContent = (flipCount % 2 === 0) ? '先 行' : '後 攻';
       flipCount++;
     }, 80);
 
-    setTimeout(() => {
-      clearInterval(flipInterval);
+    gateTimer2 = setTimeout(() => {
+      if (gateSkipped) return;
+      clearInterval(gateFlipInterval);
+      gateFlipInterval = null;
       dom.coinText.textContent = isFirstTurn ? '先 行' : '後 攻';
       dom.coinText.style.textShadow = '0 0 30px rgba(255,255,255,0.6), 0 2px 8px rgba(0,0,0,0.7)';
     }, 1000);
 
     // 結果表示後、少し待ってからフェードアウト
-    setTimeout(() => {
+    gateTimer3 = setTimeout(() => {
+      if (gateSkipped) return;
       dom.gateText.style.animation = 'gateFadeOut 0.5s ease-out forwards';
       dom.coinText.style.animation = 'gateFadeOut 0.5s ease-out forwards';
-      setTimeout(() => {
-        dom.gateOverlay.classList.remove('active');
-        dom.gateOverlay.style.display = 'none';
-        dom.gateText.style.animation = '';
-        dom.coinText.style.animation = '';
-        dom.coinText.style.textShadow = '';
-        // ゲーム初期化続行
-        initGameAfterGate();
+      gateTimer4 = setTimeout(() => {
+        if (gateSkipped) return;
+        finishGate();
       }, 500);
     }, 2000);
   }, 1200);
@@ -4252,10 +4286,10 @@ function cpuTurn() {
     const atkGroup = pickCpuAttackTarget();
     if (atkGroup !== null) {
       executeCpuAttack(atkGroup, () => {
-        finishCpuTurn();
+        setTimeout(() => { finishCpuTurn(); }, 500);
       });
     } else {
-      finishCpuTurn();
+      setTimeout(() => { finishCpuTurn(); }, 500);
     }
   });
 }
@@ -4375,11 +4409,15 @@ async function cpuPlaceCard(card) {
     showPlayEffect(card);
     logHistory('opponent', `相手が季節札「${card.name}」を展開した。`);
   } else if (card.type === '怪異札') {
-    let best = null, bestPower = -1;
+    let best = null, bestPower = -1, bestIsReady = false;
     opponent.field.forEach(g => {
       if (g.basho) {
         const p = getEffectivePower(g, 'opponent');
-        if (p > bestPower) { bestPower = p; best = g; }
+        const isReady = !g._summonedThisTurn; // 縦向き（召喚酔いしていない）
+        // 縦向きを優先し、同じ状態ならパワーが高い方を優先
+        if ((isReady && !bestIsReady) || (isReady === bestIsReady && p > bestPower)) {
+          bestPower = p; best = g; bestIsReady = isReady;
+        }
       }
     });
     if (best) {
@@ -4490,10 +4528,12 @@ async function executeCpuAttack(groupIdx, done) {
   if (group.kaii.length > 0) {
     for (let i = 0; i < group.kaii.length; i++) {
       const kCard = group.kaii[i];
-      // コスト以上の魂がないと効果不発
+      // コスト以上の魂がないと効果不発、季節が魂にないと不発
       if (kCard.kaiiEffect) {
         const kaiiCost = kCard.cost || 0;
-        if (opponent.soul.length < kaiiCost) {
+        const kaiiSeason = kCard.season;
+        const oppSeasons = getSoulSeasons('opponent');
+        if (opponent.soul.length < kaiiCost || (kaiiCost >= 1 && kaiiSeason && kaiiSeason !== '無' && !oppSeasons.has(kaiiSeason))) {
           await showEffectFailed(kCard);
           continue;
         }
@@ -4622,7 +4662,35 @@ dom.pSeasonBtn.addEventListener('click', () => highlightCardsByType('季節'));
 // ===================================================================
 // リセット・ターン終了
 // ===================================================================
-dom.btnReset.addEventListener('click', startGame);
+dom.btnReset.addEventListener('click', () => {
+  const rc = $('reset-confirm');
+  rc.style.display = 'flex';
+  rc.classList.add('active');
+});
+$('reset-confirm-yes').addEventListener('click', () => {
+  const rc = $('reset-confirm');
+  rc.style.display = 'none';
+  rc.classList.remove('active');
+  startGame();
+});
+$('reset-confirm-yes').addEventListener('touchend', (e) => {
+  e.preventDefault();
+  const rc = $('reset-confirm');
+  rc.style.display = 'none';
+  rc.classList.remove('active');
+  startGame();
+});
+$('reset-confirm-no').addEventListener('click', () => {
+  const rc = $('reset-confirm');
+  rc.style.display = 'none';
+  rc.classList.remove('active');
+});
+$('reset-confirm-no').addEventListener('touchend', (e) => {
+  e.preventDefault();
+  const rc = $('reset-confirm');
+  rc.style.display = 'none';
+  rc.classList.remove('active');
+});
 dom.btnEndTurn.addEventListener('click', endTurn);
 // 中央ターン終了ボタン
 dom.endTurnCenter.addEventListener('click', (e) => { e.stopPropagation(); endTurn(); });
@@ -4701,7 +4769,6 @@ if (menuOverlay) {
 // ===================================================================
 dom.startBtn.addEventListener('click', startGame);
 dom.retryBtn.addEventListener('click', startGame);
-dom.playerDeck.addEventListener('click', () => { if (!turnLocked && !gameEnded && player.deck.length > 0) drawCards('player', 1); });
 // 相手の手札クリック
 $('opp-hand-zone').addEventListener('click', (e) => {
   // カードをクリックした場合のみ（手札公開場には影響しない）
