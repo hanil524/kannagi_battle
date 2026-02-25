@@ -409,7 +409,7 @@ function showSeasonShortage() { showPopup('season-shortage-msg'); }
 // ===================================================================
 function showTypeUsedMsg(typeName) {
   const txt = $('type-used-text');
-  txt.textContent = typeName + 'は、このターン既に使用しました。';
+  txt.textContent = typeName + 'は、このターン既に使用した。';
   showPopup('type-used-msg');
 }
 
@@ -1306,7 +1306,7 @@ async function handleAttackEffect(basho, who) {
               if (idx !== -1) st.open.splice(idx, 1);
             }
             exileCard(who, selectedCard);
-            logHistory('player', `「${basho.name}」の効果で「${selectedCard.name}」を除外しました。`);
+            logHistory('player', `「${basho.name}」の効果で「${selectedCard.name}」を除外した。`);
             renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
             updateExileDisplay('player');
             requestAnimationFrame(() => {
@@ -1380,7 +1380,7 @@ async function handleAttackEffect(basho, who) {
               if (idx !== -1) st.open.splice(idx, 1);
             }
             exileCard(who, selectedCard);
-            logHistory('player', `「${basho.name}」の効果で「${selectedCard.name}」を除外しました。`);
+            logHistory('player', `「${basho.name}」の効果で「${selectedCard.name}」を除外した。`);
             renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
             updateExileDisplay('player');
             requestAnimationFrame(() => {
@@ -1436,7 +1436,7 @@ async function handleCpuAttackEffect(basho, st) {
       if (idx !== -1) {
         st.hand.splice(idx, 1);
         exileCard('opponent', target); // FIX: 'who'は未定義 → 'opponent'に固定
-        logHistory('opponent', `「${basho.name}」の効果で「${target.name}」を除外しました。`);
+        logHistory('opponent', `「${basho.name}」の効果で「${target.name}」を除外した。`);
         renderOppHand(); updateAllCounts();
         updateExileDisplay('opponent');
         requestAnimationFrame(() => {
@@ -1460,7 +1460,7 @@ async function handleCpuAttackEffect(basho, st) {
       if (idx !== -1) {
         st.hand.splice(idx, 1);
         exileCard('opponent', target); // FIX: 'who'は未定義 → 'opponent'に固定
-        logHistory('opponent', `「${basho.name}」の効果で「${target.name}」を除外しました。`);
+        logHistory('opponent', `「${basho.name}」の効果で「${target.name}」を除外した。`);
         renderOppHand(); updateAllCounts();
         updateExileDisplay('opponent');
         requestAnimationFrame(() => {
@@ -1508,7 +1508,7 @@ async function handleKaiiEffect(kCard, who) {
               if (idx !== -1) st.open.splice(idx, 1);
             }
             exileCard(who, selectedCard);
-            logHistory('player', `「${kCard.name}」の効果で「${selectedCard.name}」を除外しました。`);
+            logHistory('player', `「${kCard.name}」の効果で「${selectedCard.name}」を除外した。`);
             renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
             updateExileDisplay('player');
             requestAnimationFrame(() => {
@@ -1713,7 +1713,7 @@ async function handleKaiiEffect(kCard, who) {
                 if (idx !== -1) st.open.splice(idx, 1);
               }
               exileCard(who, selectedCard);
-              logHistory('player', `「${kCard.name}」の効果で「${selectedCard.name}」を除外しました。`);
+              logHistory('player', `「${kCard.name}」の効果で「${selectedCard.name}」を除外した。`);
               renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
               updateExileDisplay('player');
               requestAnimationFrame(() => {
@@ -1762,7 +1762,7 @@ async function handleKaiiEffect(kCard, who) {
           if (idx !== -1) st.open.splice(idx, 1);
         }
         exileCard(who, target);
-        logHistory('opponent', `「${kCard.name}」の効果で「${target.name}」を除外しました。`);
+        logHistory('opponent', `「${kCard.name}」の効果で「${target.name}」を除外した。`);
         renderOppHand(); updateAllCounts();
         updateExileDisplay('opponent');
         requestAnimationFrame(() => {
@@ -1797,7 +1797,7 @@ async function handleKaiiEffect(kCard, who) {
               if (idx !== -1) st.open.splice(idx, 1);
             }
             exileCard(who, selectedCard);
-            logHistory('player', `「${kCard.name}」の効果で「${selectedCard.name}」を除外しました。`);
+            logHistory('player', `「${kCard.name}」の効果で「${selectedCard.name}」を除外した。`);
             renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
             updateExileDisplay('player');
             requestAnimationFrame(() => {
@@ -1851,7 +1851,7 @@ async function handleKaiiEffect(kCard, who) {
         if (idx !== -1) st.open.splice(idx, 1);
       }
       exileCard(who, target);
-      logHistory('opponent', `「${kCard.name}」の効果で「${target.name}」を除外しました。`);
+      logHistory('opponent', `「${kCard.name}」の効果で「${target.name}」を除外した。`);
       renderOppHand(); updateAllCounts();
       updateExileDisplay('opponent');
       requestAnimationFrame(() => {
@@ -1900,7 +1900,7 @@ async function handleCpuKaiiEffect(kCard, st, dmg) {
       if (idx !== -1) {
         st.hand.splice(idx, 1);
         exileCard('opponent', target);
-        logHistory('opponent', `「${kCard.name}」の効果で「${target.name}」を除外しました。`);
+        logHistory('opponent', `「${kCard.name}」の効果で「${target.name}」を除外した。`);
         renderOppHand(); updateAllCounts();
         updateExileDisplay('opponent');
         requestAnimationFrame(() => {
@@ -2852,7 +2852,7 @@ function placeCard(card) {
     showPlayEffect(card);
     markUsed('player', '場所札');
     renderField('player'); renderPlayerHand(); updateAllCounts();
-    logHistory('player', `自分は場所札「${card.name}」を召喚しました。`);
+    logHistory('player', `自分は場所札「${card.name}」を召喚した。`);
     // 場所札フローティングテキスト
     requestAnimationFrame(() => {
       const bashoUid = String(card.uid);
@@ -2878,7 +2878,7 @@ function placeCard(card) {
     showPlayEffect(card);
     markUsed('player', '季節札');
     renderField('player'); renderPlayerHand(); updateAllCounts();
-    logHistory('player', `自分は季節札「${card.name}」を展開しました。`);
+    logHistory('player', `自分は季節札「${card.name}」を展開した。`);
     // 展開フローティングテキスト
     requestAnimationFrame(() => {
       const seasonUid = String(card.uid);
@@ -2899,7 +2899,7 @@ function placeCard(card) {
     tg.kaii.push(card);
     markUsed('player', '怪異札');
     renderField('player'); renderPlayerHand(); updateAllCounts();
-    logHistory('player', `自分は怪異札「${card.name}」を憑依しました。`);
+    logHistory('player', `自分は怪異札「${card.name}」を憑依した。`);
     // 憑依フローティングテキスト
     requestAnimationFrame(() => {
       const kaiiUid = String(card.uid);
@@ -2912,7 +2912,7 @@ function placeCard(card) {
     // 道具札：効果発動演出のみ（全道具札共通）→効果処理→魂へ
     markUsed('player', '道具札');
     renderPlayerHand();
-    logHistory('player', `自分は道具札「${card.name}」を発動しました。`);
+    logHistory('player', `自分は道具札「${card.name}」を発動した。`);
     (async () => {
       await showEffectActivation(card, '効果発動');
       // 効果処理
@@ -3004,7 +3004,7 @@ function drawCards(who, count) {
   // 行動履歴ログ
   if (drawnUids.length > 0) {
     const whoName = (who === 'player') ? '自分' : '相手';
-    logHistory(who, `${whoName}は山札から${drawnUids.length}枚ドローしました。`);
+    logHistory(who, `${whoName}は山札から${drawnUids.length}枚ドローした。`);
   }
 }
 
@@ -3661,7 +3661,7 @@ function handleSummonEffect(card, who) {
               if (idx !== -1) player.open.splice(idx, 1);
             }
             exileCard('player', selectedCard);
-            logHistory('player', `「${card.name}」の効果で「${selectedCard.name}」を除外しました。`);
+            logHistory('player', `「${card.name}」の効果で「${selectedCard.name}」を除外した。`);
             renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
             updateExileDisplay('player');
             // 除外フローティングテキスト
@@ -3772,7 +3772,7 @@ function handleSummonEffect(card, who) {
               if (idx !== -1) player.open.splice(idx, 1);
             }
             exileCard('player', selectedCard);
-            logHistory('player', `「${card.name}」の効果で「${selectedCard.name}」を除外しました。`);
+            logHistory('player', `「${card.name}」の効果で「${selectedCard.name}」を除外した。`);
             renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
             updateExileDisplay('player');
             requestAnimationFrame(() => {
@@ -3866,7 +3866,7 @@ async function handleCpuSummonEffect(card) {
       if (idx !== -1) {
         opponent.hand.splice(idx, 1);
         exileCard('opponent', target);
-        logHistory('opponent', `「${card.name}」の効果で「${target.name}」を除外しました。`);
+        logHistory('opponent', `「${card.name}」の効果で「${target.name}」を除外した。`);
         renderOppHand(); updateAllCounts();
         updateExileDisplay('opponent');
         // 除外フローティングテキスト
@@ -3927,7 +3927,7 @@ async function handleCpuSummonEffect(card) {
       if (idx !== -1) {
         opponent.hand.splice(idx, 1);
         exileCard('opponent', target);
-        logHistory('opponent', `「${card.name}」の効果で「${target.name}」を除外しました。`);
+        logHistory('opponent', `「${card.name}」の効果で「${target.name}」を除外した。`);
         renderOppHand(); updateAllCounts();
         updateExileDisplay('opponent');
         requestAnimationFrame(() => {
@@ -4469,7 +4469,7 @@ async function cpuPlaceCard(card) {
     });
     if (best) {
       best.kaii.push(card); cpuUsedFlags.kaii = true;
-      logHistory('opponent', `相手が怪異札を憑依しました。`);
+      logHistory('opponent', `相手が怪異札を憑依した。`);
     } else { opponent.hand.push(card); return; }
   } else if (card.type === '道具札') {
     cpuUsedFlags.dougu = true;
