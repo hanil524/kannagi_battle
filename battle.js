@@ -131,10 +131,8 @@ let attackUsedThisTurn = false;
 let dragAttackActive = false;
 let dragAttackGroupIdx = null;
 let dragAttackSourceEl = null;
-let dragAttackTimer = null;
 let dragAttackStartX = 0;
 let dragAttackStartY = 0;
-const LONG_PRESS_MS = 400;
 const DRAG_MOVE_THRESHOLD = 10;
 let handOverflowPhase = false;
 let turnNumber = 0;          // ターン数（先行1=1, 後攻1=2, 先行2=3, …）
@@ -1056,19 +1054,18 @@ function setupBashoSelect(el, groupIdx) {
     showAttackBtn(groupIdx);
   });
 
-  // --- タッチ：長押し検出 + ドラッグ攻撃 ---
+  // --- タッチ：少し動かしたら即ドラッグ攻撃開始 ---
   let touchId = null;
+  let touchReady = false; // タッチ開始条件を満たしているか
   el.addEventListener('touchstart', (e) => {
     if (isAttacking || turnLocked || gameEnded || isDragging || kaiiPopupActive) return;
     const group = player.field[groupIdx];
     if (!group || !group.basho || group._summonedThisTurn || attackUsedThisTurn) return;
     const t = e.touches[0];
     touchId = t.identifier;
+    touchReady = true;
     dragAttackStartX = t.clientX;
     dragAttackStartY = t.clientY;
-    dragAttackTimer = setTimeout(() => {
-      enterDragAttackMode(el, groupIdx, t.clientX, t.clientY);
-    }, LONG_PRESS_MS);
   }, { passive: true });
 
   el.addEventListener('touchmove', (e) => {
@@ -1077,12 +1074,13 @@ function setupBashoSelect(el, groupIdx) {
       if (e.touches[i].identifier === touchId) { touch = e.touches[i]; break; }
     }
     if (!touch) return;
-    if (!dragAttackActive && dragAttackTimer) {
+    // まだドラッグ攻撃未開始 → 少し動いたら即開始
+    if (!dragAttackActive && touchReady) {
       const dx = Math.abs(touch.clientX - dragAttackStartX);
       const dy = Math.abs(touch.clientY - dragAttackStartY);
       if (dx > DRAG_MOVE_THRESHOLD || dy > DRAG_MOVE_THRESHOLD) {
-        clearTimeout(dragAttackTimer);
-        dragAttackTimer = null;
+        touchReady = false;
+        enterDragAttackMode(el, groupIdx, touch.clientX, touch.clientY);
       }
       return;
     }
@@ -1093,16 +1091,14 @@ function setupBashoSelect(el, groupIdx) {
   }, { passive: false });
 
   el.addEventListener('touchend', (e) => {
-    if (dragAttackTimer) {
-      clearTimeout(dragAttackTimer);
-      dragAttackTimer = null;
-      // 長押し未達 → 通常タップ扱い（攻撃ボタン表示）
-      if (!dragAttackActive) {
-        showAttackBtn(groupIdx);
-        touchId = null;
-        return;
-      }
+    // ドラッグ未開始のままリリース → 通常タップ（攻撃ボタン表示）
+    if (touchReady && !dragAttackActive) {
+      touchReady = false;
+      showAttackBtn(groupIdx);
+      touchId = null;
+      return;
     }
+    touchReady = false;
     if (dragAttackActive) {
       e.preventDefault(); // click発火を防止
       let touch = null;
@@ -1115,22 +1111,21 @@ function setupBashoSelect(el, groupIdx) {
     touchId = null;
   }, { passive: false });
 
-  // --- マウス：長押し検出 + ドラッグ攻撃 ---
+  // --- マウス：少し動かしたら即ドラッグ攻撃開始 ---
   el.addEventListener('mousedown', (e) => {
     if (isAttacking || turnLocked || gameEnded || isDragging || kaiiPopupActive) return;
     const group = player.field[groupIdx];
     if (!group || !group.basho || group._summonedThisTurn || attackUsedThisTurn) return;
     dragAttackStartX = e.clientX;
     dragAttackStartY = e.clientY;
-    dragAttackTimer = setTimeout(() => {
-      enterDragAttackMode(el, groupIdx, e.clientX, e.clientY);
-    }, LONG_PRESS_MS);
+    let mouseReady = true;
     const onMouseMove = (ev) => {
-      if (!dragAttackActive && dragAttackTimer) {
+      if (!dragAttackActive && mouseReady) {
         const dx = Math.abs(ev.clientX - dragAttackStartX);
         const dy = Math.abs(ev.clientY - dragAttackStartY);
         if (dx > DRAG_MOVE_THRESHOLD || dy > DRAG_MOVE_THRESHOLD) {
-          clearTimeout(dragAttackTimer); dragAttackTimer = null;
+          mouseReady = false;
+          enterDragAttackMode(el, groupIdx, ev.clientX, ev.clientY);
         }
         return;
       }
@@ -1139,7 +1134,7 @@ function setupBashoSelect(el, groupIdx) {
     const onMouseUp = (ev) => {
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);
-      if (dragAttackTimer) { clearTimeout(dragAttackTimer); dragAttackTimer = null; }
+      mouseReady = false;
       if (dragAttackActive) finalizeDragAttack(ev.clientX, ev.clientY);
     };
     document.addEventListener('mousemove', onMouseMove);
@@ -4946,6 +4941,17 @@ if (menuOverlay) {
 // ===================================================================
 dom.startBtn.addEventListener('click', startGame);
 dom.retryBtn.addEventListener('click', startGame);
+
+// デッキリスト画像ポップアップ
+(function () {
+  const link = $('deck-list-link');
+  const overlay = $('deck-popup-overlay');
+  const closeBtn = $('deck-popup-close');
+  if (!link || !overlay) return;
+  link.addEventListener('click', (e) => { e.preventDefault(); overlay.style.display = 'flex'; });
+  closeBtn.addEventListener('click', () => { overlay.style.display = 'none'; });
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.style.display = 'none'; });
+})();
 // 相手の手札クリック
 $('opp-hand-zone').addEventListener('click', (e) => {
   // カードをクリックした場合のみ（手札公開場には影響しない）
@@ -5059,7 +5065,6 @@ function cleanupDragAttack() {
   dragAttackActive = false;
   dragAttackGroupIdx = null;
   dragAttackSourceEl = null;
-  if (dragAttackTimer) { clearTimeout(dragAttackTimer); dragAttackTimer = null; }
   document.removeEventListener('contextmenu', _blockCtx, { capture: true });
   setTimeout(() => { suppressPreview = false; }, 150);
 }

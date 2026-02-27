@@ -1837,12 +1837,69 @@ body {
   transform: scale(0.97);
 }
 
+#deck-list-link {
+  color: #9be4ff;
+  font-size: 12px;
+  text-decoration: none;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+  display: inline-block;
+}
+#deck-list-link:active {
+  opacity: 0.6;
+}
 #start-note {
   color: rgba(255, 255, 255, 0.829);
   font-size: 10px;
   text-align: center;
   line-height: 1.5;
   letter-spacing: 0.5px;
+}
+
+/* デッキリスト画像ポップアップ */
+#deck-popup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#deck-popup {
+  position: relative;
+  max-width: 92vw;
+  max-height: 90vh;
+}
+#deck-popup-img {
+  display: block;
+  max-width: 92vw;
+  max-height: 88vh;
+  object-fit: contain;
+  border-radius: 6px;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.7);
+}
+#deck-popup-close {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: #333;
+  color: #fff;
+  font-size: 20px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+#deck-popup-close:active {
+  background: #555;
 }
 
 /* ===== 開門演出 ===== */
