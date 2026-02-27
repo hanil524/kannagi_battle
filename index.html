@@ -415,6 +415,23 @@
   <!-- 盤面確認用フローティングボタン -->
   <button id="banmen-floating-btn" style="display:none;">盤面</button>
 
+  <!-- ドラッグ攻撃ビーム -->
+  <svg id="drag-attack-svg" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:8000;display:none;">
+    <defs>
+      <filter id="beam-glow" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="4" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+      <filter id="beam-glow-ready" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="6" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>
+    <path id="beam-outer" fill="none" stroke="rgba(255,120,60,0.25)" stroke-width="12" stroke-linecap="round" filter="url(#beam-glow)"/>
+    <path id="beam-core" fill="none" stroke="rgba(255,180,80,0.8)" stroke-width="3" stroke-linecap="round" filter="url(#beam-glow)"/>
+    <circle id="beam-target" r="14" fill="none" stroke="rgba(255,180,80,0.6)" stroke-width="2" cx="0" cy="0" style="display:none;"/>
+  </svg>
+
   <!-- 行動履歴モーダル -->
   <div id="history-modal">
     <div id="history-modal-header">

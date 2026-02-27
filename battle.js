@@ -127,6 +127,15 @@ let selectedGroupIdx = null;
 let suppressPreview = false;
 let isAttacking = false;
 let attackUsedThisTurn = false;
+// ドラッグ攻撃
+let dragAttackActive = false;
+let dragAttackGroupIdx = null;
+let dragAttackSourceEl = null;
+let dragAttackTimer = null;
+let dragAttackStartX = 0;
+let dragAttackStartY = 0;
+const LONG_PRESS_MS = 400;
+const DRAG_MOVE_THRESHOLD = 10;
 let handOverflowPhase = false;
 let turnNumber = 0;          // ターン数（先行1=1, 後攻1=2, 先行2=3, …）
 let turnLocked = false;       // ターン遷移中の操作ロック
@@ -765,6 +774,7 @@ function syncCardRow(container, cards, faceDown, who, cls, draggable) {
 // 描画：場
 // ===================================================================
 function renderField(who) {
+  if (dragAttackActive) cleanupDragAttack();
   const st = (who === 'player') ? player : opponent;
   const container = (who === 'player') ? dom.playerFieldCards : dom.oppFieldCards;
   container.innerHTML = '';
@@ -984,6 +994,7 @@ function isCenterBtnTarget(e) {
 }
 
 document.addEventListener('touchend', (e) => {
+  if (dragAttackActive) return;
   if (isCenterBtnTarget(e)) return;
   // 攻撃ボタン解除：場所札以外をタップしたら攻撃ボタンを非表示
   if (selectedGroupIdx !== null) {
@@ -1010,6 +1021,7 @@ document.addEventListener('touchend', (e) => {
   }
 }, { passive: false });
 document.addEventListener('click', (e) => {
+  if (dragAttackActive) return;
   if (isCenterBtnTarget(e)) return;
   // 攻撃ボタン解除：場所札以外をクリックしたら攻撃ボタンを非表示
   if (selectedGroupIdx !== null) {
@@ -1038,8 +1050,101 @@ document.addEventListener('click', (e) => {
 // 場所札選択 → 攻撃ボタン表示／非表示
 // ===================================================================
 function setupBashoSelect(el, groupIdx) {
-  el.addEventListener('touchend', () => showAttackBtn(groupIdx));
-  el.addEventListener('click', () => showAttackBtn(groupIdx));
+  // --- 既存タップ：click ---
+  el.addEventListener('click', () => {
+    if (dragAttackActive) return;
+    showAttackBtn(groupIdx);
+  });
+
+  // --- タッチ：長押し検出 + ドラッグ攻撃 ---
+  let touchId = null;
+  el.addEventListener('touchstart', (e) => {
+    if (isAttacking || turnLocked || gameEnded || isDragging || kaiiPopupActive) return;
+    const group = player.field[groupIdx];
+    if (!group || !group.basho || group._summonedThisTurn || attackUsedThisTurn) return;
+    const t = e.touches[0];
+    touchId = t.identifier;
+    dragAttackStartX = t.clientX;
+    dragAttackStartY = t.clientY;
+    dragAttackTimer = setTimeout(() => {
+      enterDragAttackMode(el, groupIdx, t.clientX, t.clientY);
+    }, LONG_PRESS_MS);
+  }, { passive: true });
+
+  el.addEventListener('touchmove', (e) => {
+    let touch = null;
+    for (let i = 0; i < e.touches.length; i++) {
+      if (e.touches[i].identifier === touchId) { touch = e.touches[i]; break; }
+    }
+    if (!touch) return;
+    if (!dragAttackActive && dragAttackTimer) {
+      const dx = Math.abs(touch.clientX - dragAttackStartX);
+      const dy = Math.abs(touch.clientY - dragAttackStartY);
+      if (dx > DRAG_MOVE_THRESHOLD || dy > DRAG_MOVE_THRESHOLD) {
+        clearTimeout(dragAttackTimer);
+        dragAttackTimer = null;
+      }
+      return;
+    }
+    if (dragAttackActive) {
+      e.preventDefault();
+      updateDragAttackBeam(touch.clientX, touch.clientY);
+    }
+  }, { passive: false });
+
+  el.addEventListener('touchend', (e) => {
+    if (dragAttackTimer) {
+      clearTimeout(dragAttackTimer);
+      dragAttackTimer = null;
+      // 長押し未達 → 通常タップ扱い（攻撃ボタン表示）
+      if (!dragAttackActive) {
+        showAttackBtn(groupIdx);
+        touchId = null;
+        return;
+      }
+    }
+    if (dragAttackActive) {
+      e.preventDefault(); // click発火を防止
+      let touch = null;
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === touchId) { touch = e.changedTouches[i]; break; }
+      }
+      if (touch) finalizeDragAttack(touch.clientX, touch.clientY);
+      else cancelDragAttack();
+    }
+    touchId = null;
+  }, { passive: false });
+
+  // --- マウス：長押し検出 + ドラッグ攻撃 ---
+  el.addEventListener('mousedown', (e) => {
+    if (isAttacking || turnLocked || gameEnded || isDragging || kaiiPopupActive) return;
+    const group = player.field[groupIdx];
+    if (!group || !group.basho || group._summonedThisTurn || attackUsedThisTurn) return;
+    dragAttackStartX = e.clientX;
+    dragAttackStartY = e.clientY;
+    dragAttackTimer = setTimeout(() => {
+      enterDragAttackMode(el, groupIdx, e.clientX, e.clientY);
+    }, LONG_PRESS_MS);
+    const onMouseMove = (ev) => {
+      if (!dragAttackActive && dragAttackTimer) {
+        const dx = Math.abs(ev.clientX - dragAttackStartX);
+        const dy = Math.abs(ev.clientY - dragAttackStartY);
+        if (dx > DRAG_MOVE_THRESHOLD || dy > DRAG_MOVE_THRESHOLD) {
+          clearTimeout(dragAttackTimer); dragAttackTimer = null;
+        }
+        return;
+      }
+      if (dragAttackActive) updateDragAttackBeam(ev.clientX, ev.clientY);
+    };
+    const onMouseUp = (ev) => {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      if (dragAttackTimer) { clearTimeout(dragAttackTimer); dragAttackTimer = null; }
+      if (dragAttackActive) finalizeDragAttack(ev.clientX, ev.clientY);
+    };
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  });
 }
 function showAttackBtn(gIdx) {
   if (isAttacking || turnLocked || gameEnded) return;
@@ -1057,6 +1162,8 @@ function hideAttackBtn() {
   dom.attackBtn.style.display = 'none';
   // 攻撃が非表示になったら中央ターン終了を表示
   dom.endTurnCenter.style.display = '';
+  // ドラッグ攻撃中ならクリーンアップ
+  if (dragAttackActive) cleanupDragAttack();
 }
 
 // ===================================================================
@@ -3036,6 +3143,7 @@ function startGame() {
   opponent.deck = buildSampleDeck();
   opponent.hand = []; opponent.field = []; opponent.soul = []; opponent.exile = []; opponent.open = []; opponent.life = 30;
   selectedGroupIdx = null; suppressPreview = false; isAttacking = false; attackUsedThisTurn = false;
+  if (dragAttackActive) cleanupDragAttack();
   turnNumber = 0; turnLocked = true; gameEnded = false; handOverflowPhase = false; cpuFirstAction = true;
   cardSelectPhase = false; cardSelectConfig = null; cardSelectSelectedCard = null;
   resetHistory(); // 行動履歴リセット
@@ -4850,6 +4958,111 @@ dom.oppDeck.addEventListener('click', () => { showPopup('opp-deck-msg'); });
 window.addEventListener('resize', () => {
   [dom.playerHandCards, dom.oppHandCards, dom.playerFieldCards, dom.oppFieldCards, dom.playerSoulCards, dom.oppSoulCards].forEach(updateOverflow);
 });
+
+// ===================================================================
+// ドラッグ攻撃（長押し→ビーム→攻撃）
+// ===================================================================
+function _blockCtx(e) { e.preventDefault(); }
+function enterDragAttackMode(el, groupIdx, startX, startY) {
+  // ※ hideAttackBtn()はdragAttackActiveをtrueにする前に呼ぶ
+  //    (hideAttackBtn内のcleanupDragAttack誤発動を防止)
+  hidePreview(); hideAttackBtn(); clearAllGlow();
+  dragAttackActive = true;
+  dragAttackGroupIdx = groupIdx;
+  dragAttackSourceEl = el;
+  suppressPreview = true;
+  document.addEventListener('contextmenu', _blockCtx, { capture: true });
+  el.classList.add('drag-attack-source');
+  const svg = $('drag-attack-svg');
+  if (svg) svg.style.display = '';
+  const rect = el.getBoundingClientRect();
+  const srcX = rect.left + rect.width / 2;
+  const srcY = rect.top + rect.height / 2;
+  drawBeamArc(srcX, srcY, startX, startY, false);
+  const target = $('beam-target');
+  if (target) { target.setAttribute('cx', startX); target.setAttribute('cy', startY); target.style.display = ''; }
+}
+
+function updateDragAttackBeam(curX, curY) {
+  if (!dragAttackActive || !dragAttackSourceEl) return;
+  const rect = dragAttackSourceEl.getBoundingClientRect();
+  const srcX = rect.left + rect.width / 2;
+  const srcY = rect.top + rect.height / 2;
+  const oppRow = $('opp-field-row');
+  const oppRect = oppRow.getBoundingClientRect();
+  const isOverOpp = (curX >= oppRect.left && curX <= oppRect.right && curY >= oppRect.top && curY <= oppRect.bottom);
+  drawBeamArc(srcX, srcY, curX, curY, isOverOpp);
+  const target = $('beam-target');
+  if (target) { target.setAttribute('cx', curX); target.setAttribute('cy', curY); }
+  if (isOverOpp) {
+    oppRow.classList.add('drag-attack-ready');
+    if (target) target.setAttribute('stroke', 'rgba(255, 60, 60, 0.9)');
+  } else {
+    oppRow.classList.remove('drag-attack-ready');
+    if (target) target.setAttribute('stroke', 'rgba(255, 180, 80, 0.6)');
+  }
+}
+
+function drawBeamArc(x1, y1, x2, y2, isReady) {
+  const dx = x2 - x1, dy = y2 - y1;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  const midX = (x1 + x2) / 2;
+  const midY = (y1 + y2) / 2;
+  const arcHeight = Math.min(dist * 0.35, 120);
+  const cpX = midX;
+  const cpY = midY - arcHeight;
+  const d = `M ${x1} ${y1} Q ${cpX} ${cpY} ${x2} ${y2}`;
+  const outer = $('beam-outer');
+  const core = $('beam-core');
+  if (outer) {
+    outer.setAttribute('d', d);
+    outer.setAttribute('stroke', isReady ? 'rgba(255, 40, 40, 0.3)' : 'rgba(255, 120, 60, 0.25)');
+    outer.setAttribute('stroke-width', isReady ? '14' : '12');
+    outer.setAttribute('filter', isReady ? 'url(#beam-glow-ready)' : 'url(#beam-glow)');
+  }
+  if (core) {
+    core.setAttribute('d', d);
+    core.setAttribute('stroke', isReady ? 'rgba(255, 80, 80, 0.95)' : 'rgba(255, 180, 80, 0.8)');
+    core.setAttribute('stroke-width', isReady ? '4' : '3');
+    core.setAttribute('filter', isReady ? 'url(#beam-glow-ready)' : 'url(#beam-glow)');
+  }
+}
+
+function finalizeDragAttack(endX, endY) {
+  if (!dragAttackActive) return;
+  const oppRow = $('opp-field-row');
+  const oppRect = oppRow.getBoundingClientRect();
+  const isOverOpp = (endX >= oppRect.left && endX <= oppRect.right && endY >= oppRect.top && endY <= oppRect.bottom);
+  if (isOverOpp && dragAttackGroupIdx !== null) {
+    selectedGroupIdx = dragAttackGroupIdx;
+    cleanupDragAttack();
+    performAttack();
+  } else {
+    cancelDragAttack();
+  }
+}
+
+function cancelDragAttack() { cleanupDragAttack(); }
+
+function cleanupDragAttack() {
+  if (dragAttackSourceEl) dragAttackSourceEl.classList.remove('drag-attack-source');
+  const svg = $('drag-attack-svg');
+  if (svg) svg.style.display = 'none';
+  const outer = $('beam-outer');
+  const core = $('beam-core');
+  if (outer) outer.removeAttribute('d');
+  if (core) core.removeAttribute('d');
+  const target = $('beam-target');
+  if (target) target.style.display = 'none';
+  const oppRow = $('opp-field-row');
+  if (oppRow) oppRow.classList.remove('drag-attack-ready');
+  dragAttackActive = false;
+  dragAttackGroupIdx = null;
+  dragAttackSourceEl = null;
+  if (dragAttackTimer) { clearTimeout(dragAttackTimer); dragAttackTimer = null; }
+  document.removeEventListener('contextmenu', _blockCtx, { capture: true });
+  setTimeout(() => { suppressPreview = false; }, 150);
+}
 
 // ===================================================================
 // 盤面確認モード

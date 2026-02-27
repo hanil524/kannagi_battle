@@ -3205,7 +3205,7 @@ body {
   left: 8px;
   top: 50%;
   transform: translateY(-50%);
-  width: 32px;
+  width: 57px;
   height: 32px;
   border: 1px solid rgba(80, 120, 220, 0.4);
   border-radius: 6px;
@@ -3286,7 +3286,7 @@ body {
   left: 8px;
   top: 50%;
   transform: translateY(-50%);
-  width: 32px;
+  width: 57px;
   height: 32px;
   border: 1px solid rgba(80, 120, 220, 0.4);
   border-radius: 6px;
@@ -3773,6 +3773,7 @@ body {
   box-sizing: border-box;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
+
 .banmen-btn:active {
   background: linear-gradient(135deg, #7a3da2, #5a2d82);
   box-shadow: 0 0 12px rgba(160, 100, 255, 0.4);
@@ -3800,7 +3801,46 @@ body {
   box-sizing: border-box;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
+
 #banmen-floating-btn:active {
   background: linear-gradient(135deg, #7a3da2, #5a2d82);
   box-shadow: 0 0 12px rgba(160, 100, 255, 0.4);
+}
+
+/* ===== ドラッグ攻撃 ===== */
+.drag-attack-source {
+  box-shadow: 0 0 12px 4px rgba(255, 120, 60, 0.6),
+    0 0 24px 8px rgba(255, 80, 30, 0.3) !important;
+  animation: dragAttackPulse 0.8s ease-in-out infinite;
+  z-index: 100 !important;
+}
+
+@keyframes dragAttackPulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 12px 4px rgba(255, 120, 60, 0.6), 0 0 24px 8px rgba(255, 80, 30, 0.3);
+  }
+
+  50% {
+    box-shadow: 0 0 18px 6px rgba(255, 120, 60, 0.8), 0 0 32px 12px rgba(255, 80, 30, 0.5);
+  }
+}
+
+#opp-field-row.drag-attack-ready {
+  background: rgba(255, 60, 60, 0.15);
+  box-shadow: inset 0 0 30px rgba(255, 80, 60, 0.2), 0 0 20px rgba(255, 80, 60, 0.1);
+  animation: oppFieldDragGlow 0.6s ease-in-out infinite;
+}
+
+@keyframes oppFieldDragGlow {
+
+  0%,
+  100% {
+    box-shadow: inset 0 0 30px rgba(255, 80, 60, 0.2), 0 0 20px rgba(255, 80, 60, 0.1);
+  }
+
+  50% {
+    box-shadow: inset 0 0 40px rgba(255, 80, 60, 0.35), 0 0 30px rgba(255, 80, 60, 0.2);
+  }
 }
