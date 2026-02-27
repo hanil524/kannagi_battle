@@ -680,9 +680,9 @@ function showExileModal(who) {
     });
   }
 
-  // プレビュー：deck.jpgを先行表示（レイアウトシフト防止）
-  if (dom.exileModalPreviewImg) { dom.exileModalPreviewImg.src = DECK_BACK_IMG; dom.exileModalPreviewImg.style.display = 'block'; }
-  if (dom.exileModalPreviewPlaceholder) dom.exileModalPreviewPlaceholder.style.display = 'none';
+  // 閲覧モード：プレビューは非表示（選択画面ではないため）
+  if (dom.exileModalPreviewImg) { dom.exileModalPreviewImg.src = ''; dom.exileModalPreviewImg.style.display = 'none'; }
+  if (dom.exileModalPreviewPlaceholder) dom.exileModalPreviewPlaceholder.style.display = '';
 
   dom.exileModal.style.display = 'flex';
   dom.exileModal.classList.add('active');
@@ -1274,7 +1274,7 @@ async function handleAttackEffect(basho, who) {
           updateExileDisplay('player');
           updateAllCounts();
           // 1枚ドロー
-          drawCards('player', 1);
+          drawCards('player', 1, basho.name);
         }
       }
     } else {
@@ -1421,7 +1421,7 @@ async function handleCpuAttackEffect(basho, st) {
         st.open.push(target);
         updateExileDisplay('opponent');
         updateAllCounts();
-        drawCards('opponent', 1);
+        drawCards('opponent', 1, basho.name);
       }
     }
   }
@@ -1550,7 +1550,7 @@ async function handleKaiiEffect(kCard, who) {
           renderPlayerOpen();
           updateExileDisplay('player');
           updateAllCounts();
-          drawCards('player', 2);
+          drawCards('player', 2, kCard.name);
         }
       }
     } else {
@@ -1565,7 +1565,7 @@ async function handleKaiiEffect(kCard, who) {
           st.open.push(target);
           updateExileDisplay('opponent');
           updateAllCounts();
-          drawCards('opponent', 2);
+          drawCards('opponent', 2, kCard.name);
         }
       }
     }
@@ -2463,6 +2463,9 @@ function showWinLoseResult(isWin) {
   dom.resultText.textContent = isWin ? 'YOU WIN!' : 'YOU LOSE!';
   dom.resultOverlay.className = isWin ? 'active win' : 'active lose';
   dom.resultOverlay.style.display = 'flex';
+  // ヘッダーボタンを結果画面の上に表示（メニュー・履歴・リセットを押せるように）
+  const appEl = $('app');
+  if (appEl) appEl.style.zIndex = '490';
 
   // 連勝カウンター
   const streakEl = $('win-streak');
@@ -2921,7 +2924,7 @@ function placeCard(card) {
         await applyDamageWithSoulAbsorb(8, 'top', card);
         checkWinLose();
       } else if (card.effect === 'draw_3') {
-        drawCards('player', 3);
+        drawCards('player', 3, card.name);
       } else if (card.effect === 'retrieve_exile_graveyard_damage4') {
         const hasGraveyardInExile = player.exile.some(c => hasTribe(c, '墓地'));
         if (hasGraveyardInExile) {
@@ -2962,7 +2965,7 @@ function placeCard(card) {
               renderPlayerOpen();
               updateExileDisplay('player');
               updateAllCounts();
-              drawCards('player', 1);
+              drawCards('player', 1, card.name);
             }
           }
         }
@@ -2982,7 +2985,7 @@ function placeCard(card) {
 // ===================================================================
 // ドロー
 // ===================================================================
-function drawCards(who, count) {
+function drawCards(who, count, sourceCardName) {
   const st = (who === 'player') ? player : opponent;
   const drawnUids = [];
   for (let i = 0; i < count && st.deck.length > 0; i++) {
@@ -3004,7 +3007,11 @@ function drawCards(who, count) {
   // 行動履歴ログ
   if (drawnUids.length > 0) {
     const whoName = (who === 'player') ? '自分' : '相手';
-    logHistory(who, `${whoName}は山札から${drawnUids.length}枚ドローした。`);
+    if (sourceCardName) {
+      logHistory(who, `「${sourceCardName}」の効果で${drawnUids.length}枚ドローした。`);
+    } else {
+      logHistory(who, `${whoName}は山札から${drawnUids.length}枚ドローした。`);
+    }
   }
 }
 
@@ -3058,6 +3065,9 @@ function startGame() {
   // 結果オーバーレイ非表示
   dom.resultOverlay.style.display = 'none';
   dom.resultOverlay.className = '';
+  // ヘッダーz-indexを元に戻す
+  const appEl = $('app');
+  if (appEl) appEl.style.zIndex = '';
   // フィニッシュズーム非表示
   dom.finishZoomOverlay.style.display = 'none';
   dom.finishZoomOverlay.classList.remove('active');
@@ -3778,7 +3788,7 @@ function handleSummonEffect(card, who) {
             requestAnimationFrame(() => {
               showFloatingText(dom.playerExile, '除外', 'exile');
             });
-            drawCards('player', 1);
+            drawCards('player', 1, card.name);
             turnLocked = false;
             updatePlayableAura();
           },
@@ -3933,7 +3943,7 @@ async function handleCpuSummonEffect(card) {
         requestAnimationFrame(() => {
           showFloatingText(dom.oppExile, '除外', 'exile');
         });
-        drawCards('opponent', 1);
+        drawCards('opponent', 1, card.name);
       }
     }
   }
@@ -4483,7 +4493,7 @@ async function cpuPlaceCard(card) {
       await applyDamageWithSoulAbsorb(8, 'bottom', card);
       checkWinLose();
     } else if (card.effect === 'draw_3') {
-      drawCards('opponent', 3);
+      drawCards('opponent', 3, card.name);
     } else if (card.effect === 'retrieve_exile_graveyard_damage4') {
       // CPUの除外から墓地属性カードを探す（最高コスト優先）
       const graveyardCards = opponent.exile.filter(c => hasTribe(c, '墓地'));
@@ -4513,7 +4523,7 @@ async function cpuPlaceCard(card) {
           opponent.open.push(target);
           updateExileDisplay('opponent');
           updateAllCounts();
-          drawCards('opponent', 1);
+          drawCards('opponent', 1, card.name);
         }
       }
     }
