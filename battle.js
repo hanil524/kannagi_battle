@@ -694,6 +694,8 @@ function hideExileModal() {
   dom.exileModal.classList.remove('active');
   exileModalActive = false;
   dom.exileModalButtons.style.display = 'none';
+  const exBanmen = dom.exileModal.querySelector('.banmen-btn');
+  if (exBanmen) exBanmen.style.display = 'none';
   dom.exileModalDesc.textContent = '';
 }
 // モーダル外クリックで閉じる（選択モード中は閉じない）
@@ -703,7 +705,7 @@ dom.exileModal.addEventListener('click', (e) => {
 });
 dom.exileModal.addEventListener('touchend', (e) => {
   if (e.target === dom.exileModal && !exileSelectMode) { e.preventDefault(); hideExileModal(); }
-});
+}, { passive: false });
 
 // 除外ゾーンクリックでモーダル表示
 dom.playerExile.addEventListener('click', (e) => {
@@ -713,7 +715,7 @@ dom.playerExile.addEventListener('click', (e) => {
 dom.playerExile.addEventListener('touchend', (e) => {
   e.stopPropagation(); e.preventDefault();
   if (exileModalActive) hideExileModal(); else showExileModal('player');
-});
+}, { passive: false });
 dom.oppExile.addEventListener('click', (e) => {
   e.stopPropagation();
   if (exileModalActive) hideExileModal(); else showExileModal('opponent');
@@ -721,7 +723,7 @@ dom.oppExile.addEventListener('click', (e) => {
 dom.oppExile.addEventListener('touchend', (e) => {
   e.stopPropagation(); e.preventDefault();
   if (exileModalActive) hideExileModal(); else showExileModal('opponent');
-});
+}, { passive: false });
 
 // ===================================================================
 // 描画：手札
@@ -907,7 +909,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const mp = $('modal-preview');
   if (mp) {
     mp.addEventListener('click', () => { mp.classList.remove('active'); mp.style.display = 'none'; });
-    mp.addEventListener('touchend', (e) => { e.preventDefault(); mp.classList.remove('active'); mp.style.display = 'none'; });
+    mp.addEventListener('touchend', (e) => { e.preventDefault(); mp.classList.remove('active'); mp.style.display = 'none'; }, { passive: false });
   }
 });
 
@@ -923,7 +925,7 @@ function setupCardInteraction(el, card, owner) {
   }, { passive: true });
   el.addEventListener('touchend', (e) => {
     e.stopPropagation();
-    if (e.cancelable) e.preventDefault(); // FIX: スクロール中はcancelable=falseなためガード
+    if (e.cancelable) e.preventDefault();
     // 魂吸収フェイズ中：魂カードをタップで選択/解除
     if (soulAbsorbPhase && owner === 'player') {
       if (handleSoulAbsorbTap(card, el)) return;
@@ -945,7 +947,7 @@ function setupCardInteraction(el, card, owner) {
       clearAllGlow(); el.classList.add('glow');
       showPreview(card, owner);
     }
-  });
+  }, { passive: false });
   // ※PCのmouseenter/mouseleaveによるhoverプレビューは廃止（モーダル画面・通常画面問わず）
   // クリックのみでプレビューを表示する仕様に統一
   el.addEventListener('click', (e) => {
@@ -1939,6 +1941,9 @@ function startExileSelectPhase(config) {
     dom.exileModalButtons.style.display = 'flex';
     dom.exileModalConfirm.disabled = true;
     dom.exileModalConfirm.classList.remove('ready');
+    // 盤面ボタン表示
+    const exBanmen = dom.exileModal.querySelector('.banmen-btn');
+    if (exBanmen) exBanmen.style.display = '';
 
     // プレビュー：deck.jpgを先行表示（レイアウトシフト防止）
     if (dom.exileModalPreviewImg) { dom.exileModalPreviewImg.src = DECK_BACK_IMG; dom.exileModalPreviewImg.style.display = 'block'; }
@@ -2039,9 +2044,9 @@ function startExileSelectPhase(config) {
     const onSkipTouch = (e) => { e.preventDefault(); onSkip(e); };
 
     dom.exileModalConfirm.addEventListener('click', onConfirm);
-    dom.exileModalConfirm.addEventListener('touchend', onConfirmTouch);
+    dom.exileModalConfirm.addEventListener('touchend', onConfirmTouch, { passive: false });
     dom.exileModalSkip.addEventListener('click', onSkip);
-    dom.exileModalSkip.addEventListener('touchend', onSkipTouch);
+    dom.exileModalSkip.addEventListener('touchend', onSkipTouch, { passive: false });
   });
 }
 
@@ -2063,6 +2068,9 @@ function startDeckSearchPhase(config) {
     dom.exileModalCards.innerHTML = '';
     dom.exileModalEmpty.style.display = 'none';
     dom.exileModalButtons.style.display = 'flex';
+    // 盤面ボタン表示
+    const exBanmen2 = dom.exileModal.querySelector('.banmen-btn');
+    if (exBanmen2) exBanmen2.style.display = '';
 
     let selectedCard = null;
 
@@ -2511,7 +2519,7 @@ function showSoulDamage(absorbCount, who, isFinish) {
 }
 
 dom.attackBtn.addEventListener('click', (e) => { e.stopPropagation(); performAttack().catch(() => { }); });
-dom.attackBtn.addEventListener('touchend', (e) => { e.preventDefault(); e.stopPropagation(); performAttack().catch(() => { }); });
+dom.attackBtn.addEventListener('touchend', (e) => { e.preventDefault(); e.stopPropagation(); performAttack().catch(() => { }); }, { passive: false });
 
 // ===================================================================
 // 怪異札ポップアップ
@@ -2535,7 +2543,7 @@ function showKaiiPopup(group, owner) {
         clearAllGlow(); el.classList.add('glow');
         showPreview(kCard, owner, true);
       }
-    });
+    }, { passive: false });
     el.addEventListener('click', (e) => {
       e.stopPropagation();
       if (suppressPreview) return;
@@ -2573,7 +2581,7 @@ function setupKaiiInteraction(el, group, owner, kCard) {
       return;
     }
     if (kaiiPopupActive) hideKaiiPopup(); else showKaiiPopup(group, owner);
-  });
+  }, { passive: false });
   // ※hover(mouseenter/mouseleave)によるプレビューは廃止（クリックのみに統一）
   el.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -2602,7 +2610,7 @@ document.addEventListener('touchend', (e) => {
 }, { passive: true });
 dom.kaiiPopup.addEventListener('touchend', (e) => {
   if (e.target === dom.kaiiPopup || e.target.id === 'kaii-popup-title') { e.preventDefault(); hideKaiiPopup(); }
-});
+}, { passive: false });
 
 // ===================================================================
 // カード使用エフェクト
@@ -3075,6 +3083,8 @@ function startGame() {
   const fbo = $('finish-blow-overlay');
   if (fbo) { fbo.className = ''; fbo.style.display = 'none'; $('finish-blow-field').innerHTML = ''; }
 
+  // 盤面確認モード解除
+  if (typeof exitBanmenView === 'function') exitBanmenView();
   // 全ポップアップクリア
   hideAllPopups();
   // 効果発動オーバーレイクリア
@@ -3128,7 +3138,7 @@ function startGame() {
   function onGateSkipTouch(e) { e.preventDefault(); finishGate(); }
 
   dom.gateOverlay.addEventListener('click', onGateSkip);
-  dom.gateOverlay.addEventListener('touchend', onGateSkipTouch);
+  dom.gateOverlay.addEventListener('touchend', onGateSkipTouch, { passive: false });
 
   gateTimer1 = setTimeout(() => {
     if (gateSkipped) return;
@@ -3491,7 +3501,7 @@ dom.handOverflowConfirm.addEventListener('click', (e) => {
 dom.handOverflowConfirm.addEventListener('touchend', (e) => {
   e.preventDefault(); e.stopPropagation();
   confirmOverflowDiscard();
-});
+}, { passive: false });
 
 // ===================================================================
 // カード選択フェイズ（召喚時効果等で手札からカードを選択）
@@ -3629,7 +3639,7 @@ $('card-select-confirm').addEventListener('touchend', (e) => {
   e.preventDefault(); e.stopPropagation();
   if (!cardSelectSelectedCard) return;
   endCardSelectPhase(true);
-});
+}, { passive: false });
 // 選択しないボタン
 $('card-select-skip').addEventListener('click', (e) => {
   e.stopPropagation();
@@ -3638,7 +3648,7 @@ $('card-select-skip').addEventListener('click', (e) => {
 $('card-select-skip').addEventListener('touchend', (e) => {
   e.preventDefault(); e.stopPropagation();
   endCardSelectPhase(false);
-});
+}, { passive: false });
 
 // ===================================================================
 // 召喚時効果処理
@@ -4156,9 +4166,9 @@ function applyDamageWithSoulAbsorb(amount, side, sourceCard) {
     const onYesTouch = (e) => { e.preventDefault(); onYes(e); };
 
     dom.soulAbsorbYes.addEventListener('click', onYes);
-    dom.soulAbsorbYes.addEventListener('touchend', onYesTouch);
+    dom.soulAbsorbYes.addEventListener('touchend', onYesTouch, { passive: false });
     dom.soulAbsorbNo.addEventListener('click', onNo);
-    dom.soulAbsorbNo.addEventListener('touchend', onNoTouch);
+    dom.soulAbsorbNo.addEventListener('touchend', onNoTouch, { passive: false });
   });
 }
 
@@ -4187,7 +4197,7 @@ function startSoulAbsorbSelect(totalDamage, side, st, resolve) {
   };
   const onConfirmTouch = (e) => { e.preventDefault(); onConfirm(e); };
   dom.soulAbsorbConfirm.addEventListener('click', onConfirm);
-  dom.soulAbsorbConfirm.addEventListener('touchend', onConfirmTouch);
+  dom.soulAbsorbConfirm.addEventListener('touchend', onConfirmTouch, { passive: false });
 }
 
 function handleSoulAbsorbTap(card, el) {
@@ -4738,7 +4748,7 @@ $('reset-confirm-yes').addEventListener('touchend', (e) => {
   rc.style.display = 'none';
   rc.classList.remove('active');
   startGame();
-});
+}, { passive: false });
 $('reset-confirm-no').addEventListener('click', () => {
   const rc = $('reset-confirm');
   rc.style.display = 'none';
@@ -4749,11 +4759,11 @@ $('reset-confirm-no').addEventListener('touchend', (e) => {
   const rc = $('reset-confirm');
   rc.style.display = 'none';
   rc.classList.remove('active');
-});
+}, { passive: false });
 dom.btnEndTurn.addEventListener('click', endTurn);
 // 中央ターン終了ボタン
 dom.endTurnCenter.addEventListener('click', (e) => { e.stopPropagation(); endTurn(); });
-dom.endTurnCenter.addEventListener('touchend', (e) => { e.preventDefault(); e.stopPropagation(); endTurn(); });
+dom.endTurnCenter.addEventListener('touchend', (e) => { e.preventDefault(); e.stopPropagation(); endTurn(); }, { passive: false });
 
 // ===================================================================
 // 行動履歴ボタン
@@ -4762,17 +4772,17 @@ const btnHistory = $('btn-history');
 if (btnHistory) {
   btnHistory.disabled = false; // 有効化
   btnHistory.addEventListener('click', showHistoryModal);
-  btnHistory.addEventListener('touchend', (e) => { e.preventDefault(); showHistoryModal(); });
+  btnHistory.addEventListener('touchend', (e) => { e.preventDefault(); showHistoryModal(); }, { passive: false });
 }
 const historyCloseBtn = $('history-close-btn');
 if (historyCloseBtn) {
   historyCloseBtn.addEventListener('click', hideHistoryModal);
-  historyCloseBtn.addEventListener('touchend', (e) => { e.preventDefault(); hideHistoryModal(); });
+  historyCloseBtn.addEventListener('touchend', (e) => { e.preventDefault(); hideHistoryModal(); }, { passive: false });
 }
 const historyCloseX = $('history-close-x');
 if (historyCloseX) {
   historyCloseX.addEventListener('click', hideHistoryModal);
-  historyCloseX.addEventListener('touchend', (e) => { e.preventDefault(); hideHistoryModal(); });
+  historyCloseX.addEventListener('touchend', (e) => { e.preventDefault(); hideHistoryModal(); }, { passive: false });
 }
 
 // ===================================================================
@@ -4795,15 +4805,15 @@ function hideMenu() {
 
 if (btnMenu) {
   btnMenu.addEventListener('click', showMenu);
-  btnMenu.addEventListener('touchend', (e) => { e.preventDefault(); showMenu(); });
+  btnMenu.addEventListener('touchend', (e) => { e.preventDefault(); showMenu(); }, { passive: false });
 }
 if (menuCloseX) {
   menuCloseX.addEventListener('click', hideMenu);
-  menuCloseX.addEventListener('touchend', (e) => { e.preventDefault(); hideMenu(); });
+  menuCloseX.addEventListener('touchend', (e) => { e.preventDefault(); hideMenu(); }, { passive: false });
 }
 if (menuOverlay) {
   menuOverlay.addEventListener('click', hideMenu);
-  menuOverlay.addEventListener('touchend', (e) => { e.preventDefault(); hideMenu(); });
+  menuOverlay.addEventListener('touchend', (e) => { e.preventDefault(); hideMenu(); }, { passive: false });
 }
 
 // ===================================================================
@@ -4820,7 +4830,7 @@ if (menuOverlay) {
     if (e.target === $(id) || e.target.classList.contains('zone-label') || e.target.classList.contains('card-row')) {
       if (kaiiPopupActive) { e.preventDefault(); hideKaiiPopup(); }
     }
-  });
+  }, { passive: false });
 });
 
 // ===================================================================
@@ -4840,3 +4850,76 @@ dom.oppDeck.addEventListener('click', () => { showPopup('opp-deck-msg'); });
 window.addEventListener('resize', () => {
   [dom.playerHandCards, dom.oppHandCards, dom.playerFieldCards, dom.oppFieldCards, dom.playerSoulCards, dom.oppSoulCards].forEach(updateOverflow);
 });
+
+// ===================================================================
+// 盤面確認モード
+// ===================================================================
+let banmenViewActive = false;
+const banmenHiddenOverlays = [];
+const banmenFloatingBtn = $('banmen-floating-btn');
+let banmenSourceBtn = null; // 押された盤面ボタンを記憶
+
+// 盤面確認対象のオーバーレイID一覧
+const banmenTargetIds = [
+  'card-select-overlay',
+  'exile-modal',
+  'hand-overflow-overlay',
+  'soul-absorb-ask',
+  'soul-absorb-select'
+];
+
+function enterBanmenView(sourceBtn) {
+  if (banmenViewActive) return;
+  banmenViewActive = true;
+  banmenSourceBtn = sourceBtn || null;
+  banmenHiddenOverlays.length = 0;
+
+  // 押されたボタンの位置を取得（フローティングボタンを全く同じ位置に配置）
+  if (sourceBtn && banmenFloatingBtn) {
+    const rect = sourceBtn.getBoundingClientRect();
+    banmenFloatingBtn.style.top = rect.top + 'px';
+    banmenFloatingBtn.style.left = rect.left + 'px';
+  }
+
+  // 現在表示中の選択オーバーレイを全て一時非表示
+  banmenTargetIds.forEach(id => {
+    const el = $(id);
+    if (el && el.style.display !== 'none') {
+      banmenHiddenOverlays.push(el);
+      el.style.visibility = 'hidden';
+      el.style.pointerEvents = 'none';
+    }
+  });
+
+  // フローティングボタン表示（テキストは「戻る」）
+  if (banmenFloatingBtn) {
+    banmenFloatingBtn.textContent = '戻る';
+    banmenFloatingBtn.style.display = 'flex';
+  }
+}
+
+function exitBanmenView() {
+  if (!banmenViewActive) return;
+  banmenViewActive = false;
+  banmenSourceBtn = null;
+  // 隠していたオーバーレイを復元
+  banmenHiddenOverlays.forEach(el => {
+    el.style.visibility = '';
+    el.style.pointerEvents = '';
+  });
+  banmenHiddenOverlays.length = 0;
+  // フローティングボタン非表示
+  if (banmenFloatingBtn) banmenFloatingBtn.style.display = 'none';
+}
+
+// 各モーダル内の盤面ボタンにイベント登録
+document.querySelectorAll('.banmen-btn').forEach(btn => {
+  btn.addEventListener('click', (e) => { e.stopPropagation(); enterBanmenView(btn); });
+  btn.addEventListener('touchend', (e) => { e.preventDefault(); e.stopPropagation(); enterBanmenView(btn); }, { passive: false });
+});
+
+// フローティングボタン：戻る
+if (banmenFloatingBtn) {
+  banmenFloatingBtn.addEventListener('click', (e) => { e.stopPropagation(); exitBanmenView(); });
+  banmenFloatingBtn.addEventListener('touchend', (e) => { e.preventDefault(); e.stopPropagation(); exitBanmenView(); }, { passive: false });
+}

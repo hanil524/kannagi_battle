@@ -1394,7 +1394,7 @@ body {
   font-weight: bold;
   letter-spacing: 2px;
   cursor: default;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, color 0.2s ease, border 0.2s ease, box-shadow 0.2s ease;
 }
 
 #exile-modal-confirm.ready {
@@ -1585,7 +1585,7 @@ body {
   font-weight: bold;
   letter-spacing: 2px;
   cursor: default;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, color 0.2s ease, border 0.2s ease, box-shadow 0.2s ease;
 }
 
 #hand-overflow-confirm.ready {
@@ -1718,7 +1718,7 @@ body {
   font-weight: bold;
   letter-spacing: 2px;
   cursor: default;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, color 0.2s ease, border 0.2s ease, box-shadow 0.2s ease;
 }
 
 #card-select-confirm.ready {
@@ -2377,9 +2377,9 @@ body {
 
 #result-text {
   color: #fff;
-  font-size: 32px;
+  font-size: 42px;
   font-weight: 900;
-  letter-spacing: 8px;
+  letter-spacing: 4px;
   text-indent: 8px;
   text-shadow: 0 0 40px rgba(255, 255, 255, 0.5), 0 2px 8px rgba(0, 0, 0, 0.7);
   animation: resultFadeIn 1.0s ease-out forwards;
@@ -2417,7 +2417,7 @@ body {
 }
 
 #result-shop-img {
-  width: 190px;
+  width: 260px;
   border-radius: 8px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
 }
@@ -2866,7 +2866,7 @@ body {
   font-weight: bold;
   letter-spacing: 2px;
   cursor: default;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, color 0.2s ease, border 0.2s ease, box-shadow 0.2s ease;
 }
 
 #soul-absorb-confirm.ready {
@@ -3066,7 +3066,7 @@ body {
   width: 70px;
   height: 98px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: border 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
   border: 2px solid transparent;
   border-radius: 6px;
 }
@@ -3107,7 +3107,7 @@ body {
   font-weight: bold;
   letter-spacing: 2px;
   cursor: default;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, color 0.2s ease, border 0.2s ease, box-shadow 0.2s ease;
 }
 
 #opp-hand-exile-confirm.ready {
@@ -3702,7 +3702,7 @@ body {
   font-weight: bold;
   letter-spacing: 3px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, color 0.2s ease, border 0.2s ease, box-shadow 0.2s ease;
   flex-shrink: 0;
 }
 
@@ -3746,4 +3746,61 @@ body {
   transform: translateY(-6px) scale(1.06);
   box-shadow: 0 0 14px 4px rgba(255, 215, 0, 0.6), 0 0 28px 8px rgba(255, 215, 0, 0.2) !important;
   border: 2px solid rgba(255, 215, 0, 0.9) !important;
+}
+
+/* ===== 盤面確認ボタン ===== */
+.banmen-btn {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #5a2d82, #3a1a5e);
+  color: #d4b0ff;
+  border: 1px solid rgba(160, 100, 255, 0.5);
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  letter-spacing: 0;
+  touch-action: manipulation;
+  pointer-events: auto;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  box-sizing: border-box;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+.banmen-btn:active {
+  background: linear-gradient(135deg, #7a3da2, #5a2d82);
+  box-shadow: 0 0 12px rgba(160, 100, 255, 0.4);
+}
+
+#banmen-floating-btn {
+  position: fixed;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  z-index: 9999;
+  background: linear-gradient(135deg, #5a2d82, #3a1a5e);
+  color: #d4b0ff;
+  border: 1px solid rgba(160, 100, 255, 0.5);
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  letter-spacing: 0;
+  touch-action: manipulation;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  box-sizing: border-box;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+#banmen-floating-btn:active {
+  background: linear-gradient(135deg, #7a3da2, #5a2d82);
+  box-shadow: 0 0 12px rgba(160, 100, 255, 0.4);
 }
