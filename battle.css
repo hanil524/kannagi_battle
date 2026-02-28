@@ -291,7 +291,8 @@ body {
 
 .field-row .row-zone.field-zone {
   flex: 1;
-  overflow: visible;
+  overflow: hidden;
+  min-width: 0;
 }
 
 .life-area {

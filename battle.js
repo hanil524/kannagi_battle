@@ -712,7 +712,7 @@ dom.exileModal.addEventListener('click', (e) => {
   if (e.target === dom.exileModal && !exileSelectMode) hideExileModal();
 });
 dom.exileModal.addEventListener('touchend', (e) => {
-  if (e.target === dom.exileModal && !exileSelectMode) { e.preventDefault(); hideExileModal(); }
+  if (e.target === dom.exileModal && !exileSelectMode) { if (e.cancelable) e.preventDefault(); hideExileModal(); }
 }, { passive: false });
 
 // 除外ゾーンクリックでモーダル表示
@@ -721,7 +721,7 @@ dom.playerExile.addEventListener('click', (e) => {
   if (exileModalActive) hideExileModal(); else showExileModal('player');
 });
 dom.playerExile.addEventListener('touchend', (e) => {
-  e.stopPropagation(); e.preventDefault();
+  e.stopPropagation(); if (e.cancelable) e.preventDefault();
   if (exileModalActive) hideExileModal(); else showExileModal('player');
 }, { passive: false });
 dom.oppExile.addEventListener('click', (e) => {
@@ -729,7 +729,7 @@ dom.oppExile.addEventListener('click', (e) => {
   if (exileModalActive) hideExileModal(); else showExileModal('opponent');
 });
 dom.oppExile.addEventListener('touchend', (e) => {
-  e.stopPropagation(); e.preventDefault();
+  e.stopPropagation(); if (e.cancelable) e.preventDefault();
   if (exileModalActive) hideExileModal(); else showExileModal('opponent');
 }, { passive: false });
 
@@ -824,6 +824,15 @@ function renderField(who) {
     }
     container.appendChild(wrapper);
   });
+  // field-card-rowの幅を親(field-zone)のコンテンツ幅に強制固定
+  // （flex-shrink:0のfield-groupが溢れてclientWidthが膨張するのを防ぐ）
+  const parent = container.parentElement;
+  if (parent) {
+    const pcs = getComputedStyle(parent);
+    const pw = parent.clientWidth - (parseFloat(pcs.paddingLeft) || 0) - (parseFloat(pcs.paddingRight) || 0);
+    container.style.width = pw + 'px';
+    container.style.maxWidth = pw + 'px';
+  }
   updateOverflow(container);
 }
 
@@ -918,7 +927,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const mp = $('modal-preview');
   if (mp) {
     mp.addEventListener('click', () => { mp.classList.remove('active'); mp.style.display = 'none'; });
-    mp.addEventListener('touchend', (e) => { e.preventDefault(); mp.classList.remove('active'); mp.style.display = 'none'; }, { passive: false });
+    mp.addEventListener('touchend', (e) => { if (e.cancelable) e.preventDefault(); mp.classList.remove('active'); mp.style.display = 'none'; }, { passive: false });
   }
 });
 
@@ -1008,6 +1017,7 @@ document.addEventListener('touchend', (e) => {
       dom.kaiiPreviewOverlay.style.display = 'none';
       currentPreviewCard = null;
       clearAllGlow();
+      _kaiiPreviewJustClosed = true;
       if (e.cancelable) e.preventDefault(); // FIX
       return;
     }
@@ -1086,7 +1096,7 @@ function setupBashoSelect(el, groupIdx) {
       return;
     }
     if (dragAttackActive) {
-      e.preventDefault();
+      if (e.cancelable) e.preventDefault();
       updateDragAttackBeam(touch.clientX, touch.clientY);
     }
   }, { passive: false });
@@ -1101,7 +1111,7 @@ function setupBashoSelect(el, groupIdx) {
     }
     touchReady = false;
     if (dragAttackActive) {
-      e.preventDefault(); // click発火を防止
+      if (e.cancelable) e.preventDefault(); // click発火を防止
       let touch = null;
       for (let i = 0; i < e.changedTouches.length; i++) {
         if (e.changedTouches[i].identifier === touchId) { touch = e.changedTouches[i]; break; }
@@ -1764,6 +1774,8 @@ async function handleKaiiEffect(kCard, who) {
 
     const dmg = graveyardCount * 2;
     if (dmg > 0) {
+      const logWho = (who === 'player') ? 'player' : 'opponent';
+      logHistory(logWho, `「${kCard.name}」の効果で相手に${dmg}点のダメージを与えた。（墓地属性${graveyardCount}枚×2）`);
       if (who === 'player') {
         await applyDamageWithSoulAbsorb(dmg, 'top', kCard);
       } else {
@@ -2146,13 +2158,13 @@ function startExileSelectPhase(config) {
       cleanup();
       resolve(selectedCard);
     };
-    const onConfirmTouch = (e) => { e.preventDefault(); onConfirm(e); };
+    const onConfirmTouch = (e) => { if (e.cancelable) e.preventDefault(); onConfirm(e); };
     const onSkip = (e) => {
       e.stopPropagation();
       cleanup();
       resolve(null);
     };
-    const onSkipTouch = (e) => { e.preventDefault(); onSkip(e); };
+    const onSkipTouch = (e) => { if (e.cancelable) e.preventDefault(); onSkip(e); };
 
     dom.exileModalConfirm.addEventListener('click', onConfirm);
     dom.exileModalConfirm.addEventListener('touchend', onConfirmTouch, { passive: false });
@@ -2255,13 +2267,13 @@ function startDeckSearchPhase(config) {
       cleanup();
       resolve(selectedCard);
     };
-    const onConfirmTouch = (e) => { e.preventDefault(); e.stopPropagation(); onConfirm(e); };
+    const onConfirmTouch = (e) => { if (e.cancelable) e.preventDefault(); e.stopPropagation(); onConfirm(e); };
     const onSkip = (e) => {
       e.stopPropagation();
       cleanup();
       resolve(null);
     };
-    const onSkipTouch = (e) => { e.preventDefault(); e.stopPropagation(); onSkip(e); };
+    const onSkipTouch = (e) => { if (e.cancelable) e.preventDefault(); e.stopPropagation(); onSkip(e); };
 
     dom.exileModalConfirm.addEventListener('click', onConfirm);
     dom.exileModalConfirm.addEventListener('touchend', onConfirmTouch, { passive: false });
@@ -2636,12 +2648,13 @@ function showSoulDamage(absorbCount, who, isFinish) {
 }
 
 dom.attackBtn.addEventListener('click', (e) => { e.stopPropagation(); performAttack().catch(() => { }); });
-dom.attackBtn.addEventListener('touchend', (e) => { e.preventDefault(); e.stopPropagation(); performAttack().catch(() => { }); }, { passive: false });
+dom.attackBtn.addEventListener('touchend', (e) => { if (e.cancelable) e.preventDefault(); e.stopPropagation(); performAttack().catch(() => { }); }, { passive: false });
 
 // ===================================================================
 // 怪異札ポップアップ
 // ===================================================================
 let kaiiPopupActive = false;
+let _kaiiPreviewJustClosed = false; // 拡大プレビュー閉じ直後フラグ（2段階閉じ用）
 
 function showKaiiPopup(group, owner) {
   hidePreview();
@@ -2652,7 +2665,7 @@ function showKaiiPopup(group, owner) {
     // ポップアップ内のカード：クリック/タップのみで拡大表示（マウスオーバー無効）
     el.addEventListener('touchstart', (e) => { e.stopPropagation(); el.classList.add('glow'); }, { passive: true });
     el.addEventListener('touchend', (e) => {
-      e.stopPropagation(); e.preventDefault();
+      e.stopPropagation(); if (e.cancelable) e.preventDefault();
       if (suppressPreview) return;
       if (currentPreviewCard && currentPreviewCard.uid === kCard.uid) {
         hidePreview(); el.classList.remove('glow');
@@ -2686,7 +2699,7 @@ function showKaiiBlockMsg() {
 function setupKaiiInteraction(el, group, owner, kCard) {
   el.addEventListener('touchstart', () => el.classList.add('glow'), { passive: true });
   el.addEventListener('touchend', (e) => {
-    el.classList.remove('glow'); e.stopPropagation(); e.preventDefault();
+    el.classList.remove('glow'); e.stopPropagation(); if (e.cancelable) e.preventDefault();
     if (owner === 'opponent') {
       // 鮮明カードがあるかチェック
       const senmeCards = group.kaii.filter(k => hasKeyword(k, '鮮明')); // FIX: hasKeyword化
@@ -2719,14 +2732,24 @@ dom.kaiiPopup.addEventListener('click', (e) => {
 });
 // FIX E: ポップアップ外クリック/タップで閉じる
 document.addEventListener('click', (e) => {
-  if (kaiiPopupActive && !dom.kaiiPopup.contains(e.target)) hideKaiiPopup();
+  if (_kaiiPreviewJustClosed) { _kaiiPreviewJustClosed = false; return; }
+  if (kaiiPopupActive && !dom.kaiiPopup.contains(e.target)) {
+    // 拡大プレビュー表示中はモーダルを閉じない（2段階閉じ）
+    if (dom.kaiiPreviewOverlay.style.display === 'flex') return;
+    hideKaiiPopup();
+  }
 });
 document.addEventListener('touchend', (e) => {
   // NOTE: passive:true でpreventDefaultは呼ばない（スクロール中のIntervention回避）
-  if (kaiiPopupActive && !dom.kaiiPopup.contains(e.target)) hideKaiiPopup();
+  if (_kaiiPreviewJustClosed) { _kaiiPreviewJustClosed = false; return; }
+  if (kaiiPopupActive && !dom.kaiiPopup.contains(e.target)) {
+    // 拡大プレビュー表示中はモーダルを閉じない（2段階閉じ）
+    if (dom.kaiiPreviewOverlay.style.display === 'flex') return;
+    hideKaiiPopup();
+  }
 }, { passive: true });
 dom.kaiiPopup.addEventListener('touchend', (e) => {
-  if (e.target === dom.kaiiPopup || e.target.id === 'kaii-popup-title') { e.preventDefault(); hideKaiiPopup(); }
+  if (e.target === dom.kaiiPopup || e.target.id === 'kaii-popup-title') { if (e.cancelable) e.preventDefault(); hideKaiiPopup(); }
 }, { passive: false });
 
 // ===================================================================
@@ -3292,7 +3315,7 @@ function startGame() {
   }
 
   function onGateSkip() { finishGate(); }
-  function onGateSkipTouch(e) { e.preventDefault(); finishGate(); }
+  function onGateSkipTouch(e) { if (e.cancelable) e.preventDefault(); finishGate(); }
 
   dom.gateOverlay.addEventListener('click', onGateSkip);
   dom.gateOverlay.addEventListener('touchend', onGateSkipTouch, { passive: false });
@@ -3664,7 +3687,7 @@ dom.handOverflowConfirm.addEventListener('click', (e) => {
   confirmOverflowDiscard();
 });
 dom.handOverflowConfirm.addEventListener('touchend', (e) => {
-  e.preventDefault(); e.stopPropagation();
+  if (e.cancelable) e.preventDefault(); e.stopPropagation();
   confirmOverflowDiscard();
 }, { passive: false });
 
@@ -3801,7 +3824,7 @@ $('card-select-confirm').addEventListener('click', (e) => {
   endCardSelectPhase(true);
 });
 $('card-select-confirm').addEventListener('touchend', (e) => {
-  e.preventDefault(); e.stopPropagation();
+  if (e.cancelable) e.preventDefault(); e.stopPropagation();
   if (!cardSelectSelectedCard) return;
   endCardSelectPhase(true);
 }, { passive: false });
@@ -3811,7 +3834,7 @@ $('card-select-skip').addEventListener('click', (e) => {
   endCardSelectPhase(false);
 });
 $('card-select-skip').addEventListener('touchend', (e) => {
-  e.preventDefault(); e.stopPropagation();
+  if (e.cancelable) e.preventDefault(); e.stopPropagation();
   endCardSelectPhase(false);
 }, { passive: false });
 
@@ -4329,7 +4352,7 @@ function applyDamageWithSoulAbsorb(amount, side, sourceCard) {
       showDamage(amount, side, isLethal);
       resolve(amount);
     };
-    const onNoTouch = (e) => { e.preventDefault(); onNo(e); };
+    const onNoTouch = (e) => { if (e.cancelable) e.preventDefault(); onNo(e); };
 
     const onYes = (e) => {
       e.stopPropagation();
@@ -4337,7 +4360,7 @@ function applyDamageWithSoulAbsorb(amount, side, sourceCard) {
       // 魂選択フェイズ開始
       startSoulAbsorbSelect(amount, side, st, resolve);
     };
-    const onYesTouch = (e) => { e.preventDefault(); onYes(e); };
+    const onYesTouch = (e) => { if (e.cancelable) e.preventDefault(); onYes(e); };
 
     dom.soulAbsorbYes.addEventListener('click', onYes);
     dom.soulAbsorbYes.addEventListener('touchend', onYesTouch, { passive: false });
@@ -4369,7 +4392,7 @@ function startSoulAbsorbSelect(totalDamage, side, st, resolve) {
     dom.soulAbsorbConfirm.removeEventListener('click', onConfirm);
     dom.soulAbsorbConfirm.removeEventListener('touchend', onConfirmTouch);
   };
-  const onConfirmTouch = (e) => { e.preventDefault(); onConfirm(e); };
+  const onConfirmTouch = (e) => { if (e.cancelable) e.preventDefault(); onConfirm(e); };
   dom.soulAbsorbConfirm.addEventListener('click', onConfirm);
   dom.soulAbsorbConfirm.addEventListener('touchend', onConfirmTouch, { passive: false });
 }
@@ -4925,7 +4948,7 @@ $('reset-confirm-yes').addEventListener('click', () => {
   startGame();
 });
 $('reset-confirm-yes').addEventListener('touchend', (e) => {
-  e.preventDefault();
+  if (e.cancelable) e.preventDefault();
   const rc = $('reset-confirm');
   rc.style.display = 'none';
   rc.classList.remove('active');
@@ -4937,7 +4960,7 @@ $('reset-confirm-no').addEventListener('click', () => {
   rc.classList.remove('active');
 });
 $('reset-confirm-no').addEventListener('touchend', (e) => {
-  e.preventDefault();
+  if (e.cancelable) e.preventDefault();
   const rc = $('reset-confirm');
   rc.style.display = 'none';
   rc.classList.remove('active');
@@ -4945,7 +4968,7 @@ $('reset-confirm-no').addEventListener('touchend', (e) => {
 dom.btnEndTurn.addEventListener('click', endTurn);
 // 中央ターン終了ボタン
 dom.endTurnCenter.addEventListener('click', (e) => { e.stopPropagation(); endTurn(); });
-dom.endTurnCenter.addEventListener('touchend', (e) => { e.preventDefault(); e.stopPropagation(); endTurn(); }, { passive: false });
+dom.endTurnCenter.addEventListener('touchend', (e) => { if (e.cancelable) e.preventDefault(); e.stopPropagation(); endTurn(); }, { passive: false });
 
 // ===================================================================
 // 行動履歴ボタン
@@ -4954,17 +4977,17 @@ const btnHistory = $('btn-history');
 if (btnHistory) {
   btnHistory.disabled = false; // 有効化
   btnHistory.addEventListener('click', showHistoryModal);
-  btnHistory.addEventListener('touchend', (e) => { e.preventDefault(); showHistoryModal(); }, { passive: false });
+  btnHistory.addEventListener('touchend', (e) => { if (e.cancelable) e.preventDefault(); showHistoryModal(); }, { passive: false });
 }
 const historyCloseBtn = $('history-close-btn');
 if (historyCloseBtn) {
   historyCloseBtn.addEventListener('click', hideHistoryModal);
-  historyCloseBtn.addEventListener('touchend', (e) => { e.preventDefault(); hideHistoryModal(); }, { passive: false });
+  historyCloseBtn.addEventListener('touchend', (e) => { if (e.cancelable) e.preventDefault(); hideHistoryModal(); }, { passive: false });
 }
 const historyCloseX = $('history-close-x');
 if (historyCloseX) {
   historyCloseX.addEventListener('click', hideHistoryModal);
-  historyCloseX.addEventListener('touchend', (e) => { e.preventDefault(); hideHistoryModal(); }, { passive: false });
+  historyCloseX.addEventListener('touchend', (e) => { if (e.cancelable) e.preventDefault(); hideHistoryModal(); }, { passive: false });
 }
 
 // ===================================================================
@@ -4987,15 +5010,15 @@ function hideMenu() {
 
 if (btnMenu) {
   btnMenu.addEventListener('click', showMenu);
-  btnMenu.addEventListener('touchend', (e) => { e.preventDefault(); showMenu(); }, { passive: false });
+  btnMenu.addEventListener('touchend', (e) => { if (e.cancelable) e.preventDefault(); showMenu(); }, { passive: false });
 }
 if (menuCloseX) {
   menuCloseX.addEventListener('click', hideMenu);
-  menuCloseX.addEventListener('touchend', (e) => { e.preventDefault(); hideMenu(); }, { passive: false });
+  menuCloseX.addEventListener('touchend', (e) => { if (e.cancelable) e.preventDefault(); hideMenu(); }, { passive: false });
 }
 if (menuOverlay) {
   menuOverlay.addEventListener('click', hideMenu);
-  menuOverlay.addEventListener('touchend', (e) => { e.preventDefault(); hideMenu(); }, { passive: false });
+  menuOverlay.addEventListener('touchend', (e) => { if (e.cancelable) e.preventDefault(); hideMenu(); }, { passive: false });
 }
 
 // ===================================================================
@@ -5010,7 +5033,7 @@ if (menuOverlay) {
   });
   $(id).addEventListener('touchend', (e) => {
     if (e.target === $(id) || e.target.classList.contains('zone-label') || e.target.classList.contains('card-row')) {
-      if (kaiiPopupActive) { e.preventDefault(); hideKaiiPopup(); }
+      if (kaiiPopupActive) { if (e.cancelable) e.preventDefault(); hideKaiiPopup(); }
     }
   }, { passive: false });
 });
@@ -5212,11 +5235,11 @@ function exitBanmenView() {
 // 各モーダル内の盤面ボタンにイベント登録
 document.querySelectorAll('.banmen-btn').forEach(btn => {
   btn.addEventListener('click', (e) => { e.stopPropagation(); enterBanmenView(btn); });
-  btn.addEventListener('touchend', (e) => { e.preventDefault(); e.stopPropagation(); enterBanmenView(btn); }, { passive: false });
+  btn.addEventListener('touchend', (e) => { if (e.cancelable) e.preventDefault(); e.stopPropagation(); enterBanmenView(btn); }, { passive: false });
 });
 
 // フローティングボタン：戻る
 if (banmenFloatingBtn) {
   banmenFloatingBtn.addEventListener('click', (e) => { e.stopPropagation(); exitBanmenView(); });
-  banmenFloatingBtn.addEventListener('touchend', (e) => { e.preventDefault(); e.stopPropagation(); exitBanmenView(); }, { passive: false });
+  banmenFloatingBtn.addEventListener('touchend', (e) => { if (e.cancelable) e.preventDefault(); e.stopPropagation(); exitBanmenView(); }, { passive: false });
 }
