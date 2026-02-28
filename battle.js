@@ -138,6 +138,7 @@ let handOverflowPhase = false;
 let turnNumber = 0;          // ターン数（先行1=1, 後攻1=2, 先行2=3, …）
 let turnLocked = false;       // ターン遷移中の操作ロック
 let gameEnded = false;        // 勝敗決定後フラグ
+let gameGeneration = 0;       // リセット連打防止用世代カウンター
 
 // ===================================================================
 // 行動履歴
@@ -3158,6 +3159,7 @@ let isFirstTurn = true; // 先行フラグ（50%ランダム）
 let cpuFirstAction = true; // CPUの最初のターンかどうか
 
 function startGame() {
+  gameGeneration++;
   uidCounter = 1;
   player.deck = buildSampleDeck();
   player.hand = []; player.field = []; player.soul = []; player.exile = []; player.open = []; player.life = 30;
@@ -3220,6 +3222,14 @@ function startGame() {
   dom.effectOverlay.style.display = 'none';
   dom.effectOverlay.classList.remove('active');
   dom.effectOverlay.querySelectorAll('.sparkle-particle').forEach(e => e.remove());
+  // 零探し・開門演出オーバーレイ閉じる
+  const zsOverlay = $('zero-search-overlay');
+  if (zsOverlay) zsOverlay.style.display = 'none';
+  dom.gateOverlay.classList.remove('active');
+  dom.gateOverlay.style.display = 'none';
+  // ターン告知閉じる
+  dom.turnAnnounce.classList.remove('active');
+  dom.turnAnnounce.style.display = 'none';
 
   updateDeckImg(dom.playerDeck, 'player'); updateDeckImg(dom.oppDeck, 'opponent');
   updateExileDisplay('player'); updateExileDisplay('opponent');
@@ -3234,6 +3244,7 @@ function startGame() {
   isFirstTurn = Math.random() < 0.5;
 
   // === 開門演出 ===
+  const gen = gameGeneration; // リセット連打防止用
   dom.gateOverlay.classList.add('active');
   dom.gateOverlay.style.display = 'flex';
   dom.gateText.style.animation = 'gateAppear 1.2s ease-out forwards';
@@ -3246,6 +3257,7 @@ function startGame() {
   function finishGate() {
     if (gateSkipped) return;
     gateSkipped = true;
+    if (gen !== gameGeneration) return; // リセットされた→中断
     if (gateFlipInterval) clearInterval(gateFlipInterval);
     if (gateTimer1) clearTimeout(gateTimer1);
     if (gateTimer2) clearTimeout(gateTimer2);
@@ -3310,12 +3322,14 @@ function dealInitialHand(who, count) {
 }
 
 function initGameAfterGate() {
+  const gen = gameGeneration;
   dealInitialHand('player', 8); dealInitialHand('opponent', 8);
   renderField('player'); renderField('opponent'); renderOppHand(); updateAllCounts();
   updatePlayableAura();
 
   // 零探し（両プレイヤー順に実行）
   showZeroSearch('player').then(() => {
+    if (gen !== gameGeneration) return; // リセットされた→中断
     // CPU側はコスト高い順上位3枚を底送りしてドロー
     const sortedByCost = [...opponent.hand].sort((a, b) => (b.cost || 0) - (a.cost || 0));
     const cpuToBottom = sortedByCost.slice(0, 3);
@@ -3335,7 +3349,8 @@ function initGameAfterGate() {
     } else {
       turnLocked = true;
       showTurnAnnounce('ENEMY TURN', () => {
-        setTimeout(() => { cpuTurn(); }, 500);
+        if (gen !== gameGeneration) return;
+        setTimeout(() => { if (gen === gameGeneration) cpuTurn(); }, 500);
       });
     }
   });
@@ -3451,6 +3466,7 @@ function showZeroSearch(who) {
 // ターン告知演出
 // ===================================================================
 function showTurnAnnounce(text, cb) {
+  const gen = gameGeneration;
   dom.turnAnnounceText.textContent = text;
   dom.turnAnnounceText.classList.toggle('enemy', text === 'ENEMY TURN');
   dom.turnAnnounceText.style.animation = 'none';
@@ -3459,6 +3475,7 @@ function showTurnAnnounce(text, cb) {
   dom.turnAnnounce.classList.add('active');
   dom.turnAnnounce.style.display = 'flex';
   setTimeout(() => {
+    if (gen !== gameGeneration) return; // リセット済み→中断
     dom.turnAnnounce.classList.remove('active');
     dom.turnAnnounce.style.display = 'none';
     if (cb) cb();
@@ -3491,6 +3508,7 @@ function checkWinLose() {
 // ターン開始処理（ドロー含む）
 // ===================================================================
 function startPlayerTurn() {
+  const gen = gameGeneration;
   turnLocked = true;
   turnNumber++;
   resetSideFlags('player');
@@ -3498,6 +3516,7 @@ function startPlayerTurn() {
   player.field.forEach(g => { g._summonedThisTurn = false; });
   renderField('player');
   showTurnAnnounce('YOUR TURN', () => {
+    if (gen !== gameGeneration) return;
     logHistory('system', `▶あなたのターン (${Math.ceil(turnNumber / 2)}ターン目)`);
     // 先行1ターン目のみドローなし。後攻なら1ターン目からドロー。
     const isPlayerSenkou = isFirstTurn; // isFirstTurn=true → プレイヤーが先行
@@ -4416,6 +4435,7 @@ function finishSoulAbsorbSelect(totalDamage, side, st, resolve) {
 }
 
 function proceedEndTurn() {
+  const gen = gameGeneration;
   turnLocked = true;
   attackUsedThisTurn = false;
   hidePreview(); hideAttackBtn(); clearAllGlow();
@@ -4426,8 +4446,9 @@ function proceedEndTurn() {
   updatePlayableAura();
 
   showTurnAnnounce('ENEMY TURN', () => {
+    if (gen !== gameGeneration) return;
     setTimeout(() => {
-      cpuTurn();
+      if (gen === gameGeneration) cpuTurn();
     }, 500);
   });
 }
@@ -4438,6 +4459,7 @@ function proceedEndTurn() {
 const cpuUsedFlags = { basho: false, kaii: false, dougu: false, season: false };
 
 function cpuTurn() {
+  if (gameEnded) return; // リセット後の残留呼び出し防止
   turnLocked = true;
   resetSideFlags('opponent');
   // 召喚酔い解除：相手ターン開始時に縦に戻す
@@ -4545,6 +4567,7 @@ function buildCpuPostAttackActions() {
 }
 
 async function executeCpuActions(actions, idx, done) {
+  if (gameEnded) return;
   if (idx >= actions.length) { done(); return; }
   const card = actions[idx];
   // 再チェック（前のアクションで状態が変わった可能性）
@@ -4720,6 +4743,7 @@ function pickCpuAttackTarget() {
 }
 
 async function executeCpuAttack(groupIdx, done) {
+  if (gameEnded) return;
   const group = opponent.field[groupIdx];
   if (!group || !group.basho) { done(); return; }
 
@@ -4793,6 +4817,7 @@ async function executeCpuAttack(groupIdx, done) {
 }
 
 function finishCpuTurn() {
+  if (gameEnded) return;
   // CPU手札超過：9枚以上なら最も低コストのカードを魂へ
   while (opponent.hand.length >= 9) {
     const sorted = [...opponent.hand].sort((a, b) => (a.cost || 0) - (b.cost || 0));
