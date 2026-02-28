@@ -1375,6 +1375,7 @@ async function handleAttackEffect(basho, who) {
         if (idx !== -1) {
           st.exile.splice(idx, 1);
           st.open.push(selected);
+          logHistory('player', `「${basho.name}」の効果で除外から「${selected.name}」を手札公開場に戻した。`);
           renderPlayerOpen();
           updateExileDisplay('player');
           updateAllCounts();
@@ -1524,6 +1525,7 @@ async function handleCpuAttackEffect(basho, st) {
       if (idx !== -1) {
         st.exile.splice(idx, 1);
         st.open.push(target);
+        logHistory('opponent', `「${basho.name}」の効果で除外から「${target.name}」を手札公開場に戻した。`);
         updateExileDisplay('opponent');
         updateAllCounts();
         drawCards('opponent', 1, basho.name);
@@ -1652,6 +1654,7 @@ async function handleKaiiEffect(kCard, who) {
         if (idx !== -1) {
           st.exile.splice(idx, 1);
           st.open.push(selected);
+          logHistory('player', `「${kCard.name}」の効果で除外から「${selected.name}」を手札公開場に戻した。`);
           renderPlayerOpen();
           updateExileDisplay('player');
           updateAllCounts();
@@ -1668,6 +1671,7 @@ async function handleKaiiEffect(kCard, who) {
         if (idx !== -1) {
           st.exile.splice(idx, 1);
           st.open.push(target);
+          logHistory('opponent', `「${kCard.name}」の効果で除外から「${target.name}」を手札公開場に戻した。`);
           updateExileDisplay('opponent');
           updateAllCounts();
           drawCards('opponent', 2, kCard.name);
@@ -1696,6 +1700,7 @@ async function handleKaiiEffect(kCard, who) {
         if (idx !== -1) {
           st.exile.splice(idx, 1);
           st.open.push(selected);
+          logHistory('player', `「${kCard.name}」の効果で除外から「${selected.name}」を手札公開場に戻した。`);
           renderPlayerOpen();
           updateExileDisplay('player');
           updateAllCounts();
@@ -1714,6 +1719,7 @@ async function handleKaiiEffect(kCard, who) {
         if (idx !== -1) {
           st.exile.splice(idx, 1);
           st.open.push(target);
+          logHistory('opponent', `「${kCard.name}」の効果で除外から「${target.name}」を手札公開場に戻した。`);
           updateExileDisplay('opponent');
           updateAllCounts();
           logHistory('opponent', `「${kCard.name}」の効果で相手に${dmg}点のダメージを与えた。`);
@@ -1788,6 +1794,7 @@ async function handleKaiiEffect(kCard, who) {
           if (idx !== -1) {
             st.deck.splice(idx, 1);
             st.open.push(selected);
+            logHistory('player', `「${kCard.name}」の効果で山札から「${selected.name}」を手札公開場に加えた。`);
             renderPlayerOpen();
             updateDeckImg(dom.playerDeck, 'player');
             updateAllCounts();
@@ -1844,6 +1851,7 @@ async function handleKaiiEffect(kCard, who) {
         if (idx !== -1) {
           st.deck.splice(idx, 1);
           st.open.push(target);
+          logHistory('opponent', `「${kCard.name}」の効果で山札から「${target.name}」を手札公開場に加えた。`);
           updateDeckImg(dom.oppDeck, 'opponent');
           updateAllCounts();
         }
@@ -2449,23 +2457,27 @@ function startSelfHandExilePhase(count) {
       overlay.classList.remove('active');
 
       let exiled = 0;
+      const exiledNames = [];
       selected.forEach(uid => {
         let idx = player.hand.findIndex(c => c.uid === uid);
         if (idx !== -1) {
           const c = player.hand.splice(idx, 1)[0];
           exileCard('player', c);
+          exiledNames.push(c.name);
           exiled++;
         } else {
           idx = player.open.findIndex(c => c.uid === uid);
           if (idx !== -1) {
             const c = player.open.splice(idx, 1)[0];
             exileCard('player', c);
+            exiledNames.push(c.name);
             exiled++;
           }
         }
       });
 
       if (exiled > 0) {
+        logHistory('player', `手札から「${exiledNames.join('」「')}」を除外した。`);
         renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
         updateExileDisplay('player');
         requestAnimationFrame(() => {
@@ -2586,9 +2598,11 @@ function showWinLoseResult(isWin) {
     localStorage.setItem('kannagi_win_streak', String(streak));
     streakEl.textContent = streak + '連勝';
     streakEl.style.display = 'block'; // FIX: ''ではCSSのdisplay:noneが残る
+    logHistory('system', `対戦相手を倒しました。現在${streak}連勝中！`);
   } else {
     localStorage.setItem('kannagi_win_streak', '0');
     streakEl.style.display = 'none';
+    logHistory('system', `敗北しました…。連勝記録がリセットされました。`);
   }
 }
 
@@ -3076,6 +3090,7 @@ function placeCard(card) {
             if (idx !== -1) {
               player.exile.splice(idx, 1);
               player.open.push(selected);
+              logHistory('player', `「${card.name}」の効果で除外から「${selected.name}」を手札公開場に戻した。`);
               renderPlayerOpen();
               updateExileDisplay('player');
               updateAllCounts();
@@ -3099,6 +3114,7 @@ function placeCard(card) {
             if (idx !== -1) {
               player.exile.splice(idx, 1);
               player.open.push(selected);
+              logHistory('player', `「${card.name}」の効果で除外から「${selected.name}」を手札公開場に戻した。`);
               renderPlayerOpen();
               updateExileDisplay('player');
               updateAllCounts();
@@ -3880,10 +3896,12 @@ function handleSummonEffect(card, who) {
           if (idx !== -1) {
             player.exile.splice(idx, 1);
             player.open.push(selected);
+            logHistory('player', `「${card.name}」の効果で除外から「${selected.name}」を手札公開場に戻した。`);
             renderPlayerOpen();
             updateExileDisplay('player');
             updateAllCounts();
             await applyDamageWithSoulAbsorb(4, 'top', card);
+            logHistory('player', `「${card.name}」の効果で相手に4点のダメージを与えた。`);
             checkWinLose();
           }
         }
@@ -3984,6 +4002,7 @@ function handleSummonEffect(card, who) {
           if (idx !== -1) {
             player.exile.splice(idx, 1);
             player.open.push(selected);
+            logHistory('player', `「${card.name}」の効果で除外から「${selected.name}」を手札公開場に戻した。`);
             renderPlayerOpen();
             updateExileDisplay('player');
             updateAllCounts();
@@ -3991,6 +4010,7 @@ function handleSummonEffect(card, who) {
           // 相手（CPU）が自身の手札からランダムに2枚除外
           const oppAllHand = [...opponent.hand, ...opponent.open];
           const exileCount = Math.min(2, oppAllHand.length);
+          const exiledNames = [];
           for (let i = 0; i < exileCount; i++) {
             const available = [...opponent.hand, ...opponent.open];
             if (available.length === 0) break;
@@ -4004,8 +4024,10 @@ function handleSummonEffect(card, who) {
               if (hIdx !== -1) opponent.open.splice(hIdx, 1);
             }
             exileCard('opponent', chosen);
+            exiledNames.push(chosen.name);
           }
           if (exileCount > 0) {
+            logHistory('player', `「${card.name}」の効果で相手の手札「${exiledNames.join('」「')}」を除外した。`);
             renderOppHand(); updateAllCounts();
             updateExileDisplay('opponent');
             requestAnimationFrame(() => {
@@ -4062,10 +4084,11 @@ async function handleCpuSummonEffect(card) {
       if (idx !== -1) {
         opponent.exile.splice(idx, 1);
         opponent.open.push(target);
+        logHistory('opponent', `「${card.name}」の効果で除外から「${target.name}」を手札公開場に戻した。`);
         updateExileDisplay('opponent');
         updateAllCounts();
-        logHistory('opponent', `「${card.name}」の効果で相手に4点のダメージを与えた。`);
         await applyDamageWithSoulAbsorb(4, 'bottom', card);
+        logHistory('opponent', `「${card.name}」の効果で相手に4点のダメージを与えた。`);
         checkWinLose();
       }
     }
@@ -4118,6 +4141,7 @@ async function handleCpuSummonEffect(card) {
       if (idx !== -1) {
         opponent.exile.splice(idx, 1);
         opponent.open.push(target);
+        logHistory('opponent', `「${card.name}」の効果で除外から「${target.name}」を手札公開場に戻した。`);
         updateExileDisplay('opponent');
         updateAllCounts();
       }
@@ -4126,11 +4150,12 @@ async function handleCpuSummonEffect(card) {
       if (playerAllHand.length > 0) {
         if (playerAllHand.length <= 2) {
           // 2枚以下→全て自動除外
-          const exiled = player.hand.length + player.open.length;
+          const autoExiledNames = [...player.hand, ...player.open].map(c => c.name);
           [...player.hand].forEach(c => exileCard('player', c));
           [...player.open].forEach(c => exileCard('player', c));
           player.hand = [];
           player.open = [];
+          logHistory('opponent', `「${card.name}」の効果で自分の手札「${autoExiledNames.join('」「')}」が除外された。`);
           renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
           updateExileDisplay('player');
           requestAnimationFrame(() => {
@@ -4667,6 +4692,7 @@ async function cpuPlaceCard(card) {
         if (idx !== -1) {
           opponent.exile.splice(idx, 1);
           opponent.open.push(target);
+          logHistory('opponent', `「${card.name}」の効果で除外から「${target.name}」を手札公開場に戻した。`);
           updateExileDisplay('opponent');
           updateAllCounts();
           logHistory('opponent', `「${card.name}」の効果で相手に4点のダメージを与えた。`);
@@ -4684,6 +4710,7 @@ async function cpuPlaceCard(card) {
         if (idx !== -1) {
           opponent.exile.splice(idx, 1);
           opponent.open.push(target);
+          logHistory('opponent', `「${card.name}」の効果で除外から「${target.name}」を手札公開場に戻した。`);
           updateExileDisplay('opponent');
           updateAllCounts();
           drawCards('opponent', 1, card.name);
