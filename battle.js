@@ -2771,18 +2771,27 @@ function setupDrag(el, card) {
     if (isDragging) {
       dragGhost.style.left = (x - 25) + 'px';
       dragGhost.style.top = (y - 35) + 'px';
-      if (card.type === '怪異札') updateKaiiDropTarget(x, y);
-      else if (card.type === '場所札') updateBashoDropTarget(x, y);
-      if (card.type === '季節札') {
-        const hasSeason = player.field.some(g => g.season !== null);
-        const fieldRect = dom.playerField.getBoundingClientRect();
-        const inField = (x >= fieldRect.left && x <= fieldRect.right && y >= fieldRect.top && y <= fieldRect.bottom);
-        if (hasSeason && inField) showSeasonWarning(); else hideSeasonWarning();
+      // カード選択フェイズ中は除外ゾーンへの移動のみ（場の反応を抑制）
+      if (!cardSelectPhase) {
+        if (card.type === '怪異札') updateKaiiDropTarget(x, y);
+        else if (card.type === '場所札') updateBashoDropTarget(x, y);
+        if (card.type === '季節札') {
+          const hasSeason = player.field.some(g => g.season !== null);
+          const fieldRect = dom.playerField.getBoundingClientRect();
+          const inField = (x >= fieldRect.left && x <= fieldRect.right && y >= fieldRect.top && y <= fieldRect.bottom);
+          if (hasSeason && inField) showSeasonWarning(); else hideSeasonWarning();
+        }
       }
       return;
     }
     if (Math.abs(x - startX) > 8 || Math.abs(y - startY) > 8) {
-      if ((turnLocked && !handOverflowPhase) || gameEnded) return;
+      if ((turnLocked && !handOverflowPhase && !cardSelectPhase) || gameEnded) return;
+      // カード選択フェイズ：フィルター対象外のカードはドラッグ不可
+      if (cardSelectPhase) {
+        const isInHand = player.hand.some(c => c.uid === card.uid);
+        const isInOpen = player.open.some(c => c.uid === card.uid);
+        if ((!isInHand && !isInOpen) || !cardSelectConfig || !cardSelectConfig.filter(card)) return;
+      }
       isDragging = true; dragCard = card; dragSourceEl = el;
       hidePreview(); hideKaiiPopup(); hideAttackBtn(); clearAllGlow();
       suppressPreview = true;
@@ -2795,7 +2804,9 @@ function setupDrag(el, card) {
       dragGhost.style.left = (x - 25) + 'px';
       dragGhost.style.top = (y - 35) + 'px';
       el.style.opacity = '0.25';
-      if (handOverflowPhase) {
+      if (cardSelectPhase) {
+        dom.playerExile.classList.add('drag-over-exile');
+      } else if (handOverflowPhase) {
         $('player-soul-zone').classList.add('drag-over-soul');
       } else {
         dom.playerField.classList.add('drag-over');
@@ -2804,6 +2815,20 @@ function setupDrag(el, card) {
   };
   const onEnd = (x, y) => {
     if (!isDragging) return;
+    // カード選択フェイズ：除外ゾーンにドロップで確定
+    if (cardSelectPhase && cardSelectConfig) {
+      const exileRect = dom.playerExile.getBoundingClientRect();
+      const inExile = (x >= exileRect.left && x <= exileRect.right && y >= exileRect.top && y <= exileRect.bottom);
+      if (inExile && cardSelectConfig.filter(card)) {
+        cleanup();
+        // 選択してconfirmと同等の処理
+        cardSelectSelectedCard = card;
+        endCardSelectPhase(true);
+        return;
+      }
+      cleanup();
+      return;
+    }
     // 手札超過フェイズ：魂ゾーンにドロップで捨てる
     const soulRect = $('player-soul-zone').getBoundingClientRect();
     const inSoul = (x >= soulRect.left && x <= soulRect.right && y >= soulRect.top && y <= soulRect.bottom);
@@ -2870,6 +2895,7 @@ function setupDrag(el, card) {
     dragCard = null;
     dom.playerField.classList.remove('drag-over');
     $('player-soul-zone').classList.remove('drag-over-soul');
+    dom.playerExile.classList.remove('drag-over-exile');
     isDragging = false; currentDropTarget = null;
     setTimeout(() => { suppressPreview = false; }, 150);
   }
@@ -3308,7 +3334,7 @@ function initGameAfterGate() {
       startPlayerTurn();
     } else {
       turnLocked = true;
-      showTurnAnnounce('相手のターン', () => {
+      showTurnAnnounce('ENEMY TURN', () => {
         setTimeout(() => { cpuTurn(); }, 500);
       });
     }
@@ -3426,6 +3452,7 @@ function showZeroSearch(who) {
 // ===================================================================
 function showTurnAnnounce(text, cb) {
   dom.turnAnnounceText.textContent = text;
+  dom.turnAnnounceText.classList.toggle('enemy', text === 'ENEMY TURN');
   dom.turnAnnounceText.style.animation = 'none';
   void dom.turnAnnounceText.offsetHeight;
   dom.turnAnnounceText.style.animation = '';
@@ -3470,7 +3497,7 @@ function startPlayerTurn() {
   // 召喚酔い解除：自分のターン開始時に縦に戻す
   player.field.forEach(g => { g._summonedThisTurn = false; });
   renderField('player');
-  showTurnAnnounce('あなたのターン', () => {
+  showTurnAnnounce('YOUR TURN', () => {
     logHistory('system', `▶あなたのターン (${Math.ceil(turnNumber / 2)}ターン目)`);
     // 先行1ターン目のみドローなし。後攻なら1ターン目からドロー。
     const isPlayerSenkou = isFirstTurn; // isFirstTurn=true → プレイヤーが先行
@@ -4398,7 +4425,7 @@ function proceedEndTurn() {
   renderField('player');
   updatePlayableAura();
 
-  showTurnAnnounce('相手のターン', () => {
+  showTurnAnnounce('ENEMY TURN', () => {
     setTimeout(() => {
       cpuTurn();
     }, 500);

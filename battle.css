@@ -785,6 +785,12 @@ body {
   animation: dropGlow 0.9s ease-in-out infinite;
 }
 
+.exile-zone.drag-over-exile {
+  background: rgba(180, 80, 255, 0.25) !important;
+  box-shadow: inset 0 0 12px rgba(180, 80, 255, 0.5), 0 0 8px rgba(180, 80, 255, 0.3);
+  animation: dropGlow 0.9s ease-in-out infinite;
+}
+
 .field-group.drop-target {
   outline: 2px solid rgba(120, 180, 255, 0.7);
   outline-offset: 2px;
@@ -1987,7 +1993,7 @@ body {
   justify-content: center;
   z-index: 450;
   pointer-events: none;
-  background: rgba(0, 0, 0, 0.55);
+  background: transparent;
 }
 
 #turn-announce.active {
@@ -2001,23 +2007,31 @@ body {
   letter-spacing: 6px;
   text-indent: 6px;
   text-shadow: 0 0 30px rgba(255, 255, 255, 0.4), 0 2px 8px rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.85);
+  width: 100%;
+  text-align: center;
+  padding: 18px 0;
   animation: turnAnnounceIn 0.8s ease-out forwards;
+}
+
+#turn-announce-text.enemy {
+  color: #ff4444;
+  text-shadow: 0 0 30px rgba(255, 50, 50, 0.5), 0 2px 8px rgba(0, 0, 0, 0.6);
 }
 
 @keyframes turnAnnounceIn {
   0% {
     opacity: 0;
-    transform: scale(0.7);
+    transform: scaleY(0.3);
   }
 
-  30% {
+  20% {
     opacity: 1;
-    transform: scale(1.05);
+    transform: scaleY(1.05);
   }
 
-  50% {
-    opacity: 1;
-    transform: scale(1.0);
+  35% {
+    transform: scaleY(1.0);
   }
 
   80% {
