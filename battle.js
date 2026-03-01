@@ -50,6 +50,8 @@ function exileCard(who, card) {
     st.open.push(card);
     if (who === 'player') {
       renderPlayerOpen();
+    } else {
+      renderOppOpen();
     }
     updateAllCounts();
     const openEl = (who === 'player') ? dom.playerOpenCards : dom.oppOpenCards;
@@ -707,12 +709,24 @@ function hideExileModal() {
   dom.exileModalDesc.textContent = '';
 }
 // モーダル外クリックで閉じる（選択モード中は閉じない）
+// 閲覧モード時はカード画像以外の領域タップでも閉じる
 let exileSelectMode = false;
+function isExileModalCloseTap(e) {
+  if (exileSelectMode) return false;
+  // モーダル背景直接タップは常にOK
+  if (e.target === dom.exileModal) return true;
+  // カード画像(.battle-card)のタップは閉じない（拡大プレビュー用）
+  if (e.target.closest('.battle-card')) return false;
+  // ボタンのタップは閉じない
+  if (e.target.closest('button')) return false;
+  // それ以外のモーダル内要素（タイトル、空表示、余白等）は閉じる
+  return true;
+}
 dom.exileModal.addEventListener('click', (e) => {
-  if (e.target === dom.exileModal && !exileSelectMode) hideExileModal();
+  if (isExileModalCloseTap(e)) hideExileModal();
 });
 dom.exileModal.addEventListener('touchend', (e) => {
-  if (e.target === dom.exileModal && !exileSelectMode) { if (e.cancelable) e.preventDefault(); hideExileModal(); }
+  if (isExileModalCloseTap(e)) { if (e.cancelable) e.preventDefault(); hideExileModal(); }
 }, { passive: false });
 
 // 除外ゾーンクリックでモーダル表示
@@ -751,6 +765,10 @@ function renderPlayerOpen() {
 function renderOppHand() {
   syncCardRow(dom.oppHandCards, opponent.hand, true, 'opponent', 'in-hand', false);
   updateOverflow(dom.oppHandCards);
+}
+function renderOppOpen() {
+  syncCardRow(dom.oppOpenCards, opponent.open, false, 'opponent', 'in-hand', false);
+  updateOverflow(dom.oppOpenCards);
 }
 function syncCardRow(container, cards, faceDown, who, cls, draggable) {
   const existing = new Map();
@@ -1941,21 +1959,27 @@ async function handleKaiiEffect(kCard, who) {
         const exileCount = Math.min(2, oppAllHand.length);
         if (exileCount > 0) {
           const shuffled = shuffle([...oppAllHand]);
+          const handdesNames = [];
           for (let i = 0; i < exileCount; i++) {
             const target = shuffled[i];
             let idx = oppSt.hand.findIndex(c => c.uid === target.uid);
             if (idx !== -1) {
               oppSt.hand.splice(idx, 1);
               exileCard(oppWho, target);
+              handdesNames.push(target.name);
             } else {
               idx = oppSt.open.findIndex(c => c.uid === target.uid);
               if (idx !== -1) {
                 oppSt.open.splice(idx, 1);
                 exileCard(oppWho, target);
+                handdesNames.push(target.name);
               }
             }
           }
-          renderOppHand(); updateAllCounts();
+          if (handdesNames.length > 0) {
+            logHistory('player', `「${kCard.name}」の効果で相手の手札「${handdesNames.join('」「')}」を除外した。`);
+          }
+          renderOppHand(); renderOppOpen(); updateAllCounts();
           updateExileDisplay('opponent');
           requestAnimationFrame(() => {
             showFloatingText(dom.oppHandCards, 'ハンデス', 'handdes');
@@ -1977,7 +2001,7 @@ async function handleKaiiEffect(kCard, who) {
       }
       exileCard(who, target);
       logHistory('opponent', `「${kCard.name}」の効果で「${target.name}」を除外した。`);
-      renderOppHand(); updateAllCounts();
+      renderOppHand(); renderOppOpen(); updateAllCounts();
       updateExileDisplay('opponent');
       requestAnimationFrame(() => {
         showFloatingText(dom.oppExile, '除外', 'exile');
@@ -1988,19 +2012,25 @@ async function handleKaiiEffect(kCard, who) {
       if (playerAllHand.length > 0) {
         if (playerAllHand.length <= 2) {
           // 2枚以下なら全部除外
+          const autoExiledNames = [];
           playerAllHand.forEach(c => {
             let idx = oppSt.hand.findIndex(x => x.uid === c.uid);
             if (idx !== -1) {
               oppSt.hand.splice(idx, 1);
               exileCard(oppWho, c);
+              autoExiledNames.push(c.name);
             } else {
               idx = oppSt.open.findIndex(x => x.uid === c.uid);
               if (idx !== -1) {
                 oppSt.open.splice(idx, 1);
                 exileCard(oppWho, c);
+                autoExiledNames.push(c.name);
               }
             }
           });
+          if (autoExiledNames.length > 0) {
+            logHistory('player', `「${kCard.name}」の効果で手札から「${autoExiledNames.join('」「')}」を除外した。`);
+          }
           renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
           updateExileDisplay('player');
           requestAnimationFrame(() => {
@@ -4051,7 +4081,7 @@ function handleSummonEffect(card, who) {
           }
           if (exileCount > 0) {
             logHistory('player', `「${card.name}」の効果で相手の手札「${exiledNames.join('」「')}」を除外した。`);
-            renderOppHand(); updateAllCounts();
+            renderOppHand(); renderOppOpen(); updateAllCounts();
             updateExileDisplay('opponent');
             requestAnimationFrame(() => {
               showFloatingText(dom.oppHandCards, 'ハンデス', 'handdes');
@@ -5243,3 +5273,70 @@ if (banmenFloatingBtn) {
   banmenFloatingBtn.addEventListener('click', (e) => { e.stopPropagation(); exitBanmenView(); });
   banmenFloatingBtn.addEventListener('touchend', (e) => { if (e.cancelable) e.preventDefault(); e.stopPropagation(); exitBanmenView(); }, { passive: false });
 }
+
+// ===================================================================
+// ボタンタッチキャンセル（指をボタン外に出したらキャンセル）
+// ===================================================================
+(function () {
+  let _btnTouchId = null;
+  let _btnTouchTarget = null;
+  let _btnTouchCancelled = false;
+
+  // capture フェーズで全ボタンの touchstart を監視
+  document.addEventListener('touchstart', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const t = e.touches[0];
+    if (!t) return;
+    _btnTouchId = t.identifier;
+    _btnTouchTarget = btn;
+    _btnTouchCancelled = false;
+    btn.classList.add('btn-pressing');
+  }, { capture: true, passive: true });
+
+  document.addEventListener('touchmove', (e) => {
+    if (!_btnTouchTarget || _btnTouchCancelled) return;
+    let touch = null;
+    for (let i = 0; i < e.touches.length; i++) {
+      if (e.touches[i].identifier === _btnTouchId) { touch = e.touches[i]; break; }
+    }
+    if (!touch) return;
+    const rect = _btnTouchTarget.getBoundingClientRect();
+    // ボタン範囲外に出たらキャンセル
+    const margin = 8; // 少し余裕を持たせる
+    if (touch.clientX < rect.left - margin || touch.clientX > rect.right + margin ||
+        touch.clientY < rect.top - margin || touch.clientY > rect.bottom + margin) {
+      _btnTouchCancelled = true;
+      const btn = _btnTouchTarget;
+      btn.classList.remove('btn-pressing');
+      btn.classList.add('btn-touch-cancelled');
+    }
+  }, { capture: true, passive: true });
+
+  // capture フェーズで touchend をインターセプト
+  document.addEventListener('touchend', (e) => {
+    if (!_btnTouchTarget) return;
+    const btn = _btnTouchTarget;
+    btn.classList.remove('btn-pressing');
+    btn.classList.remove('btn-touch-cancelled');
+    if (_btnTouchCancelled) {
+      // キャンセル：後続の touchend/click リスナーをブロック
+      e.stopImmediatePropagation();
+      if (e.cancelable) e.preventDefault(); // click イベント発火も防止
+      _btnTouchTarget = null;
+      _btnTouchId = null;
+      _btnTouchCancelled = false;
+      return;
+    }
+    _btnTouchTarget = null;
+    _btnTouchId = null;
+  }, { capture: true, passive: false });
+
+  // touchcancel でもリセット
+  document.addEventListener('touchcancel', () => {
+    if (_btnTouchTarget) { _btnTouchTarget.classList.remove('btn-pressing'); _btnTouchTarget.classList.remove('btn-touch-cancelled'); }
+    _btnTouchTarget = null;
+    _btnTouchId = null;
+    _btnTouchCancelled = false;
+  }, { capture: true, passive: true });
+})();
