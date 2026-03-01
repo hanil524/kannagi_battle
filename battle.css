@@ -113,7 +113,8 @@ body {
 #field {
   flex: 1;
   display: grid;
-  grid-template-rows: 1.3fr 1.3fr 1.3fr 2.0fr auto 2.0fr 1.3fr 1.3fr 1.3fr;
+  /* 相手の場以外を縮小し、両者の場を広めに確保 */
+  grid-template-rows: 0.9fr 0.9fr 0.9fr 2.3fr auto 2.3fr 1.2fr 1.2fr 1.3fr;
   width: 100%;
   overflow: hidden;
 }
@@ -429,7 +430,7 @@ body {
 /* ===== 場のcard-row: 画面中央揃え＋枠内に収まる ===== */
 .field-card-row {
   overflow: visible;
-  align-items: flex-end;
+  align-items: center;
   gap: clamp(4px, 3vw, 14px);
   height: 100%;
 }
@@ -1852,9 +1853,11 @@ body {
   margin-bottom: 4px;
   display: inline-block;
 }
+
 #deck-list-link:active {
   opacity: 0.6;
 }
+
 #start-note {
   color: rgba(255, 255, 255, 0.829);
   font-size: 10px;
@@ -1873,11 +1876,13 @@ body {
   align-items: center;
   justify-content: center;
 }
+
 #deck-popup {
   position: relative;
   max-width: 92vw;
   max-height: 90vh;
 }
+
 #deck-popup-img {
   display: block;
   max-width: 92vw;
@@ -1886,6 +1891,7 @@ body {
   border-radius: 6px;
   box-shadow: 0 0 30px rgba(0, 0, 0, 0.7);
 }
+
 #deck-popup-close {
   position: absolute;
   top: -12px;
@@ -1905,6 +1911,7 @@ body {
   z-index: 1;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
+
 #deck-popup-close:active {
   background: #555;
 }
@@ -3585,7 +3592,7 @@ body {
   }
 
   .battle-card.on-field {
-    width: 92px;
+    width: 82px;
   }
 
   .field-group.has-season .basho-slot {
