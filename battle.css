@@ -120,7 +120,7 @@ body {
   flex: 1;
   display: grid;
   /* 相手の場以外を縮小し、両者の場を広めに確保 */
-  grid-template-rows: 0.9fr 0.9fr 0.9fr 2.3fr auto 2.3fr 1.2fr 1.2fr 1.3fr;
+  grid-template-rows: 0.8fr 1.2fr 0.9fr 2.3fr auto 2.3fr 1.2fr 1.2fr 1.3fr;
   width: 100%;
   overflow: hidden;
 }
@@ -632,7 +632,7 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 0px;
   width: 22px;
   flex-shrink: 0;
   padding: 1px 0;
