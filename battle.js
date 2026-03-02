@@ -3338,6 +3338,9 @@ function startGame() {
     dom.coinText.style.textShadow = '0 0 30px rgba(255,255,255,0.6), 0 2px 8px rgba(0,0,0,0.7)';
     dom.gateText.style.animation = '';
     dom.coinText.style.animation = '';
+    dom.coinText.classList.remove('coin-stamp');
+    // 残留エフェクト要素を除去
+    dom.gateOverlay.querySelectorAll('.coin-shockwave, .coin-ray').forEach(el => el.remove());
     dom.gateOverlay.classList.remove('active');
     dom.gateOverlay.style.display = 'none';
     dom.coinText.style.textShadow = '';
@@ -3365,6 +3368,24 @@ function startGame() {
       gateFlipInterval = null;
       dom.coinText.textContent = isFirstTurn ? '先 行' : '後 攻';
       dom.coinText.style.textShadow = '0 0 30px rgba(255,255,255,0.6), 0 2px 8px rgba(0,0,0,0.7)';
+      // 確定エフェクト: スタンプ + 衝撃波 + 放射線
+      dom.coinText.classList.add('coin-stamp');
+      // 衝撃波リング（2重）
+      for (let i = 0; i < 2; i++) {
+        const ring = document.createElement('div');
+        ring.className = 'coin-shockwave';
+        ring.style.animationDelay = (i * 0.12) + 's';
+        dom.gateOverlay.appendChild(ring);
+        ring.addEventListener('animationend', () => ring.remove());
+      }
+      // 放射線（8方向）
+      for (let i = 0; i < 8; i++) {
+        const ray = document.createElement('div');
+        ray.className = 'coin-ray';
+        ray.style.transform = 'translateX(-50%) rotate(' + (i * 45) + 'deg)';
+        dom.gateOverlay.appendChild(ray);
+        ray.addEventListener('animationend', () => ray.remove());
+      }
     }, 1000);
 
     // 結果表示後、少し待ってからフェードアウト

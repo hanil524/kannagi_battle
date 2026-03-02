@@ -762,6 +762,35 @@ body {
   transform: translateY(-3px);
 }
 
+/* ===== PC マウスオーバー（タッチデバイスには影響しない） ===== */
+@media (hover: hover) and (pointer: fine) {
+  .battle-card:hover {
+    transform: translateY(-4px);
+    transition: transform 0.12s ease;
+  }
+
+  .battle-card.on-field:hover {
+    transform: translateY(-4px);
+  }
+
+  .battle-card.on-field.summon-sick:hover {
+    transform: rotate(-90deg) translateX(4px);
+  }
+
+  .battle-card.kaii-attached:hover {
+    transform: translateY(-3px);
+  }
+
+  #zero-search-cards .battle-card:hover {
+    transform: translateY(-4px);
+  }
+
+  /* 選択済みカードはホバーで上書きしない */
+  #zero-search-cards .battle-card.zs-selected:hover {
+    transform: translateY(-6px) scale(1.06);
+  }
+}
+
 /* ===== 召喚酔い（場所札横向き） ===== */
 .battle-card.on-field.summon-sick {
   transform: rotate(-90deg);
@@ -1995,6 +2024,98 @@ body {
   text-shadow: 0 0 20px rgba(255, 255, 255, 0.4), 0 2px 6px rgba(0, 0, 0, 0.6);
 }
 
+/* 先攻/後攻 確定エフェクト: テキストスタンプ */
+@keyframes coinStamp {
+  0% {
+    transform: scale(2.2);
+    opacity: 0;
+    text-shadow: 0 0 60px rgba(255, 255, 255, 0.9), 0 0 120px rgba(255, 200, 100, 0.6);
+  }
+
+  25% {
+    transform: scale(1.05);
+    opacity: 1;
+    text-shadow: 0 0 40px rgba(255, 255, 255, 0.8), 0 0 80px rgba(255, 200, 100, 0.5);
+  }
+
+  50% {
+    transform: scale(1.0);
+    text-shadow: 0 0 30px rgba(255, 255, 255, 0.6), 0 0 60px rgba(255, 200, 100, 0.3);
+  }
+
+  100% {
+    transform: scale(1.0);
+    opacity: 1;
+    text-shadow: 0 0 30px rgba(255, 255, 255, 0.6), 0 2px 8px rgba(0, 0, 0, 0.7);
+  }
+}
+
+#coin-text.coin-stamp {
+  animation: coinStamp 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* 確定時の衝撃波リング */
+.coin-shockwave {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 220, 140, 0.8);
+  transform: translate(-50%, -50%) scale(0);
+  pointer-events: none;
+  animation: coinShockExpand 0.7s ease-out forwards;
+}
+
+@keyframes coinShockExpand {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 1;
+    border-width: 3px;
+  }
+
+  60% {
+    opacity: 0.5;
+  }
+
+  100% {
+    transform: translate(-50%, -50%) scale(8);
+    opacity: 0;
+    border-width: 1px;
+  }
+}
+
+/* 確定時の放射線 */
+.coin-ray {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 2px;
+  height: 60px;
+  background: linear-gradient(180deg, rgba(255, 220, 140, 0.8), transparent);
+  transform-origin: 50% 0%;
+  pointer-events: none;
+  animation: coinRayShoot 0.6s ease-out forwards;
+}
+
+@keyframes coinRayShoot {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) scaleY(0);
+  }
+
+  20% {
+    opacity: 1;
+    transform: translateX(-50%) scaleY(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) scaleY(1.5);
+  }
+}
+
 /* ===== ターン告知 ===== */
 #turn-announce {
   position: absolute;
@@ -2891,7 +3012,7 @@ body {
 }
 
 #soul-absorb-ask-img {
-  width: 80px;
+  width: 180px;
   border-radius: 8px;
   box-shadow: 0 0 16px rgba(255, 100, 100, 0.4), 0 4px 12px rgba(0, 0, 0, 0.6);
   margin-bottom: 8px;
@@ -3806,12 +3927,14 @@ body {
 #zero-search-cards {
   flex: 1;
   min-height: 0;
-  padding: 6px 8px 10px;
+  padding: 0px 4px 0px;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   grid-template-rows: auto auto;
   gap: 4px;
   align-content: center;
+  justify-content: center;
+  justify-items: center;
 }
 
 #zero-search-cards .battle-card {
