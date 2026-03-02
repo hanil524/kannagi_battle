@@ -28,6 +28,16 @@
   <!-- Android Chrome / 汎用 -->
   <link rel="icon" type="image/png" sizes="192x192" href="images/icon.png" />
   <link rel="icon" type="image/png" sizes="512x512" href="images/icon.png" />
+
+  <!-- OGP -->
+  <meta property="og:title" content="巫カードバトル | 一人回し、一人対戦ツール" />
+  <meta property="og:description" content="巫KANNAGIカードゲームの一人回し（一人対戦）用ツール。使い方が難しいカードも、コッソリ練習してマスターしちゃおう！" />
+  <meta property="og:image" content="https://hanil524.github.io/kannagi_battle/images/ogp.jpg" />
+  <meta property="og:url" content="https://hanil524.github.io/kannagi_battle/" />
+  <meta property="og:type" content="website" />
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="https://hanil524.github.io/kannagi_battle/images/ogp.jpg" />
 </head>
 
 <body>
@@ -432,20 +442,33 @@
   <button id="banmen-floating-btn" style="display:none;">盤面</button>
 
   <!-- ドラッグ攻撃ビーム -->
-  <svg id="drag-attack-svg" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:8000;display:none;">
+  <svg id="drag-attack-svg"
+    style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:8000;display:none;">
     <defs>
       <filter id="beam-glow" x="-50%" y="-50%" width="200%" height="200%">
-        <feGaussianBlur stdDeviation="4" result="blur"/>
-        <feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        <feGaussianBlur stdDeviation="4" result="blur" />
+        <feMerge>
+          <feMergeNode in="blur" />
+          <feMergeNode in="blur" />
+          <feMergeNode in="SourceGraphic" />
+        </feMerge>
       </filter>
       <filter id="beam-glow-ready" x="-50%" y="-50%" width="200%" height="200%">
-        <feGaussianBlur stdDeviation="6" result="blur"/>
-        <feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        <feGaussianBlur stdDeviation="6" result="blur" />
+        <feMerge>
+          <feMergeNode in="blur" />
+          <feMergeNode in="blur" />
+          <feMergeNode in="blur" />
+          <feMergeNode in="SourceGraphic" />
+        </feMerge>
       </filter>
     </defs>
-    <path id="beam-outer" fill="none" stroke="rgba(255,120,60,0.25)" stroke-width="12" stroke-linecap="round" filter="url(#beam-glow)"/>
-    <path id="beam-core" fill="none" stroke="rgba(255,180,80,0.8)" stroke-width="3" stroke-linecap="round" filter="url(#beam-glow)"/>
-    <circle id="beam-target" r="14" fill="none" stroke="rgba(255,180,80,0.6)" stroke-width="2" cx="0" cy="0" style="display:none;"/>
+    <path id="beam-outer" fill="none" stroke="rgba(255,120,60,0.25)" stroke-width="12" stroke-linecap="round"
+      filter="url(#beam-glow)" />
+    <path id="beam-core" fill="none" stroke="rgba(255,180,80,0.8)" stroke-width="3" stroke-linecap="round"
+      filter="url(#beam-glow)" />
+    <circle id="beam-target" r="14" fill="none" stroke="rgba(255,180,80,0.6)" stroke-width="2" cx="0" cy="0"
+      style="display:none;" />
   </svg>
 
   <!-- 行動履歴モーダル -->
