@@ -2801,6 +2801,71 @@ function showPlayEffect(card) {
 }
 
 // ===================================================================
+// 召喚波動エフェクト（場に出たカードから波紋が広がる）
+// ===================================================================
+function showSummonRipple(targetEl) {
+  if (!targetEl) return;
+  const rect = targetEl.getBoundingClientRect();
+  const parent = targetEl.closest('.field-card-row') || targetEl.parentElement;
+  if (!parent) return;
+  const parentRect = parent.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2 - parentRect.left;
+  const cy = rect.top + rect.height / 2 - parentRect.top;
+  const size = Math.max(rect.width, rect.height);
+  for (let i = 0; i < 2; i++) {
+    const ripple = document.createElement('div');
+    ripple.className = 'summon-ripple';
+    ripple.style.left = cx + 'px';
+    ripple.style.top = cy + 'px';
+    ripple.style.width = size + 'px';
+    ripple.style.height = size + 'px';
+    ripple.style.animationDelay = (i * 0.15) + 's';
+    parent.style.position = 'relative';
+    parent.appendChild(ripple);
+    ripple.addEventListener('animationend', () => ripple.remove());
+  }
+}
+
+// ===================================================================
+// ドロー飛行アニメーション（山札からカードの最終位置へ飛ぶ）
+// ===================================================================
+function showDrawFly(who, cardUid) {
+  const deckEl = (who === 'player') ? dom.playerDeck : dom.oppDeck;
+  const container = (who === 'player') ? dom.playerHandCards : dom.oppHandCards;
+  const cardEl = container.querySelector('.battle-card[data-uid="' + cardUid + '"]');
+  if (!deckEl || !cardEl) return;
+  const deckRect = deckEl.getBoundingClientRect();
+  const cardRect = cardEl.getBoundingClientRect();
+  const fly = document.createElement('div');
+  fly.className = 'draw-fly-card';
+  fly.style.width = cardRect.width + 'px';
+  fly.style.height = cardRect.height + 'px';
+  // 始点：山札の中央
+  fly.style.left = (deckRect.left + deckRect.width / 2 - cardRect.width / 2) + 'px';
+  fly.style.top = (deckRect.top + deckRect.height / 2 - cardRect.height / 2) + 'px';
+  const img = document.createElement('img');
+  img.src = (who === 'player') ? (cardEl.querySelector('img')?.src || DECK_BACK_IMG) : DECK_BACK_IMG;
+  img.draggable = false;
+  fly.appendChild(img);
+  document.body.appendChild(fly);
+  // 2フレーム待ってから開始（初期位置を確実に描画してからtransition発火）
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      fly.classList.add('fly-active');
+      // 終点：手札の最終位置
+      fly.style.left = cardRect.left + 'px';
+      fly.style.top = cardRect.top + 'px';
+    });
+  });
+  // 到着後フェードアウトして削除
+  setTimeout(() => {
+    fly.classList.remove('fly-active');
+    fly.classList.add('fly-arrived');
+    setTimeout(() => fly.remove(), 200);
+  }, 420);
+}
+
+// ===================================================================
 // フローティングテキスト（ドロー・憑依・除外）
 // カードの上に小さい文字が現れて上に消えていく演出
 // ===================================================================
@@ -3060,12 +3125,12 @@ function placeCard(card) {
     markUsed('player', '場所札');
     renderField('player'); renderPlayerHand(); updateAllCounts();
     logHistory('player', `自分は場所札「${card.name}」を召喚した。`);
-    // 場所札フローティングテキスト
+    // 場所札フローティングテキスト + 召喚波動
     requestAnimationFrame(() => {
       const bashoUid = String(card.uid);
       const allBasho = dom.playerFieldCards.querySelectorAll('.basho-slot');
       allBasho.forEach(bEl => {
-        if (bEl.dataset.uid === bashoUid) showFloatingText(bEl, '召喚', 'summon');
+        if (bEl.dataset.uid === bashoUid) { showFloatingText(bEl, '召喚', 'summon'); showSummonRipple(bEl); }
       });
     });
     // 召喚時効果チェック
@@ -3086,12 +3151,12 @@ function placeCard(card) {
     markUsed('player', '季節札');
     renderField('player'); renderPlayerHand(); updateAllCounts();
     logHistory('player', `自分は季節札「${card.name}」を展開した。`);
-    // 展開フローティングテキスト
+    // 展開フローティングテキスト + 召喚波動
     requestAnimationFrame(() => {
       const seasonUid = String(card.uid);
       const allSeason = dom.playerFieldCards.querySelectorAll('.season-slot');
       allSeason.forEach(sEl => {
-        if (sEl.dataset.uid === seasonUid) showFloatingText(sEl, '展開', 'tenkai');
+        if (sEl.dataset.uid === seasonUid) { showFloatingText(sEl, '展開', 'tenkai'); showSummonRipple(sEl); }
       });
     });
     updatePlayableAura();
@@ -3107,12 +3172,12 @@ function placeCard(card) {
     markUsed('player', '怪異札');
     renderField('player'); renderPlayerHand(); updateAllCounts();
     logHistory('player', `自分は怪異札「${card.name}」を憑依した。`);
-    // 憑依フローティングテキスト
+    // 憑依フローティングテキスト + 召喚波動
     requestAnimationFrame(() => {
       const kaiiUid = String(card.uid);
       const allKaii = dom.playerFieldCards.querySelectorAll('.kaii-attached');
       allKaii.forEach(kEl => {
-        if (kEl.dataset.uid === kaiiUid) showFloatingText(kEl, '憑依', 'hyoui');
+        if (kEl.dataset.uid === kaiiUid) { showFloatingText(kEl, '憑依', 'hyoui'); showSummonRipple(kEl); }
       });
     });
   } else if (card.type === '道具札') {
@@ -3202,12 +3267,15 @@ function drawCards(who, count, sourceCardName) {
   if (who === 'player') { renderPlayerHand(); updateDeckImg(dom.playerDeck, 'player'); }
   else { renderOppHand(); updateDeckImg(dom.oppDeck, 'opponent'); }
   updateAllCounts();
-  // ドローフローティングテキスト（両プレイヤー対応）
+  // ドローフローティングテキスト + 飛行アニメ（両プレイヤー対応）
   const container = (who === 'player') ? dom.playerHandCards : dom.oppHandCards;
   requestAnimationFrame(() => {
-    drawnUids.forEach(uid => {
+    drawnUids.forEach((uid, i) => {
       const el = container.querySelector('.battle-card[data-uid="' + uid + '"]');
-      if (el) showFloatingText(el, 'ドロー', 'draw');
+      if (el) {
+        showFloatingText(el, 'ドロー', 'draw');
+        setTimeout(() => showDrawFly(who, uid), i * 80);
+      }
     });
   });
   // 行動履歴ログ
@@ -4704,12 +4772,12 @@ async function cpuPlaceCard(card) {
     if (card.summonEffect) {
       renderField('opponent'); renderOppHand(); updateAllCounts();
       markUsed('opponent', card.type);
-      // 場所札フローティングテキスト
+      // 場所札フローティングテキスト + 召喚波動
       requestAnimationFrame(() => {
         const bashoUid = String(card.uid);
         const allBasho = dom.oppFieldCards.querySelectorAll('.basho-slot');
         allBasho.forEach(bEl => {
-          if (bEl.dataset.uid === bashoUid) showFloatingText(bEl, '召喚', 'summon');
+          if (bEl.dataset.uid === bashoUid) { showFloatingText(bEl, '召喚', 'summon'); showSummonRipple(bEl); }
         });
       });
       await handleCpuSummonEffect(card);
@@ -4798,33 +4866,33 @@ async function cpuPlaceCard(card) {
   }
   renderField('opponent'); renderOppHand(); updateAllCounts();
   markUsed('opponent', card.type);
-  // 場所札フローティングテキスト
+  // 場所札フローティングテキスト + 召喚波動
   if (card.type === '場所札') {
     requestAnimationFrame(() => {
       const bashoUid = String(card.uid);
       const allBasho = dom.oppFieldCards.querySelectorAll('.basho-slot');
       allBasho.forEach(bEl => {
-        if (bEl.dataset.uid === bashoUid) showFloatingText(bEl, '召喚', 'summon');
+        if (bEl.dataset.uid === bashoUid) { showFloatingText(bEl, '召喚', 'summon'); showSummonRipple(bEl); }
       });
     });
   }
-  // 季節札展開時：展開フローティングテキスト
+  // 季節札展開時：展開フローティングテキスト + 召喚波動
   if (card.type === '季節札') {
     requestAnimationFrame(() => {
       const seasonUid = String(card.uid);
       const allSeason = dom.oppFieldCards.querySelectorAll('.season-slot');
       allSeason.forEach(sEl => {
-        if (sEl.dataset.uid === seasonUid) showFloatingText(sEl, '展開', 'tenkai');
+        if (sEl.dataset.uid === seasonUid) { showFloatingText(sEl, '展開', 'tenkai'); showSummonRipple(sEl); }
       });
     });
   }
-  // 怪異札装備時：憑依フローティングテキスト
+  // 怪異札装備時：憑依フローティングテキスト + 召喚波動
   if (card.type === '怪異札') {
     requestAnimationFrame(() => {
       const kaiiUid = String(card.uid);
       const allKaii = dom.oppFieldCards.querySelectorAll('.kaii-attached');
       allKaii.forEach(kEl => {
-        if (kEl.dataset.uid === kaiiUid) showFloatingText(kEl, '憑依', 'hyoui');
+        if (kEl.dataset.uid === kaiiUid) { showFloatingText(kEl, '憑依', 'hyoui'); showSummonRipple(kEl); }
       });
     });
   }

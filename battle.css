@@ -2701,6 +2701,65 @@ body {
   animation: typeHighlight 1.0s ease-out forwards;
 }
 
+/* ===== 召喚波動エフェクト ===== */
+.summon-ripple {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid rgba(220, 60, 60, 0.7);
+  background: radial-gradient(circle, rgba(220, 60, 60, 0.12), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+  transform: translate(-50%, -50%) scale(0);
+  animation: summonRippleExpand 0.6s ease-out forwards;
+}
+
+@keyframes summonRippleExpand {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 1;
+    border-width: 2px;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2.2);
+    opacity: 0;
+    border-width: 1px;
+  }
+}
+
+/* ===== ドロー飛行アニメーション ===== */
+.draw-fly-card {
+  position: fixed;
+  z-index: 9000;
+  border-radius: 4px;
+  overflow: hidden;
+  pointer-events: none;
+  box-shadow: 0 0 14px rgba(100, 200, 255, 0.6), 0 4px 12px rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  will-change: transform, left, top, opacity;
+  transition: left 0.4s cubic-bezier(0.22, 0.68, 0.35, 1),
+              top 0.4s cubic-bezier(0.22, 0.68, 0.35, 1),
+              opacity 0.4s ease;
+}
+
+.draw-fly-card.fly-active {
+  opacity: 1;
+}
+
+.draw-fly-card.fly-arrived {
+  opacity: 0;
+  box-shadow: none;
+}
+
+.draw-fly-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 /* ===== 効果発動オーバーレイ ===== */
 #effect-overlay {
   position: absolute;
