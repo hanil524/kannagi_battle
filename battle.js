@@ -5361,3 +5361,16 @@ if (banmenFloatingBtn) {
     _btnTouchCancelled = false;
   }, { capture: true, passive: true });
 })();
+
+// ===================================================================
+// カード画像プリロード（初回読み込み時にキャッシュへ載せる）
+// ===================================================================
+(function preloadCardImages() {
+  const urls = new Set();
+  CARD_DB.forEach(c => { if (c.img) urls.add(c.img); });
+  urls.add(DECK_BACK_IMG);
+  urls.forEach(url => {
+    const img = new Image();
+    img.src = url;
+  });
+})();
