@@ -1544,10 +1544,11 @@ async function handleAttackEffect(basho, who) {
 async function handleCpuAttackEffect(basho, st) {
   if (basho.attackEffect === 'retrieve_graveyard_exile') {
     await showEffectActivation(basho, '攻撃時効果');
-    // 除外から墓地属性カードを探す（最高コストを選択）
+    // 除外から墓地属性カードを探す（魂数で優先順位切替）
     const graveyardCards = st.exile.filter(c => hasTribe(c, '墓地'));
     if (graveyardCards.length > 0) {
-      graveyardCards.sort((a, b) => (b.cost || 0) - (a.cost || 0));
+      const soulN = st.soul.length;
+      graveyardCards.sort((a, b) => soulN >= 5 ? (b.cost || 0) - (a.cost || 0) : (a.cost || 0) - (b.cost || 0));
       const target = graveyardCards[0];
       const idx = st.exile.findIndex(c => c.uid === target.uid);
       if (idx !== -1) {
@@ -1565,7 +1566,8 @@ async function handleCpuAttackEffect(basho, st) {
     await showEffectActivation(basho, '攻撃時効果');
     const graveyardCards = st.hand.filter(c => hasTribe(c, '墓地'));
     if (graveyardCards.length > 0) {
-      graveyardCards.sort((a, b) => (a.cost || 0) - (b.cost || 0));
+      const soulN = st.soul.length;
+      graveyardCards.sort((a, b) => soulN >= 5 ? (a.cost || 0) - (b.cost || 0) : (b.cost || 0) - (a.cost || 0));
       const target = graveyardCards[0];
       const idx = st.hand.findIndex(c => c.uid === target.uid);
       if (idx !== -1) {
@@ -1586,10 +1588,11 @@ async function handleCpuAttackEffect(basho, st) {
 
   if (basho.attackEffect === 'exile_hand_graveyard_damage3_field3') {
     await showEffectActivation(basho, '攻撃時効果');
-    // CPUの手札から墓地属性カードを探す（最低コスト優先）
+    // CPUの手札から墓地属性カードを探す（魂数で優先順位切替）
     const graveyardCards = st.hand.filter(c => hasTribe(c, '墓地'));
     if (graveyardCards.length > 0) {
-      graveyardCards.sort((a, b) => (a.cost || 0) - (b.cost || 0));
+      const soulN = st.soul.length;
+      graveyardCards.sort((a, b) => soulN >= 5 ? (a.cost || 0) - (b.cost || 0) : (b.cost || 0) - (a.cost || 0));
       const target = graveyardCards[0];
       const idx = st.hand.findIndex(c => c.uid === target.uid);
       if (idx !== -1) {
@@ -1690,10 +1693,11 @@ async function handleKaiiEffect(kCard, who) {
         }
       }
     } else {
-      // CPU版
+      // CPU版（魂数で優先順位切替）
       const graveyardCards = st.exile.filter(c => hasTribe(c, '墓地'));
       if (graveyardCards.length > 0) {
-        graveyardCards.sort((a, b) => (b.cost || 0) - (a.cost || 0));
+        const soulN = st.soul.length;
+        graveyardCards.sort((a, b) => soulN >= 5 ? (b.cost || 0) - (a.cost || 0) : (a.cost || 0) - (b.cost || 0));
         const target = graveyardCards[0];
         const idx = st.exile.findIndex(c => c.uid === target.uid);
         if (idx !== -1) {
@@ -1738,10 +1742,11 @@ async function handleKaiiEffect(kCard, who) {
         }
       }
     } else {
-      // CPU版
+      // CPU版（魂数で優先順位切替）
       const graveyardCards = st.exile.filter(c => hasTribe(c, '墓地'));
       if (graveyardCards.length > 0) {
-        graveyardCards.sort((a, b) => (b.cost || 0) - (a.cost || 0));
+        const soulN = st.soul.length;
+        graveyardCards.sort((a, b) => soulN >= 5 ? (b.cost || 0) - (a.cost || 0) : (a.cost || 0) - (b.cost || 0));
         const target = graveyardCards[0];
         const idx = st.exile.findIndex(c => c.uid === target.uid);
         if (idx !== -1) {
@@ -1872,16 +1877,22 @@ async function handleKaiiEffect(kCard, who) {
       }
     } else {
       // CPU版
-      // デッキから墓地属性カードを探す（最高コスト優先）
+      // デッキから墓地属性カードを探す（現在の魂+2以上のコストを優先、その中で最高コスト）
       const deckGraveyard = st.deck.filter(c => hasTribe(c, '墓地'));
       if (deckGraveyard.length > 0) {
-        deckGraveyard.sort((a, b) => (b.cost || 0) - (a.cost || 0));
-        const target = deckGraveyard[0];
+        const soulCount = st.soul.length;
+        const minCost = soulCount + 2;
+        // まず魂+2以上のコストのカードを探す
+        const highCost = deckGraveyard.filter(c => (c.cost || 0) >= minCost);
+        const pool = highCost.length > 0 ? highCost : deckGraveyard;
+        pool.sort((a, b) => (b.cost || 0) - (a.cost || 0));
+        const target = pool[0];
         const idx = st.deck.findIndex(c => c.uid === target.uid);
         if (idx !== -1) {
           st.deck.splice(idx, 1);
           st.open.push(target);
           logHistory('opponent', `「${kCard.name}」の効果で山札から「${target.name}」を手札公開場に加えた。`);
+          renderOppOpen();
           updateDeckImg(dom.oppDeck, 'opponent');
           updateAllCounts();
         }
@@ -1892,10 +1903,11 @@ async function handleKaiiEffect(kCard, who) {
       requestAnimationFrame(() => {
         showFloatingText(dom.oppDeck, 'シャッフル', 'draw');
       });
-      // 手札から最低コストカードを除外
+      // 手札から魂数に応じた優先順位で除外
       const allHand = [...st.hand, ...st.open];
       if (allHand.length > 0) {
-        allHand.sort((a, b) => (a.cost || 0) - (b.cost || 0));
+        const soulN = st.soul.length;
+        allHand.sort((a, b) => soulN >= 5 ? (a.cost || 0) - (b.cost || 0) : (b.cost || 0) - (a.cost || 0));
         const target = allHand[0];
         let idx = st.hand.findIndex(c => c.uid === target.uid);
         if (idx !== -1) {
@@ -1987,10 +1999,11 @@ async function handleKaiiEffect(kCard, who) {
         }
       }
     } else {
-      // CPU版：CPU手札の墓地属性を最低コスト優先で除外
+      // CPU版：CPU手札の墓地属性を魂数に応じた優先順位で除外
       const graveyardCards = [...st.hand, ...st.open].filter(c => hasTribe(c, '墓地'));
       if (graveyardCards.length === 0) return;
-      graveyardCards.sort((a, b) => (a.cost || 0) - (b.cost || 0));
+      const soulN = st.soul.length;
+      graveyardCards.sort((a, b) => soulN >= 5 ? (a.cost || 0) - (b.cost || 0) : (b.cost || 0) - (a.cost || 0));
       const target = graveyardCards[0];
       let idx = st.hand.findIndex(c => c.uid === target.uid);
       if (idx !== -1) {
@@ -2046,10 +2059,11 @@ async function handleKaiiEffect(kCard, who) {
 
 async function handleCpuKaiiEffect(kCard, st, dmg) {
   if (kCard.kaiiEffect === 'exile_hand_graveyard_damage3') {
-    // CPUの手札から墓地属性カードを探す（最低コスト優先）
+    // CPUの手札から墓地属性カードを探す（魂数で優先順位切替）
     const graveyardCards = st.hand.filter(c => hasTribe(c, '墓地'));
     if (graveyardCards.length > 0) {
-      graveyardCards.sort((a, b) => (a.cost || 0) - (b.cost || 0));
+      const soulN = st.soul.length;
+      graveyardCards.sort((a, b) => soulN >= 5 ? (a.cost || 0) - (b.cost || 0) : (b.cost || 0) - (a.cost || 0));
       const target = graveyardCards[0];
       const idx = st.hand.findIndex(c => c.uid === target.uid);
       if (idx !== -1) {
@@ -2803,7 +2817,7 @@ function showPlayEffect(card) {
 // ===================================================================
 // 召喚波動エフェクト（場に出たカードから波紋が広がる）
 // ===================================================================
-function showSummonRipple(targetEl) {
+function showSummonRipple(targetEl, colorType) {
   if (!targetEl) return;
   const rect = targetEl.getBoundingClientRect();
   const parent = targetEl.closest('.field-card-row') || targetEl.parentElement;
@@ -2812,9 +2826,13 @@ function showSummonRipple(targetEl) {
   const cx = rect.left + rect.width / 2 - parentRect.left;
   const cy = rect.top + rect.height / 2 - parentRect.top;
   const size = Math.max(rect.width, rect.height);
+  // colorType: 'red'(場所札), 'purple'(怪異札), 'yellow'(季節札)
+  const colorClass = colorType === 'purple' ? ' ripple-purple'
+                   : colorType === 'yellow' ? ' ripple-yellow'
+                   : '';
   for (let i = 0; i < 2; i++) {
     const ripple = document.createElement('div');
-    ripple.className = 'summon-ripple';
+    ripple.className = 'summon-ripple' + colorClass;
     ripple.style.left = cx + 'px';
     ripple.style.top = cy + 'px';
     ripple.style.width = size + 'px';
@@ -2829,11 +2847,11 @@ function showSummonRipple(targetEl) {
 // ===================================================================
 // ドロー飛行アニメーション（山札からカードの最終位置へ飛ぶ）
 // ===================================================================
-function showDrawFly(who, cardUid) {
+function showDrawFly(who, cardUid, onArrive) {
   const deckEl = (who === 'player') ? dom.playerDeck : dom.oppDeck;
   const container = (who === 'player') ? dom.playerHandCards : dom.oppHandCards;
   const cardEl = container.querySelector('.battle-card[data-uid="' + cardUid + '"]');
-  if (!deckEl || !cardEl) return;
+  if (!deckEl || !cardEl) { if (onArrive) onArrive(); return; }
   const deckRect = deckEl.getBoundingClientRect();
   const cardRect = cardEl.getBoundingClientRect();
   const fly = document.createElement('div');
@@ -2848,17 +2866,17 @@ function showDrawFly(who, cardUid) {
   img.draggable = false;
   fly.appendChild(img);
   document.body.appendChild(fly);
-  // 2フレーム待ってから開始（初期位置を確実に描画してからtransition発火）
+  // 2フレーム待ってから開始
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       fly.classList.add('fly-active');
-      // 終点：手札の最終位置
       fly.style.left = cardRect.left + 'px';
       fly.style.top = cardRect.top + 'px';
     });
   });
-  // 到着後フェードアウトして削除
+  // 到着後：手札カードを表示してフェードアウト
   setTimeout(() => {
+    if (onArrive) onArrive();
     fly.classList.remove('fly-active');
     fly.classList.add('fly-arrived');
     setTimeout(() => fly.remove(), 200);
@@ -3130,7 +3148,7 @@ function placeCard(card) {
       const bashoUid = String(card.uid);
       const allBasho = dom.playerFieldCards.querySelectorAll('.basho-slot');
       allBasho.forEach(bEl => {
-        if (bEl.dataset.uid === bashoUid) { showFloatingText(bEl, '召喚', 'summon'); showSummonRipple(bEl); }
+        if (bEl.dataset.uid === bashoUid) { showFloatingText(bEl, '召喚', 'summon'); showSummonRipple(bEl, 'red'); }
       });
     });
     // 召喚時効果チェック
@@ -3156,7 +3174,7 @@ function placeCard(card) {
       const seasonUid = String(card.uid);
       const allSeason = dom.playerFieldCards.querySelectorAll('.season-slot');
       allSeason.forEach(sEl => {
-        if (sEl.dataset.uid === seasonUid) { showFloatingText(sEl, '展開', 'tenkai'); showSummonRipple(sEl); }
+        if (sEl.dataset.uid === seasonUid) { showFloatingText(sEl, '展開', 'tenkai'); showSummonRipple(sEl, 'yellow'); }
       });
     });
     updatePlayableAura();
@@ -3177,7 +3195,7 @@ function placeCard(card) {
       const kaiiUid = String(card.uid);
       const allKaii = dom.playerFieldCards.querySelectorAll('.kaii-attached');
       allKaii.forEach(kEl => {
-        if (kEl.dataset.uid === kaiiUid) { showFloatingText(kEl, '憑依', 'hyoui'); showSummonRipple(kEl); }
+        if (kEl.dataset.uid === kaiiUid) { showFloatingText(kEl, '憑依', 'hyoui'); showSummonRipple(kEl, 'purple'); }
       });
     });
   } else if (card.type === '道具札') {
@@ -3273,8 +3291,14 @@ function drawCards(who, count, sourceCardName) {
     drawnUids.forEach((uid, i) => {
       const el = container.querySelector('.battle-card[data-uid="' + uid + '"]');
       if (el) {
-        showFloatingText(el, 'ドロー', 'draw');
-        setTimeout(() => showDrawFly(who, uid), i * 80);
+        // 飛行中は手札側を透明にし、到着後に表示
+        el.style.opacity = '0';
+        setTimeout(() => {
+          showDrawFly(who, uid, () => {
+            el.style.opacity = '';
+            showFloatingText(el, 'ドロー', 'draw');
+          });
+        }, i * 100);
       }
     });
   });
@@ -4189,11 +4213,11 @@ function handleSummonEffect(card, who) {
 async function handleCpuSummonEffect(card) {
   if (card.summonEffect === 'exile_graveyard_damage3') {
     await showEffectActivation(card, '召喚時効果');
-    // CPUの手札から墓地属性カードを探す（最もコストが低いものを選択）
+    // CPUの手札から墓地属性カードを探す（魂数で優先順位切替）
     const graveyardCards = opponent.hand.filter(c => hasTribe(c, '墓地'));
     if (graveyardCards.length > 0) {
-      // 最低コストのカードを選択
-      graveyardCards.sort((a, b) => (a.cost || 0) - (b.cost || 0));
+      const soulN = opponent.soul.length;
+      graveyardCards.sort((a, b) => soulN >= 5 ? (a.cost || 0) - (b.cost || 0) : (b.cost || 0) - (a.cost || 0));
       const target = graveyardCards[0];
       const idx = opponent.hand.findIndex(c => c.uid === target.uid);
       if (idx !== -1) {
@@ -4217,10 +4241,11 @@ async function handleCpuSummonEffect(card) {
 
   if (card.summonEffect === 'retrieve_exile_graveyard_damage4') {
     await showEffectActivation(card, '召喚時効果');
-    // CPUの除外から墓地属性カードを探す（最高コスト優先）
+    // CPUの除外から墓地属性カードを探す（魂数で優先順位切替）
     const graveyardCards = opponent.exile.filter(c => hasTribe(c, '墓地'));
     if (graveyardCards.length > 0) {
-      graveyardCards.sort((a, b) => (b.cost || 0) - (a.cost || 0));
+      const soulN = opponent.soul.length;
+      graveyardCards.sort((a, b) => soulN >= 5 ? (b.cost || 0) - (a.cost || 0) : (a.cost || 0) - (b.cost || 0));
       const target = graveyardCards[0];
       const idx = opponent.exile.findIndex(c => c.uid === target.uid);
       if (idx !== -1) {
@@ -4255,7 +4280,8 @@ async function handleCpuSummonEffect(card) {
     await showEffectActivation(card, '召喚時効果');
     const graveyardCards = opponent.hand.filter(c => hasTribe(c, '墓地'));
     if (graveyardCards.length > 0) {
-      graveyardCards.sort((a, b) => (a.cost || 0) - (b.cost || 0));
+      const soulN = opponent.soul.length;
+      graveyardCards.sort((a, b) => soulN >= 5 ? (a.cost || 0) - (b.cost || 0) : (b.cost || 0) - (a.cost || 0));
       const target = graveyardCards[0];
       const idx = opponent.hand.findIndex(c => c.uid === target.uid);
       if (idx !== -1) {
@@ -4277,7 +4303,8 @@ async function handleCpuSummonEffect(card) {
     await showEffectActivation(card, '召喚時効果');
     const graveyardCards = opponent.exile.filter(c => hasTribe(c, '墓地'));
     if (graveyardCards.length > 0) {
-      graveyardCards.sort((a, b) => (b.cost || 0) - (a.cost || 0));
+      const soulN = opponent.soul.length;
+      graveyardCards.sort((a, b) => soulN >= 5 ? (b.cost || 0) - (a.cost || 0) : (a.cost || 0) - (b.cost || 0));
       const target = graveyardCards[0];
       const idx = opponent.exile.findIndex(c => c.uid === target.uid);
       if (idx !== -1) {
@@ -4616,7 +4643,7 @@ function proceedEndTurn() {
     if (gen !== gameGeneration) return;
     setTimeout(() => {
       if (gen === gameGeneration) cpuTurn();
-    }, 500);
+    }, 300);
   });
 }
 
@@ -4657,14 +4684,14 @@ function cpuTurn() {
         // フェーズ3: 場所札・季節札を召喚
         const postActions = buildCpuPostAttackActions();
         executeCpuActions(postActions, 0, () => {
-          setTimeout(() => { finishCpuTurn(); }, 500);
+          setTimeout(() => { finishCpuTurn(); }, 300);
         });
       });
     } else {
       // 攻撃できなければ場所札・季節札を召喚
       const postActions = buildCpuPostAttackActions();
       executeCpuActions(postActions, 0, () => {
-        setTimeout(() => { finishCpuTurn(); }, 500);
+        setTimeout(() => { finishCpuTurn(); }, 300);
       });
     }
   });
@@ -4752,7 +4779,7 @@ async function executeCpuActions(actions, idx, done) {
 
   setTimeout(() => {
     executeCpuActions(actions, idx + 1, done);
-  }, 1000);
+  }, 700);
 }
 
 async function cpuPlaceCard(card) {
@@ -4777,7 +4804,7 @@ async function cpuPlaceCard(card) {
         const bashoUid = String(card.uid);
         const allBasho = dom.oppFieldCards.querySelectorAll('.basho-slot');
         allBasho.forEach(bEl => {
-          if (bEl.dataset.uid === bashoUid) { showFloatingText(bEl, '召喚', 'summon'); showSummonRipple(bEl); }
+          if (bEl.dataset.uid === bashoUid) { showFloatingText(bEl, '召喚', 'summon'); showSummonRipple(bEl, 'red'); }
         });
       });
       await handleCpuSummonEffect(card);
@@ -4825,10 +4852,11 @@ async function cpuPlaceCard(card) {
     } else if (card.effect === 'draw_3') {
       drawCards('opponent', 3, card.name);
     } else if (card.effect === 'retrieve_exile_graveyard_damage4') {
-      // CPUの除外から墓地属性カードを探す（最高コスト優先）
+      // CPUの除外から墓地属性カードを探す（魂数で優先順位切替）
       const graveyardCards = opponent.exile.filter(c => hasTribe(c, '墓地'));
       if (graveyardCards.length > 0) {
-        graveyardCards.sort((a, b) => (b.cost || 0) - (a.cost || 0));
+        const soulN = opponent.soul.length;
+        graveyardCards.sort((a, b) => soulN >= 5 ? (b.cost || 0) - (a.cost || 0) : (a.cost || 0) - (b.cost || 0));
         const target = graveyardCards[0];
         const idx = opponent.exile.findIndex(c => c.uid === target.uid);
         if (idx !== -1) {
@@ -4843,10 +4871,11 @@ async function cpuPlaceCard(card) {
         }
       }
     } else if (card.effect === 'retrieve_exile_graveyard_draw1') {
-      // CPUの除外から墓地属性カードを探す（最高コスト優先）
+      // CPUの除外から墓地属性カードを探す（魂数で優先順位切替）
       const graveyardCards = opponent.exile.filter(c => hasTribe(c, '墓地'));
       if (graveyardCards.length > 0) {
-        graveyardCards.sort((a, b) => (b.cost || 0) - (a.cost || 0));
+        const soulN = opponent.soul.length;
+        graveyardCards.sort((a, b) => soulN >= 5 ? (b.cost || 0) - (a.cost || 0) : (a.cost || 0) - (b.cost || 0));
         const target = graveyardCards[0];
         const idx = opponent.exile.findIndex(c => c.uid === target.uid);
         if (idx !== -1) {
@@ -4872,7 +4901,7 @@ async function cpuPlaceCard(card) {
       const bashoUid = String(card.uid);
       const allBasho = dom.oppFieldCards.querySelectorAll('.basho-slot');
       allBasho.forEach(bEl => {
-        if (bEl.dataset.uid === bashoUid) { showFloatingText(bEl, '召喚', 'summon'); showSummonRipple(bEl); }
+        if (bEl.dataset.uid === bashoUid) { showFloatingText(bEl, '召喚', 'summon'); showSummonRipple(bEl, 'red'); }
       });
     });
   }
@@ -4882,7 +4911,7 @@ async function cpuPlaceCard(card) {
       const seasonUid = String(card.uid);
       const allSeason = dom.oppFieldCards.querySelectorAll('.season-slot');
       allSeason.forEach(sEl => {
-        if (sEl.dataset.uid === seasonUid) { showFloatingText(sEl, '展開', 'tenkai'); showSummonRipple(sEl); }
+        if (sEl.dataset.uid === seasonUid) { showFloatingText(sEl, '展開', 'tenkai'); showSummonRipple(sEl, 'yellow'); }
       });
     });
   }
@@ -4892,7 +4921,7 @@ async function cpuPlaceCard(card) {
       const kaiiUid = String(card.uid);
       const allKaii = dom.oppFieldCards.querySelectorAll('.kaii-attached');
       allKaii.forEach(kEl => {
-        if (kEl.dataset.uid === kaiiUid) { showFloatingText(kEl, '憑依', 'hyoui'); showSummonRipple(kEl); }
+        if (kEl.dataset.uid === kaiiUid) { showFloatingText(kEl, '憑依', 'hyoui'); showSummonRipple(kEl, 'purple'); }
       });
     });
   }

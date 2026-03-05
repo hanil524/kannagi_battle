@@ -2705,12 +2705,20 @@ body {
 .summon-ripple {
   position: absolute;
   border-radius: 50%;
-  border: 2px solid rgba(220, 60, 60, 0.7);
-  background: radial-gradient(circle, rgba(220, 60, 60, 0.12), transparent 70%);
+  border: 2px solid rgba(220, 60, 60, 0.85);
+  background: radial-gradient(circle, rgba(220, 60, 60, 0.25), transparent 70%);
   pointer-events: none;
   z-index: 0;
   transform: translate(-50%, -50%) scale(0);
   animation: summonRippleExpand 0.6s ease-out forwards;
+}
+.summon-ripple.ripple-purple {
+  border-color: rgba(160, 60, 220, 0.85);
+  background: radial-gradient(circle, rgba(160, 60, 220, 0.25), transparent 70%);
+}
+.summon-ripple.ripple-yellow {
+  border-color: rgba(230, 200, 40, 0.85);
+  background: radial-gradient(circle, rgba(230, 200, 40, 0.25), transparent 70%);
 }
 
 @keyframes summonRippleExpand {
