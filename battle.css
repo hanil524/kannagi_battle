@@ -42,9 +42,9 @@ body {
   display: flex;
   flex-direction: row;
   align-items: center;
-  justify-content: flex-start;
-  gap: 6px;
-  padding: 4px 8px;
+  justify-content: center;
+  gap: clamp(3px, 1.2vw, 6px);
+  padding: 4px clamp(4px, 1.5vw, 8px);
   background: rgba(15, 10, 30, 0.95);
   border-bottom: 1px solid rgba(80, 80, 140, 0.25);
   flex-shrink: 0;
@@ -66,8 +66,8 @@ body {
 }
 
 .footer-btn {
-  padding: 4px 12px;
-  font-size: 12px;
+  padding: 4px clamp(4px, 1.5vw, 12px);
+  font-size: clamp(10px, 2.8vw, 12px);
   font-weight: bold;
   color: rgba(200, 210, 255, 0.85);
   background: rgba(30, 25, 60, 0.9);
@@ -75,8 +75,9 @@ body {
   border-radius: 6px;
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease;
-  letter-spacing: 1px;
+  letter-spacing: 0px;
   white-space: nowrap;
+  text-align: center;
 }
 
 .footer-btn:not(:disabled):active {
@@ -89,9 +90,8 @@ body {
   cursor: default;
 }
 
-/* ターン終了ボタンは右端寄せ */
+/* ターン終了ボタン */
 #btn-end-turn {
-  margin-left: auto;
   background: linear-gradient(135deg, rgba(25, 40, 80, 0.95), rgba(15, 25, 55, 0.95));
   border-color: rgba(80, 120, 220, 0.5);
   color: #aac4ff;
@@ -1555,7 +1555,7 @@ body {
   background: rgba(255, 255, 255, 0.06);
   color: rgba(255, 255, 255, 0.55);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  padding: 4px 12px;
+  padding: 4px 11px;
   border-radius: 6px;
   font-size: 11px;
   font-weight: bold;
@@ -2712,10 +2712,12 @@ body {
   transform: translate(-50%, -50%) scale(0);
   animation: summonRippleExpand 0.6s ease-out forwards;
 }
+
 .summon-ripple.ripple-purple {
   border-color: rgba(160, 60, 220, 0.85);
   background: radial-gradient(circle, rgba(160, 60, 220, 0.25), transparent 70%);
 }
+
 .summon-ripple.ripple-yellow {
   border-color: rgba(230, 200, 40, 0.85);
   background: radial-gradient(circle, rgba(230, 200, 40, 0.25), transparent 70%);
@@ -2727,9 +2729,11 @@ body {
     opacity: 1;
     border-width: 2px;
   }
+
   50% {
     opacity: 0.5;
   }
+
   100% {
     transform: translate(-50%, -50%) scale(2.2);
     opacity: 0;
@@ -2748,8 +2752,8 @@ body {
   opacity: 0;
   will-change: transform, left, top, opacity;
   transition: left 0.4s cubic-bezier(0.22, 0.68, 0.35, 1),
-              top 0.4s cubic-bezier(0.22, 0.68, 0.35, 1),
-              opacity 0.4s ease;
+    top 0.4s cubic-bezier(0.22, 0.68, 0.35, 1),
+    opacity 0.4s ease;
 }
 
 .draw-fly-card.fly-active {
@@ -3521,6 +3525,134 @@ body {
 
 .menu-item:active {
   background: rgba(60, 50, 120, 0.5);
+}
+
+/* ===== 操作方法モーダル ===== */
+#howto-modal {
+  position: absolute;
+  inset: 0;
+  z-index: 800;
+  display: none;
+  flex-direction: column;
+  background: rgba(8, 6, 20, 0.97);
+  overflow: hidden;
+}
+
+#howto-modal.active {
+  display: flex;
+}
+
+#howto-modal-header {
+  padding: 12px 16px;
+  font-size: 16px;
+  font-weight: bold;
+  color: #e0e8ff;
+  letter-spacing: 4px;
+  text-align: center;
+  border-bottom: 1px solid rgba(80, 100, 160, 0.3);
+  flex-shrink: 0;
+  background: rgba(15, 12, 35, 0.95);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#howto-close-x {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 57px;
+  height: 32px;
+  border: 1px solid rgba(80, 120, 220, 0.4);
+  border-radius: 6px;
+  background: rgba(25, 35, 70, 0.8);
+  color: #aac4ff;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+#howto-close-x:active {
+  transform: translateY(-50%) scale(0.92);
+  background: rgba(40, 60, 130, 0.95);
+}
+
+#howto-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.howto-text {
+  color: rgba(210, 220, 255, 0.9);
+  font-size: 13px;
+  line-height: 1.7;
+  text-align: center;
+  margin: 0;
+}
+
+.howto-gif {
+  width: 90%;
+  max-width: 340px;
+  border-radius: 8px;
+  border: 1px solid rgba(80, 100, 160, 0.3);
+}
+
+.howto-link {
+  color: rgba(180, 190, 230, 0.8);
+  font-size: 13px;
+  text-align: center;
+  margin: 4px 0 0;
+}
+
+.howto-link a {
+  color: #7eb4ff;
+  text-decoration: underline;
+}
+
+.howto-divider {
+  width: 80%;
+  border: none;
+  border-top: 1px dashed rgba(80, 100, 160, 0.4);
+  margin: 18px 0;
+}
+
+#howto-modal-footer {
+  padding: 10px;
+  display: flex;
+  justify-content: center;
+  border-top: 1px solid rgba(80, 100, 160, 0.3);
+  flex-shrink: 0;
+  background: rgba(15, 12, 35, 0.95);
+}
+
+#howto-close-btn {
+  padding: 8px 32px;
+  font-size: 14px;
+  font-weight: bold;
+  letter-spacing: 3px;
+  color: #aac4ff;
+  background: linear-gradient(135deg, rgba(25, 40, 80, 0.95), rgba(15, 25, 55, 0.95));
+  border: 1px solid rgba(80, 120, 220, 0.5);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+#howto-close-btn:active {
+  transform: scale(0.96);
+  background: rgba(40, 60, 130, 0.95);
 }
 
 /* ===== 行動履歴モーダル ===== */

@@ -5144,6 +5144,33 @@ dom.endTurnCenter.addEventListener('click', (e) => { e.stopPropagation(); endTur
 dom.endTurnCenter.addEventListener('touchend', (e) => { if (e.cancelable) e.preventDefault(); e.stopPropagation(); endTurn(); }, { passive: false });
 
 // ===================================================================
+// 操作方法モーダル
+// ===================================================================
+const howtoModal = $('howto-modal');
+const btnHowto = $('btn-howto');
+const howtoCloseX = $('howto-close-x');
+const howtoCloseBtn = $('howto-close-btn');
+
+function showHowtoModal() {
+  if (howtoModal) howtoModal.classList.add('active');
+}
+function hideHowtoModal() {
+  if (howtoModal) howtoModal.classList.remove('active');
+}
+if (btnHowto) {
+  btnHowto.addEventListener('click', showHowtoModal);
+  btnHowto.addEventListener('touchend', (e) => { if (e.cancelable) e.preventDefault(); showHowtoModal(); }, { passive: false });
+}
+if (howtoCloseX) {
+  howtoCloseX.addEventListener('click', hideHowtoModal);
+  howtoCloseX.addEventListener('touchend', (e) => { if (e.cancelable) e.preventDefault(); hideHowtoModal(); }, { passive: false });
+}
+if (howtoCloseBtn) {
+  howtoCloseBtn.addEventListener('click', hideHowtoModal);
+  howtoCloseBtn.addEventListener('touchend', (e) => { if (e.cancelable) e.preventDefault(); hideHowtoModal(); }, { passive: false });
+}
+
+// ===================================================================
 // 行動履歴ボタン
 // ===================================================================
 const btnHistory = $('btn-history');
