@@ -711,8 +711,12 @@ function hideExileModal() {
 // モーダル外クリックで閉じる（選択モード中は閉じない）
 // 閲覧モード時はカード画像以外の領域タップでも閉じる
 let exileSelectMode = false;
-function isExileModalCloseTap(e) {
+function isExileModalCloseTap(e, isTouch) {
   if (exileSelectMode) return false;
+  // プレビュー表示中は閉じない（2段階閉じ：まずプレビューだけ閉じる）
+  if (dom.preview.style.display === 'flex') return false;
+  // スマホのみ：プレビュー閉じ直後は閉じない（同一タッチでバブリングするため）
+  if (isTouch && _previewJustClosed) { _previewJustClosed = false; return false; }
   // モーダル背景直接タップは常にOK
   if (e.target === dom.exileModal) return true;
   // カード画像(.battle-card)のタップは閉じない（拡大プレビュー用）
@@ -723,10 +727,10 @@ function isExileModalCloseTap(e) {
   return true;
 }
 dom.exileModal.addEventListener('click', (e) => {
-  if (isExileModalCloseTap(e)) hideExileModal();
+  if (isExileModalCloseTap(e, false)) hideExileModal();
 });
 dom.exileModal.addEventListener('touchend', (e) => {
-  if (isExileModalCloseTap(e)) { if (e.cancelable) e.preventDefault(); hideExileModal(); }
+  if (isExileModalCloseTap(e, true)) { if (e.cancelable) e.preventDefault(); hideExileModal(); }
 }, { passive: false });
 
 // 除外ゾーンクリックでモーダル表示
@@ -1042,6 +1046,7 @@ document.addEventListener('touchend', (e) => {
     if (dom.preview.style.display === 'flex') {
       hidePreview();
       clearAllGlow();
+      _previewJustClosed = true;
       if (e.cancelable) e.preventDefault(); // FIX
       return;
     }
@@ -1063,11 +1068,13 @@ document.addEventListener('click', (e) => {
       dom.kaiiPreviewOverlay.style.display = 'none';
       currentPreviewCard = null;
       clearAllGlow();
+      _kaiiPreviewJustClosed = true;
       return;
     }
     if (dom.preview.style.display === 'flex') {
       hidePreview();
       clearAllGlow();
+      _previewJustClosed = true;
       return;
     }
   }
@@ -2699,6 +2706,7 @@ dom.attackBtn.addEventListener('touchend', (e) => { if (e.cancelable) e.preventD
 // ===================================================================
 let kaiiPopupActive = false;
 let _kaiiPreviewJustClosed = false; // 拡大プレビュー閉じ直後フラグ（2段階閉じ用）
+let _previewJustClosed = false; // 通常プレビュー閉じ直後フラグ（除外モーダル等の2段階閉じ用）
 
 function showKaiiPopup(group, owner) {
   hidePreview();
@@ -4681,10 +4689,14 @@ function cpuTurn() {
     const atkGroup = pickCpuAttackTarget();
     if (atkGroup !== null) {
       executeCpuAttack(atkGroup, () => {
-        // フェーズ3: 場所札・季節札を召喚
-        const postActions = buildCpuPostAttackActions();
-        executeCpuActions(postActions, 0, () => {
-          setTimeout(() => { finishCpuTurn(); }, 300);
+        // フェーズ3: 攻撃後に未使用の怪異札・道具札を使う
+        const postSpells = buildCpuPostSpellActions();
+        executeCpuActions(postSpells, 0, () => {
+          // フェーズ4: 場所札・季節札を召喚
+          const postActions = buildCpuPostAttackActions();
+          executeCpuActions(postActions, 0, () => {
+            setTimeout(() => { finishCpuTurn(); }, 300);
+          });
         });
       });
     } else {
@@ -4730,6 +4742,19 @@ function buildCpuPreAttackActions() {
     if (c.type === '怪異札' && !cpuUsedFlags.kaii && canCpuPlay(c)) { actions.push(c); break; }
   }
   // 道具札（ドロー効果持ちを最優先、高コスト優先）
+  for (const c of hand) {
+    if (c.type === '道具札' && !cpuUsedFlags.dougu && canCpuPlay(c)) { actions.push(c); break; }
+  }
+  return actions;
+}
+
+// 攻撃後アクション：未使用の怪異札・道具札（攻撃中に手に入ったカード用）
+function buildCpuPostSpellActions() {
+  const actions = [];
+  const hand = [...opponent.hand].sort((a, b) => (b.cost || 0) - (a.cost || 0));
+  for (const c of hand) {
+    if (c.type === '怪異札' && !cpuUsedFlags.kaii && canCpuPlay(c)) { actions.push(c); break; }
+  }
   for (const c of hand) {
     if (c.type === '道具札' && !cpuUsedFlags.dougu && canCpuPlay(c)) { actions.push(c); break; }
   }
