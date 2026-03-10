@@ -3451,6 +3451,7 @@ function startGame() {
   // 零探し・開門演出オーバーレイ閉じる
   const zsOverlay = $('zero-search-overlay');
   if (zsOverlay) zsOverlay.style.display = 'none';
+  $('app').style.display = '';
   dom.gateOverlay.classList.remove('active');
   dom.gateOverlay.style.display = 'none';
   // ターン告知閉じる
@@ -3463,6 +3464,8 @@ function startGame() {
   resetTurnFlags();
   updateAllCounts();
   dom.startOverlay.style.display = 'none';
+  dom.btnReset.disabled = false;
+  dom.btnEndTurn.disabled = false;
   hideAttackBtn(); hidePreview(); hideKaiiPopup(); hideSeasonWarning();
   dom.endTurnCenter.style.display = '';
 
@@ -3681,6 +3684,7 @@ function showZeroSearch(who) {
       confirmBtn.removeEventListener('click', onConfirm);
       confirmBtn.removeEventListener('touchend', onConfirmTouch);
       overlay.style.display = 'none';
+      $('app').style.display = '';
 
       // 選択したカードをデッキ底に戻す
       const toBottom = [];
@@ -3705,6 +3709,7 @@ function showZeroSearch(who) {
     confirmBtn.addEventListener('click', onConfirm);
     confirmBtn.addEventListener('touchend', onConfirmTouch, { passive: false });
 
+    $('app').style.display = 'none';
     overlay.style.display = 'flex';
   });
 }
@@ -5587,6 +5592,17 @@ if (banmenFloatingBtn) {
     _btnTouchId = null;
     _btnTouchCancelled = false;
   }, { capture: true, passive: true });
+})();
+
+// ===================================================================
+// タイトル画面をヘッダーの下に配置
+// ===================================================================
+(function adjustStartOverlay() {
+  const header = $('app');
+  const overlay = $('start-overlay');
+  if (header && overlay) {
+    overlay.style.top = header.offsetHeight + 'px';
+  }
 })();
 
 // ===================================================================

@@ -47,8 +47,8 @@
     <button class="footer-btn" id="btn-menu">メニュー</button>
     <button class="footer-btn" id="btn-history" disabled>履歴</button>
     <button class="footer-btn" id="btn-howto">操作方法</button>
-    <button class="footer-btn" id="btn-reset">リセット</button>
-    <button class="footer-btn" id="btn-end-turn">ターン終了</button>
+    <button class="footer-btn" id="btn-reset" disabled>リセット</button>
+    <button class="footer-btn" id="btn-end-turn" disabled>ターン終了</button>
   </div>
 
   <!-- スタート -->
@@ -520,6 +520,11 @@
   </div>
 
   <script src="battle.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+  </script>
 </body>
 
 </html>
