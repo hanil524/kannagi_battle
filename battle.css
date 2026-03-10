@@ -192,7 +192,7 @@ body {
 }
 
 .type-btn {
-  font-size: 8px;
+  font-size: 10px;
   font-weight: bold;
   padding: 3px 4px;
   border-radius: 2px;
@@ -1423,7 +1423,10 @@ body {
 /* ===== 盤面確認中の除外閲覧モーダル ===== */
 #exile-view-modal {
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   display: none;
   flex-direction: column;
   align-items: center;
@@ -1433,13 +1436,18 @@ body {
   background: rgba(0, 0, 0, 0.85);
   pointer-events: auto;
 }
-#exile-view-modal.active { display: flex; }
+
+#exile-view-modal.active {
+  display: flex;
+}
+
 #exile-view-title {
   color: rgba(255, 255, 255, 0.9);
   font-size: 15px;
   font-weight: bold;
   letter-spacing: 3px;
 }
+
 #exile-view-cards {
   display: flex;
   gap: 8px;
@@ -1451,6 +1459,7 @@ body {
   overflow-y: auto;
   padding: 8px;
 }
+
 #exile-view-cards .battle-card {
   width: 80px;
   height: 112px;
@@ -1459,6 +1468,7 @@ body {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
   flex-shrink: 0;
 }
+
 #exile-view-empty {
   color: rgba(255, 255, 255, 0.5);
   font-size: 13px;
@@ -3478,7 +3488,7 @@ body {
   position: absolute;
   inset: 0;
   z-index: 9899;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(5, 3, 15, 1);
   opacity: 0;
   transition: opacity 0.3s ease;
 }
@@ -3582,7 +3592,7 @@ body {
   z-index: 9800;
   display: none;
   flex-direction: column;
-  background: rgba(8, 6, 20, 0.97);
+  background: rgb(8, 6, 20);
   overflow: hidden;
 }
 
@@ -3710,7 +3720,7 @@ body {
   z-index: 9800;
   display: none;
   flex-direction: column;
-  background: rgba(8, 6, 20, 0.97);
+  background: rgb(8, 6, 20);
   overflow: hidden;
 }
 
@@ -4023,7 +4033,7 @@ body {
 
   .type-btn {
     font-size: 11px;
-    padding: 5px 8px;
+    padding: 4px 8px;
   }
 
   .soul-info-area {

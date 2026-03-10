@@ -488,18 +488,20 @@
       <span>操作方法</span>
     </div>
     <div id="howto-body">
-      <p class="howto-text">各カードはそれぞれ 1ターンに1枚まで。<br>左側にあるカラーボタンで確認しよう！</p>
+      <p class="howto-text">4種類の札が1ターンに各1枚まで使用可能。<br>左側にあるカラーボタンで確認しよう！</p>
       <img class="howto-gif" src="images/capture01.gif" alt="巫カードバトルの操作例1">
       <hr class="howto-divider">
-      <p class="howto-text">【場所札】を選択して、中央ボタンで攻撃。<br>カードの長押しでも攻撃可能！</p>
+      <p class="howto-text">【場所札】を選択して中央ボタンで攻撃。<br>※カードの長押しでも攻撃可能。</p>
       <img class="howto-gif" src="images/capture02.gif" alt="巫カードバトルの操作例2">
       <hr class="howto-divider">
-      <p class="howto-text">できないことはできないので、<br>たくさん動かしてルールを覚えよう！</p>
+      <p class="howto-text">できないことはできないので<br>たくさん動かしてルールを覚えよう！</p>
       <img class="howto-gif" src="images/capture03.gif" alt="巫カードバトルの操作例3">
-      <p class="howto-text">※本番は「道具札が相手ターンでも使える」ルールなので、<br>慣れてきたら実際のカードで楽しもう！</p>
+      <p class="howto-text">※本番は「道具札が相手ターンでも使える」ルールなので<br>慣れてきたら実際のカードで遊んでね！</p>
       <hr class="howto-divider">
+      <p class="howto-link">『墓暴き』デッキは<a href="https://eglanz.cart.fc2.com/ca42/550/p-r-s/" target="_blank"
+          rel="noopener">通販ページ</a>から（定価1,100円）<br> </p>
       <p class="howto-link">詳しい巫カードゲームの遊び方は<a href="https://www.kannagi-cardgame.jp/s-projects-side-by-side"
-          target="_blank" rel="noopener">公式HP</a>から！<br> </p>
+          target="_blank" rel="noopener">公式HP</a>から<br> </p>
     </div>
     <div id="howto-modal-footer">
       <button id="howto-close-btn">閉じる</button>
@@ -522,7 +524,9 @@
   <script src="battle.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').catch(() => {});
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+      });
     }
   </script>
 </body>
