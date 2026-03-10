@@ -176,7 +176,7 @@ function showHistoryModal() {
   if (!modal) return;
   renderHistory();
   modal.classList.add('active');
-  if (banmenFloatingBtn) banmenFloatingBtn.style.visibility = 'hidden';
+  if (banmenViewActive && banmenFloatingBtn) banmenFloatingBtn.style.visibility = 'hidden';
 }
 
 function hideHistoryModal() {
@@ -3000,6 +3000,7 @@ function setupDrag(el, card) {
       return;
     }
     if (Math.abs(x - startX) > 8 || Math.abs(y - startY) > 8) {
+      if (banmenViewActive) return;
       if ((turnLocked && !handOverflowPhase && !cardSelectPhase) || gameEnded) return;
       // カード選択フェイズ：フィルター対象外のカードはドラッグ不可
       if (cardSelectPhase) {
@@ -5210,7 +5211,7 @@ const howtoCloseBtn = $('howto-close-btn');
 
 function showHowtoModal() {
   if (howtoModal) howtoModal.classList.add('active');
-  if (banmenFloatingBtn) banmenFloatingBtn.style.visibility = 'hidden';
+  if (banmenViewActive && banmenFloatingBtn) banmenFloatingBtn.style.visibility = 'hidden';
 }
 function hideHowtoModal() {
   if (howtoModal) howtoModal.classList.remove('active');
@@ -5260,7 +5261,7 @@ const menuCloseX = $('menu-close-x');
 function showMenu() {
   if (menuOverlay) { menuOverlay.style.display = 'block'; requestAnimationFrame(() => menuOverlay.classList.add('active')); }
   if (menuModal) menuModal.classList.add('active');
-  if (banmenFloatingBtn) banmenFloatingBtn.style.visibility = 'hidden';
+  if (banmenViewActive && banmenFloatingBtn) banmenFloatingBtn.style.visibility = 'hidden';
 }
 
 function hideMenu() {
@@ -5446,7 +5447,8 @@ const banmenTargetIds = [
   'exile-modal',
   'hand-overflow-overlay',
   'soul-absorb-ask',
-  'soul-absorb-select'
+  'soul-absorb-select',
+  'opp-hand-exile-overlay'
 ];
 
 function enterBanmenView(sourceBtn) {
@@ -5475,6 +5477,7 @@ function enterBanmenView(sourceBtn) {
   // フローティングボタン表示（テキストは「戻る」）
   if (banmenFloatingBtn) {
     banmenFloatingBtn.textContent = '戻る';
+    banmenFloatingBtn.style.visibility = '';
     banmenFloatingBtn.style.display = 'flex';
   }
 }
