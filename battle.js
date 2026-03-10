@@ -176,12 +176,14 @@ function showHistoryModal() {
   if (!modal) return;
   renderHistory();
   modal.classList.add('active');
+  if (banmenFloatingBtn) banmenFloatingBtn.style.visibility = 'hidden';
 }
 
 function hideHistoryModal() {
   const modal = $('history-modal');
   if (!modal) return;
   modal.classList.remove('active');
+  if (banmenViewActive && banmenFloatingBtn) banmenFloatingBtn.style.visibility = '';
 }
 
 function resetHistory() {
@@ -733,22 +735,76 @@ dom.exileModal.addEventListener('touchend', (e) => {
   if (isExileModalCloseTap(e, true)) { if (e.cancelable) e.preventDefault(); hideExileModal(); }
 }, { passive: false });
 
+// 盤面確認中の除外閲覧モーダル
+let exileViewActive = false;
+const exileViewModal = $('exile-view-modal');
+const exileViewTitle = $('exile-view-title');
+const exileViewCards = $('exile-view-cards');
+const exileViewEmpty = $('exile-view-empty');
+
+function showExileViewModal(who) {
+  const st = (who === 'player') ? player : opponent;
+  const label = (who === 'player') ? '自分の' : '相手の';
+  exileViewTitle.textContent = label + '除外カード一覧';
+  exileViewCards.innerHTML = '';
+  if (st.exile.length === 0) {
+    exileViewEmpty.style.display = '';
+  } else {
+    exileViewEmpty.style.display = 'none';
+    st.exile.forEach(card => {
+      const el = createCardEl(card, false);
+      // タップ/クリックで拡大プレビュー
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (currentPreviewCard && currentPreviewCard.uid === card.uid) { hidePreview(); }
+        else { showPreview(card, who); }
+      });
+      el.addEventListener('touchend', (e) => {
+        e.stopPropagation(); if (e.cancelable) e.preventDefault();
+        if (currentPreviewCard && currentPreviewCard.uid === card.uid) { hidePreview(); }
+        else { showPreview(card, who); }
+      }, { passive: false });
+      exileViewCards.appendChild(el);
+    });
+  }
+  exileViewModal.style.display = 'flex';
+  exileViewModal.classList.add('active');
+  exileViewActive = true;
+}
+function hideExileViewModal() {
+  exileViewModal.style.display = 'none';
+  exileViewModal.classList.remove('active');
+  exileViewActive = false;
+  hidePreview();
+}
+// 閲覧モーダル内の背景タップで閉じる
+exileViewModal.addEventListener('click', (e) => {
+  if (e.target === exileViewModal || e.target === exileViewTitle) hideExileViewModal();
+});
+exileViewModal.addEventListener('touchend', (e) => {
+  if (e.target === exileViewModal || e.target === exileViewTitle) { if (e.cancelable) e.preventDefault(); hideExileViewModal(); }
+}, { passive: false });
+
 // 除外ゾーンクリックでモーダル表示
+function toggleExileModal(who) {
+  // 盤面確認モード中：閲覧専用モーダルを使う
+  if (banmenViewActive) {
+    if (exileViewActive) { hideExileViewModal(); } else { showExileViewModal(who); }
+    return;
+  }
+  if (exileModalActive) { hideExileModal(); } else { showExileModal(who); }
+}
 dom.playerExile.addEventListener('click', (e) => {
-  e.stopPropagation();
-  if (exileModalActive) hideExileModal(); else showExileModal('player');
+  e.stopPropagation(); toggleExileModal('player');
 });
 dom.playerExile.addEventListener('touchend', (e) => {
-  e.stopPropagation(); if (e.cancelable) e.preventDefault();
-  if (exileModalActive) hideExileModal(); else showExileModal('player');
+  e.stopPropagation(); if (e.cancelable) e.preventDefault(); toggleExileModal('player');
 }, { passive: false });
 dom.oppExile.addEventListener('click', (e) => {
-  e.stopPropagation();
-  if (exileModalActive) hideExileModal(); else showExileModal('opponent');
+  e.stopPropagation(); toggleExileModal('opponent');
 });
 dom.oppExile.addEventListener('touchend', (e) => {
-  e.stopPropagation(); if (e.cancelable) e.preventDefault();
-  if (exileModalActive) hideExileModal(); else showExileModal('opponent');
+  e.stopPropagation(); if (e.cancelable) e.preventDefault(); toggleExileModal('opponent');
 }, { passive: false });
 
 // ===================================================================
@@ -3020,8 +3076,8 @@ function setupDrag(el, card) {
       cleanup();
       return;
     }
-    // 手札超過フェイズ中は場への配置を禁止
-    if (handOverflowPhase) { cleanup(); return; }
+    // 手札超過フェイズ中・盤面確認モード中は場への配置を禁止
+    if (handOverflowPhase || banmenViewActive) { cleanup(); return; }
 
     const rect = dom.playerField.getBoundingClientRect();
     const dropped = (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom);
@@ -3724,6 +3780,7 @@ function startPlayerTurn() {
 // ===================================================================
 function endTurn() {
   if (turnLocked || gameEnded) return;
+  if (cardSelectPhase || exileSelectMode || soulAbsorbPhase || banmenViewActive || handOverflowPhase) return;
   // 手札超過チェック（手札＋手札公開場の合計）
   if (player.hand.length + player.open.length >= 9) {
     startHandOverflowPhase();
@@ -5153,9 +5210,11 @@ const howtoCloseBtn = $('howto-close-btn');
 
 function showHowtoModal() {
   if (howtoModal) howtoModal.classList.add('active');
+  if (banmenFloatingBtn) banmenFloatingBtn.style.visibility = 'hidden';
 }
 function hideHowtoModal() {
   if (howtoModal) howtoModal.classList.remove('active');
+  if (banmenViewActive && banmenFloatingBtn) banmenFloatingBtn.style.visibility = '';
 }
 if (btnHowto) {
   btnHowto.addEventListener('click', showHowtoModal);
@@ -5201,11 +5260,13 @@ const menuCloseX = $('menu-close-x');
 function showMenu() {
   if (menuOverlay) { menuOverlay.style.display = 'block'; requestAnimationFrame(() => menuOverlay.classList.add('active')); }
   if (menuModal) menuModal.classList.add('active');
+  if (banmenFloatingBtn) banmenFloatingBtn.style.visibility = 'hidden';
 }
 
 function hideMenu() {
   if (menuModal) menuModal.classList.remove('active');
   if (menuOverlay) { menuOverlay.classList.remove('active'); setTimeout(() => { menuOverlay.style.display = 'none'; }, 300); }
+  if (banmenViewActive && banmenFloatingBtn) banmenFloatingBtn.style.visibility = '';
 }
 
 if (btnMenu) {
@@ -5420,6 +5481,20 @@ function enterBanmenView(sourceBtn) {
 
 function exitBanmenView() {
   if (!banmenViewActive) return;
+  // プレビュー表示中ならまず閉じる
+  if (currentPreviewCard) { hidePreview(); clearAllGlow(); return; }
+  // 怪異ポップアップが開いていたらまず閉じる
+  if (kaiiPopupActive) { hideKaiiPopup(); return; }
+  // 盤面確認中に閲覧用除外モーダルが開いていたら、まずそれを閉じる
+  if (exileViewActive) {
+    hideExileViewModal();
+    return;
+  }
+  // 通常の除外モーダル（閲覧用）が開いていたら閉じる
+  if (exileModalActive && !exileSelectMode) {
+    hideExileModal();
+    return;
+  }
   banmenViewActive = false;
   banmenSourceBtn = null;
   // 隠していたオーバーレイを復元
