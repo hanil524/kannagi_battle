@@ -1906,7 +1906,7 @@ async function handleKaiiEffect(kCard, who) {
       // 蟲憑き専用：除外飛行アニメーションと連続ダメージばらまき演出を同時に起動
       let barrageResolve;
       const barragePromise = new Promise(r => { barrageResolve = r; });
-      _pendingBarrage = { hitCount: graveyardCount, dmgPer: 2, side: side, resolve: barrageResolve };
+      _pendingBarrage = { hitCount: graveyardCount, dmgPer: 2, side: side, resolve: barrageResolve, cardImg: 'images/finish.jpg', who: who };
       if (who === 'player') {
         await applyDamageWithSoulAbsorb(dmg, 'top', kCard);
       } else {
@@ -2777,6 +2777,7 @@ function showWinLoseResult(isWin) {
 
 // 蟲憑き連続ばらまきフラグ（nullでなければ次のshowDamageで発動）
 let _pendingBarrage = null;
+let _mushitsukiWaveStop = null; // 波動停止関数
 
 // HPダメージエフェクト
 function showDamage(amount, side, isFinish) {
@@ -2784,7 +2785,7 @@ function showDamage(amount, side, isFinish) {
   if (_pendingBarrage) {
     const b = _pendingBarrage;
     _pendingBarrage = null;
-    showBarrageDamage(b.hitCount, b.dmgPer, b.side, isFinish, b.resolve);
+    showBarrageDamage(b.hitCount, b.dmgPer, b.side, isFinish, b.resolve, b.cardImg, b.who);
     return;
   }
   dom.damageText.textContent = 'HP−' + amount;
@@ -2828,17 +2829,151 @@ function showDamage(amount, side, isFinish) {
 function showSoulDamage(absorbCount, who, isFinish) {
   if (absorbCount <= 0) return;
   const soulZone = (who === 'player') ? $('player-soul-zone') : $('opp-soul-zone');
+  soulZone.style.position = 'relative';
+
+  // 青バーストエフェクト
+  const core = document.createElement('div');
+  core.className = 'soul-burst-core';
+  soulZone.appendChild(core);
+  const ring = document.createElement('div');
+  ring.className = 'soul-burst-ring';
+  soulZone.appendChild(ring);
+  // 飛び散りパーティクル（青）
+  const splatters = [];
+  for (let i = 0; i < 8; i++) {
+    const sp = document.createElement('div');
+    sp.className = 'soul-splatter';
+    const angle = (Math.PI * 2 / 8) * i + (Math.random() - 0.5) * 0.5;
+    const dist = 50 + Math.random() * 40;
+    sp.style.setProperty('--sx', Math.cos(angle) * dist + 'px');
+    sp.style.setProperty('--sy', Math.sin(angle) * dist + 'px');
+    sp.style.width = (5 + Math.random() * 7) + 'px';
+    sp.style.height = sp.style.width;
+    soulZone.appendChild(sp);
+    splatters.push(sp);
+  }
+
+  // 数字テキスト（バーストの上に重ねる）
   const el = document.createElement('div');
   el.className = 'soul-damage-num' + (isFinish ? ' soul-damage-finish' : '');
   el.textContent = '魂−' + absorbCount;
-  soulZone.style.position = 'relative';
   soulZone.appendChild(el);
+
   const duration = isFinish ? 1600 : 900;
-  setTimeout(() => { el.remove(); }, duration);
+  setTimeout(() => {
+    el.remove();
+    core.remove();
+    ring.remove();
+    splatters.forEach(s => s.remove());
+  }, duration);
+}
+
+// 蟲憑き発動演出：カード画像を自陣地に大きく表示
+function showMushitsukiReveal(imgSrc, who, totalDurationMs) {
+  const revealEl = document.getElementById('mushitsuki-reveal');
+  const revealImg = document.getElementById('mushitsuki-reveal-img');
+  if (!revealEl || !revealImg) return;
+
+  // 表示範囲：who='player'→center-areaの上端〜player-hand-zoneの下端（自陣下半分）
+  //         who='opponent'→opp-hand-zoneの上端〜center-areaの下端（相手陣上半分）
+  const centerEl = document.getElementById('center-area');
+  const playerHandZoneEl = document.getElementById('player-hand-zone');
+  const oppHandZoneEl = document.getElementById('opp-hand-zone');
+
+  let topPx, heightPx;
+  if (centerEl && playerHandZoneEl && oppHandZoneEl) {
+    const centerRect = centerEl.getBoundingClientRect();
+    const playerHandRect = playerHandZoneEl.getBoundingClientRect();
+    const oppHandRect = oppHandZoneEl.getBoundingClientRect();
+    if (who === 'player') {
+      topPx = centerRect.top;
+      heightPx = playerHandRect.bottom - centerRect.top;
+    } else {
+      topPx = oppHandRect.top;
+      heightPx = centerRect.bottom - oppHandRect.top;
+    }
+  } else {
+    // フォールバック：画面下半分
+    topPx = window.innerHeight * 0.5;
+    heightPx = window.innerHeight * 0.5;
+  }
+
+  revealImg.src = imgSrc;
+  revealEl.style.top = topPx + 'px';
+  revealEl.style.height = heightPx + 'px';
+  revealEl.style.animation = 'none';
+  revealEl.style.opacity = '0';
+
+  // アニメーション開始
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      revealEl.style.animation = `mushitsukiReveal ${totalDurationMs}ms ease-in-out forwards`;
+    });
+  });
+
+  // 波動リング：中心座標（表示エリアの中央）
+  const cx = window.innerWidth / 2;
+  const cy = topPx + heightPx / 2;
+
+  // 波動の最大サイズ（エリアの対角線長さ）
+  const maxSize = Math.sqrt(window.innerWidth ** 2 + heightPx ** 2) * 1.1;
+
+  // 波動ループ：280ms間隔で発射
+  const WAVE_INTERVAL = 280;
+  const WAVE_DURATION = 900; // 1リングの展開時間(ms)
+
+  let waveActive = true;
+  function fireWave() {
+    if (!waveActive) return;
+
+    // 時間経過（0→1）で波動サイズに抑揚をつける
+    const elapsed = performance.now() - waveStartTime;
+    const progress = Math.min(elapsed / totalDurationMs, 1);
+    // 画像の抑揚に近い山型カーブ（中盤が最大）
+    const sizeScale = Math.sin(progress * Math.PI) * 0.5 + 0.5; // 0.5〜1.0〜0.5
+    const ringSize = maxSize * (0.7 + sizeScale * 0.5);
+
+    const ring = document.createElement('div');
+    ring.className = 'mushitsuki-wave-ring';
+    ring.style.left = cx + 'px';
+    ring.style.top = cy + 'px';
+    ring.style.width = ringSize + 'px';
+    ring.style.height = ringSize + 'px';
+    ring.style.animation = `mushitsukiWaveRing ${WAVE_DURATION}ms ease-out forwards`;
+    document.body.appendChild(ring);
+
+    setTimeout(() => ring.remove(), WAVE_DURATION + 50);
+  }
+
+  const waveStartTime = performance.now();
+  fireWave(); // 即座に1発目
+  const waveTimer = setInterval(fireWave, WAVE_INTERVAL);
+
+  // 外部から波動だけ止められる関数を公開
+  _mushitsukiWaveStop = () => {
+    waveActive = false;
+    clearInterval(waveTimer);
+    _mushitsukiWaveStop = null;
+  };
+
+  // 終了後クリーンアップ（画像フェードアウト）
+  setTimeout(() => {
+    if (_mushitsukiWaveStop) _mushitsukiWaveStop();
+    revealEl.style.animation = 'none';
+    revealEl.style.opacity = '0';
+    revealImg.src = '';
+  }, totalDurationMs + 50);
 }
 
 // 蟲憑き専用：連続ダメージばらまき演出
-function showBarrageDamage(hitCount, dmgPer, side, isLastLethal, onComplete) {
+function showBarrageDamage(hitCount, dmgPer, side, isLastLethal, onComplete, cardImg, who) {
+  // 蟲憑き画像演出：-2連打の全体尺に合わせて表示
+  if (cardImg && who) {
+    // 合計尺：連打(hitCount-1)*80ms + 最後の1発のdur(1600or500) + 少し余裕
+    const barrageTotalMs = (hitCount - 1) * 80 + (isLastLethal ? 1600 : 500) + 200;
+    showMushitsukiReveal(cardImg, who, barrageTotalMs);
+  }
+
   const area = dom.damageOverlay;
   const cls = (side === 'top') ? 'show-top' : 'show-bottom';
   area.className = cls;
@@ -2898,6 +3033,8 @@ function showBarrageDamage(hitCount, dmgPer, side, isLastLethal, onComplete) {
         area.className = '';
         dom.damageText.style.display = '';
       }, dur);
+      // フィニッシュブローと同時に波動を停止
+      if (_mushitsukiWaveStop) _mushitsukiWaveStop();
       // 完了通知は即座に（フィニッシュブローを待たせない）
       if (onComplete) onComplete();
     }
@@ -4733,7 +4870,7 @@ function applyDamageWithSoulAbsorb(amount, side, sourceCard) {
         } else if (_pendingBarrage) {
           // 全吸収でもばらまき演出は実行
           const b = _pendingBarrage; _pendingBarrage = null;
-          showBarrageDamage(b.hitCount, b.dmgPer, b.side, false, b.resolve);
+          showBarrageDamage(b.hitCount, b.dmgPer, b.side, false, b.resolve, b.cardImg, b.who);
         }
         resolve(actualDmg);
       } else {
@@ -4911,7 +5048,7 @@ function finishSoulAbsorbSelect(totalDamage, side, st, resolve) {
   } else if (_pendingBarrage) {
     // 全吸収でもばらまき演出は実行
     const b = _pendingBarrage; _pendingBarrage = null;
-    showBarrageDamage(b.hitCount, b.dmgPer, b.side, false, b.resolve);
+    showBarrageDamage(b.hitCount, b.dmgPer, b.side, false, b.resolve, b.cardImg, b.who);
   }
 
   resolve(remainingDamage);

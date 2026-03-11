@@ -1424,6 +1424,65 @@ body {
   }
 }
 
+/* ===== 蟲憑き発動演出：カード画像フルスクリーン ===== */
+#mushitsuki-reveal {
+  position: fixed;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+  z-index: 9100;
+  overflow: visible;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+}
+
+#mushitsuki-reveal img {
+  width: auto;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  border-radius: 18px;
+  filter: drop-shadow(0 0 30px rgba(200, 0, 0, 0.8)) drop-shadow(0 0 60px rgba(80, 0, 0, 0.6));
+}
+
+@keyframes mushitsukiReveal {
+  0%   { opacity: 0;    transform: scale(0.92); }
+  12%  { opacity: 0.85; transform: scale(1.04); }
+  30%  { opacity: 1;    transform: scale(1.0); }
+  55%  { opacity: 0.95; transform: scale(1.02); }
+  75%  { opacity: 0.9;  transform: scale(1.0); }
+  88%  { opacity: 0.5;  transform: scale(0.98); }
+  100% { opacity: 0;    transform: scale(0.95); }
+}
+
+/* ===== 蟲憑き波動リング ===== */
+.mushitsuki-wave-ring {
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9099;
+  transform: translate(-50%, -50%) scale(0);
+  border: 3px solid rgba(180, 10, 10, 0.9);
+  box-shadow:
+    0 0 12px rgba(200, 0, 0, 0.7),
+    inset 0 0 20px rgba(80, 0, 0, 0.5);
+  background: radial-gradient(ellipse at center,
+    rgba(120, 0, 0, 0.25) 0%,
+    rgba(60, 0, 0, 0.12) 50%,
+    transparent 100%);
+}
+
+@keyframes mushitsukiWaveRing {
+  0%   { transform: translate(-50%, -50%) scale(0);   opacity: 0.9; border-width: 4px; }
+  30%  { opacity: 0.75; }
+  70%  { opacity: 0.3;  border-width: 1px; }
+  100% { transform: translate(-50%, -50%) scale(1);   opacity: 0;   border-width: 0px; }
+}
+
 @keyframes barrageBurstAnim {
   0% {
     width: 0;
@@ -3576,6 +3635,49 @@ body {
     opacity: 0;
     transform: translate(-50%, -50%) scale(1.0) translateY(-8px);
   }
+}
+
+/* ===== 魂バースト（青系）エフェクト ===== */
+.soul-burst-core {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 99;
+  background: radial-gradient(ellipse at center,
+    rgba(30, 80, 220, 0.95) 0%,
+    rgba(10, 50, 180, 0.8) 25%,
+    rgba(0, 20, 120, 0.5) 55%,
+    transparent 100%);
+  animation: dmgBurst 0.8s ease-out forwards;
+}
+
+.soul-burst-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 99;
+  border: 3px solid rgba(80, 140, 255, 0.7);
+  background: transparent;
+  animation: dmgRing 0.8s ease-out forwards;
+}
+
+.soul-splatter {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(80, 160, 255, 0.95), rgba(20, 60, 200, 0.8));
+  pointer-events: none;
+  z-index: 99;
+  animation: dmgSplatter 0.7s ease-out forwards;
 }
 
 /* ===== 除外カード順番選択 ===== */
