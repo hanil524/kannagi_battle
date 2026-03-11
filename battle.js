@@ -1831,6 +1831,40 @@ async function handleKaiiEffect(kCard, who) {
     const oppSt = (who === 'player') ? opponent : player;
     const oppWho = (who === 'player') ? 'opponent' : 'player';
 
+    // 飛行アニメ用：除外前にカードの位置と画像をキャプチャ
+    const handContainer = (who === 'player') ? dom.playerHandCards : dom.oppHandCards;
+    const openContainer = (who === 'player') ? dom.playerOpenCards : dom.oppOpenCards;
+    const soulContainer = (who === 'player') ? dom.playerSoulCards : dom.oppSoulCards;
+    const exileFlySnapshots = [];
+
+    // 手札カードをキャプチャ
+    st.hand.forEach(c => {
+      const el = handContainer.querySelector('.battle-card[data-uid="' + c.uid + '"]');
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        const imgEl = el.querySelector('img');
+        exileFlySnapshots.push({ rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height }, imgSrc: imgEl ? imgEl.src : DECK_BACK_IMG });
+      }
+    });
+    // 公開場カードをキャプチャ
+    st.open.forEach(c => {
+      const el = openContainer.querySelector('.battle-card[data-uid="' + c.uid + '"]');
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        const imgEl = el.querySelector('img');
+        exileFlySnapshots.push({ rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height }, imgSrc: imgEl ? imgEl.src : DECK_BACK_IMG });
+      }
+    });
+    // 魂カードをキャプチャ
+    st.soul.forEach(c => {
+      const el = soulContainer.querySelector('.battle-card[data-uid="' + c.uid + '"]');
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        const imgEl = el.querySelector('img');
+        exileFlySnapshots.push({ rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height }, imgSrc: imgEl ? imgEl.src : DECK_BACK_IMG });
+      }
+    });
+
     // 手札＋公開場＋魂を全て除外
     const allCards = [...st.hand, ...st.open, ...st.soul];
     let graveyardCount = 0;
@@ -1851,10 +1885,15 @@ async function handleKaiiEffect(kCard, who) {
     }
     updateAllCounts();
 
-    if (allCards.length > 0) {
-      const exileEl = (who === 'player') ? dom.playerExile : dom.oppExile;
-      requestAnimationFrame(() => {
-        showFloatingText(exileEl, '全除外', 'exile');
+    // 除外飛行アニメーション（awaitせず起動だけしておく）
+    const exileEl = (who === 'player') ? dom.playerExile : dom.oppExile;
+    let flyPromise = Promise.resolve();
+    if (exileFlySnapshots.length > 0) {
+      flyPromise = new Promise(resolve => {
+        showExileFly(exileFlySnapshots, exileEl, () => {
+          showFloatingText(exileEl, '全除外', 'exile');
+          resolve();
+        });
       });
     }
 
@@ -1862,12 +1901,23 @@ async function handleKaiiEffect(kCard, who) {
     if (dmg > 0) {
       const logWho = (who === 'player') ? 'player' : 'opponent';
       logHistory(logWho, `「${kCard.name}」の効果で相手に${dmg}点のダメージを与えた。（墓地属性${graveyardCount}枚×2）`);
+      const side = (who === 'player') ? 'top' : 'bottom';
+
+      // 蟲憑き専用：除外飛行アニメーションと連続ダメージばらまき演出を同時に起動
+      let barrageResolve;
+      const barragePromise = new Promise(r => { barrageResolve = r; });
+      _pendingBarrage = { hitCount: graveyardCount, dmgPer: 2, side: side, resolve: barrageResolve };
       if (who === 'player') {
         await applyDamageWithSoulAbsorb(dmg, 'top', kCard);
       } else {
         await applyDamageWithSoulAbsorb(dmg, 'bottom', kCard);
       }
+      // 除外飛行アニメーションとばらまき演出の両方の完了を待ってからフィニッシュ判定
+      await Promise.all([flyPromise, barragePromise]);
       checkWinLose();
+    } else {
+      // ダメージなしの場合は飛行アニメーションの完了だけ待つ
+      await flyPromise;
     }
   }
 
@@ -2725,8 +2775,18 @@ function showWinLoseResult(isWin) {
   }
 }
 
+// 蟲憑き連続ばらまきフラグ（nullでなければ次のshowDamageで発動）
+let _pendingBarrage = null;
+
 // HPダメージエフェクト
 function showDamage(amount, side, isFinish) {
+  // 蟲憑きばらまき演出の差し替え
+  if (_pendingBarrage) {
+    const b = _pendingBarrage;
+    _pendingBarrage = null;
+    showBarrageDamage(b.hitCount, b.dmgPer, b.side, isFinish, b.resolve);
+    return;
+  }
   dom.damageText.textContent = 'HP−' + amount;
   const cls = (side === 'top') ? 'show-top' : 'show-bottom';
   dom.damageOverlay.className = cls + (isFinish ? ' finish-damage' : '');
@@ -2734,10 +2794,33 @@ function showDamage(amount, side, isFinish) {
   dom.damageText.style.animation = 'none';
   void dom.damageText.offsetHeight;
   dom.damageText.style.animation = '';
+
+  // 赤黒バーストエフェクト生成
+  dom.damageOverlay.querySelectorAll('.dmg-burst,.dmg-splatter').forEach(e => e.remove());
+  const core = document.createElement('div');
+  core.className = 'dmg-burst dmg-burst-core';
+  dom.damageOverlay.appendChild(core);
+  const ring = document.createElement('div');
+  ring.className = 'dmg-burst dmg-burst-ring';
+  dom.damageOverlay.appendChild(ring);
+  // 飛び散りパーティクル
+  for (let i = 0; i < 8; i++) {
+    const sp = document.createElement('div');
+    sp.className = 'dmg-splatter';
+    const angle = (Math.PI * 2 / 8) * i + (Math.random() - 0.5) * 0.5;
+    const dist = 60 + Math.random() * 50;
+    sp.style.setProperty('--sx', Math.cos(angle) * dist + 'px');
+    sp.style.setProperty('--sy', Math.sin(angle) * dist + 'px');
+    sp.style.width = (5 + Math.random() * 8) + 'px';
+    sp.style.height = sp.style.width;
+    dom.damageOverlay.appendChild(sp);
+  }
+
   const duration = isFinish ? 1600 : 850;
   setTimeout(() => {
     dom.damageOverlay.style.display = 'none';
     dom.damageOverlay.className = '';
+    dom.damageOverlay.querySelectorAll('.dmg-burst,.dmg-splatter').forEach(e => e.remove());
   }, duration);
 }
 
@@ -2752,6 +2835,75 @@ function showSoulDamage(absorbCount, who, isFinish) {
   soulZone.appendChild(el);
   const duration = isFinish ? 1600 : 900;
   setTimeout(() => { el.remove(); }, duration);
+}
+
+// 蟲憑き専用：連続ダメージばらまき演出
+function showBarrageDamage(hitCount, dmgPer, side, isLastLethal, onComplete) {
+  const area = dom.damageOverlay;
+  const cls = (side === 'top') ? 'show-top' : 'show-bottom';
+  area.className = cls;
+  area.style.display = 'flex';
+  dom.damageText.style.display = 'none';
+  area.querySelectorAll('.dmg-burst,.dmg-splatter,.barrage-hit').forEach(e => e.remove());
+
+  let i = 0;
+  function fireOne() {
+    if (i >= hitCount) return;
+    const isLast = (i === hitCount - 1);
+    const isFinish = isLast && isLastLethal;
+
+    // ランダム位置に小型ダメージ生成
+    const hit = document.createElement('div');
+    hit.className = 'barrage-hit' + (isFinish ? ' barrage-finish' : '');
+    hit.style.left = (15 + Math.random() * 70) + '%';
+    hit.style.top = (15 + Math.random() * 60) + '%';
+    hit.textContent = '−' + dmgPer;
+    area.appendChild(hit);
+
+    // バーストエフェクト
+    const burst = document.createElement('div');
+    burst.className = 'dmg-burst dmg-burst-core barrage-burst';
+    burst.style.left = hit.style.left;
+    burst.style.top = hit.style.top;
+    area.appendChild(burst);
+
+    // パーティクル（各ヒット固有の要素として追跡）
+    const splatters = [];
+    for (let p = 0; p < 4; p++) {
+      const sp = document.createElement('div');
+      sp.className = 'dmg-splatter';
+      sp.style.left = hit.style.left;
+      sp.style.top = hit.style.top;
+      const angle = (Math.PI * 2 / 4) * p + Math.random() * 1.0;
+      const dist = 25 + Math.random() * 25;
+      sp.style.setProperty('--sx', Math.cos(angle) * dist + 'px');
+      sp.style.setProperty('--sy', Math.sin(angle) * dist + 'px');
+      area.appendChild(sp);
+      splatters.push(sp);
+    }
+
+    const dur = isFinish ? 1600 : 500;
+    setTimeout(() => {
+      hit.remove(); burst.remove();
+      splatters.forEach(s => s.remove());
+    }, dur);
+
+    i++;
+    if (i < hitCount) {
+      setTimeout(fireOne, 80);
+    } else {
+      // オーバーレイ片付け（エフェクト消え終わり後）
+      setTimeout(() => {
+        area.style.display = 'none';
+        area.className = '';
+        dom.damageText.style.display = '';
+      }, dur);
+      // 完了通知は即座に（フィニッシュブローを待たせない）
+      if (onComplete) onComplete();
+    }
+  }
+
+  fireOne();
 }
 
 dom.attackBtn.addEventListener('click', (e) => { e.stopPropagation(); performAttack().catch(() => { }); });
@@ -2945,6 +3097,60 @@ function showDrawFly(who, cardUid, onArrive) {
     fly.classList.add('fly-arrived');
     setTimeout(() => fly.remove(), 200);
   }, 420);
+}
+
+// ===================================================================
+// 除外飛行アニメーション（カードが除外ゾーンに飛んでいく）
+// snapshots: [{ rect, imgSrc }] - 飛行前にキャプチャした各カードの位置と画像
+// exileEl: 除外ゾーンのDOM要素
+// ===================================================================
+function showExileFly(snapshots, exileEl, onComplete) {
+  if (!snapshots || snapshots.length === 0 || !exileEl) {
+    if (onComplete) onComplete();
+    return;
+  }
+  const exileRect = exileEl.getBoundingClientRect();
+  const destX = exileRect.left + exileRect.width / 2;
+  const destY = exileRect.top + exileRect.height / 2;
+  let completed = 0;
+  const total = snapshots.length;
+  const STAGGER = 40; // ms between each card launch
+
+  snapshots.forEach((snap, idx) => {
+    const fly = document.createElement('div');
+    fly.className = 'exile-fly-card';
+    fly.style.width = snap.rect.width + 'px';
+    fly.style.height = snap.rect.height + 'px';
+    fly.style.left = snap.rect.left + 'px';
+    fly.style.top = snap.rect.top + 'px';
+    const img = document.createElement('img');
+    img.src = snap.imgSrc || DECK_BACK_IMG;
+    img.draggable = false;
+    fly.appendChild(img);
+    document.body.appendChild(fly);
+
+    setTimeout(() => {
+      // 2フレーム待ってからアニメーション開始
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          fly.classList.add('exile-fly-active');
+          fly.style.left = (destX - snap.rect.width / 2) + 'px';
+          fly.style.top = (destY - snap.rect.height / 2) + 'px';
+        });
+      });
+
+      // 到着後：縮んで消える
+      setTimeout(() => {
+        fly.classList.remove('exile-fly-active');
+        fly.classList.add('exile-fly-shrink');
+        setTimeout(() => {
+          fly.remove();
+          completed++;
+          if (completed === total && onComplete) onComplete();
+        }, 250);
+      }, 470);
+    }, idx * STAGGER);
+  });
 }
 
 // ===================================================================
@@ -3395,6 +3601,8 @@ function startGame() {
   if (dragAttackActive) cleanupDragAttack();
   turnNumber = 0; turnLocked = true; gameEnded = false; handOverflowPhase = false; cpuFirstAction = true;
   cardSelectPhase = false; cardSelectConfig = null; cardSelectSelectedCard = null;
+  if (_pendingBarrage && _pendingBarrage.resolve) _pendingBarrage.resolve();
+  _pendingBarrage = null;
   resetHistory(); // 行動履歴リセット
   dom.handOverflowOverlay.style.display = 'none';
   dom.handOverflowOverlay.classList.remove('active');
@@ -4520,7 +4728,13 @@ function applyDamageWithSoulAbsorb(amount, side, sourceCard) {
         if (cpuAbsorbed > 0) {
           showSoulDamage(cpuAbsorbed, 'opponent', isLethal);
         }
-        if (actualDmg > 0) showDamage(actualDmg, side, isLethal);
+        if (actualDmg > 0) {
+          showDamage(actualDmg, side, isLethal);
+        } else if (_pendingBarrage) {
+          // 全吸収でもばらまき演出は実行
+          const b = _pendingBarrage; _pendingBarrage = null;
+          showBarrageDamage(b.hitCount, b.dmgPer, b.side, false, b.resolve);
+        }
         resolve(actualDmg);
       } else {
         // 致死でなければそのままダメージ
@@ -4694,6 +4908,10 @@ function finishSoulAbsorbSelect(totalDamage, side, st, resolve) {
   // ダメージ表示
   if (remainingDamage > 0) {
     showDamage(remainingDamage, side, isLethal);
+  } else if (_pendingBarrage) {
+    // 全吸収でもばらまき演出は実行
+    const b = _pendingBarrage; _pendingBarrage = null;
+    showBarrageDamage(b.hitCount, b.dmgPer, b.side, false, b.resolve);
   }
 
   resolve(remainingDamage);
