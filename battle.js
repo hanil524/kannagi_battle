@@ -2079,11 +2079,15 @@ async function handleKaiiEffect(kCard, who) {
       });
 
       if (exiled) {
-        // 相手（CPU）が自身の手札を2枚ランダム除外
+        // 相手（CPU）が自身の手札を2枚除外（沼御前優先、次にランダム）
         const oppAllHand = [...oppSt.hand, ...oppSt.open];
         const exileCount = Math.min(2, oppAllHand.length);
         if (exileCount > 0) {
-          const shuffled = shuffle([...oppAllHand]);
+          // 沼御前を先頭に、残りは魂数でコスト順
+          const soulN = oppSt.soul.length;
+          const numaCards = oppAllHand.filter(c => c.name === '沼御前');
+          const otherCards = oppAllHand.filter(c => c.name !== '沼御前').sort((a, b) => soulN >= 5 ? (a.cost || 0) - (b.cost || 0) : (b.cost || 0) - (a.cost || 0));
+          const shuffled = [...numaCards, ...otherCards];
           const handdesNames = [];
           for (let i = 0; i < exileCount; i++) {
             const target = shuffled[i];
@@ -4589,15 +4593,16 @@ function handleSummonEffect(card, who) {
             updateExileDisplay('player');
             updateAllCounts();
           }
-          // 相手（CPU）が自身の手札からランダムに2枚除外
+          // 相手（CPU）が自身の手札から2枚除外（沼御前優先、次にランダム）
           const oppAllHand = [...opponent.hand, ...opponent.open];
           const exileCount = Math.min(2, oppAllHand.length);
+          // 沼御前を先頭に、残りは魂数でコスト順
+          const soulN = opponent.soul.length;
+          const numaFirst = [...oppAllHand.filter(c => c.name === '沼御前'), ...oppAllHand.filter(c => c.name !== '沼御前').sort((a, b) => soulN >= 5 ? (a.cost || 0) - (b.cost || 0) : (b.cost || 0) - (a.cost || 0))];
           const exiledNames = [];
           for (let i = 0; i < exileCount; i++) {
-            const available = [...opponent.hand, ...opponent.open];
-            if (available.length === 0) break;
-            const rIdx = Math.floor(Math.random() * available.length);
-            const chosen = available[rIdx];
+            if (numaFirst.length === 0) break;
+            const chosen = numaFirst.shift();
             let hIdx = opponent.hand.findIndex(c => c.uid === chosen.uid);
             if (hIdx !== -1) {
               opponent.hand.splice(hIdx, 1);
