@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kannagi-v1';
+const CACHE_NAME = 'kannagi-v2';
 
 // インストール時にキャッシュ
 self.addEventListener('install', (e) => {
@@ -37,7 +37,8 @@ self.addEventListener('install', (e) => {
         'images/card_12_p (28).jpg',
         'images/capture01.gif',
         'images/capture02.gif',
-        'images/capture03.gif'
+        'images/capture03.gif',
+        'images/finish.jpg'
       ])
     )
   );
