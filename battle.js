@@ -2781,7 +2781,6 @@ function showWinLoseResult(isWin) {
 
 // 蟲憑き連続ばらまきフラグ（nullでなければ次のshowDamageで発動）
 let _pendingBarrage = null;
-let _mushitsukiWaveStop = null; // 波動停止関数
 
 // HPダメージエフェクト
 function showDamage(amount, side, isFinish) {
@@ -2915,54 +2914,8 @@ function showMushitsukiReveal(imgSrc, who, totalDurationMs) {
     });
   });
 
-  // 波動リング：中心座標（表示エリアの中央）
-  const cx = window.innerWidth / 2;
-  const cy = topPx + heightPx / 2;
-
-  // 波動の最大サイズ（エリアの対角線長さ）
-  const maxSize = Math.sqrt(window.innerWidth ** 2 + heightPx ** 2) * 1.1;
-
-  // 波動ループ：280ms間隔で発射
-  const WAVE_INTERVAL = 280;
-  const WAVE_DURATION = 900; // 1リングの展開時間(ms)
-
-  let waveActive = true;
-  function fireWave() {
-    if (!waveActive) return;
-
-    // 時間経過（0→1）で波動サイズに抑揚をつける
-    const elapsed = performance.now() - waveStartTime;
-    const progress = Math.min(elapsed / totalDurationMs, 1);
-    // 画像の抑揚に近い山型カーブ（中盤が最大）
-    const sizeScale = Math.sin(progress * Math.PI) * 0.5 + 0.5; // 0.5〜1.0〜0.5
-    const ringSize = maxSize * (0.7 + sizeScale * 0.5);
-
-    const ring = document.createElement('div');
-    ring.className = 'mushitsuki-wave-ring';
-    ring.style.left = cx + 'px';
-    ring.style.top = cy + 'px';
-    ring.style.width = ringSize + 'px';
-    ring.style.height = ringSize + 'px';
-    ring.style.animation = `mushitsukiWaveRing ${WAVE_DURATION}ms ease-out forwards`;
-    document.body.appendChild(ring);
-
-    setTimeout(() => ring.remove(), WAVE_DURATION + 50);
-  }
-
-  const waveStartTime = performance.now();
-  fireWave(); // 即座に1発目
-  const waveTimer = setInterval(fireWave, WAVE_INTERVAL);
-
-  // 外部から波動だけ止められる関数を公開
-  _mushitsukiWaveStop = () => {
-    waveActive = false;
-    clearInterval(waveTimer);
-    _mushitsukiWaveStop = null;
-  };
-
   // 終了後クリーンアップ（画像フェードアウト）
   setTimeout(() => {
-    if (_mushitsukiWaveStop) _mushitsukiWaveStop();
     revealEl.style.animation = 'none';
     revealEl.style.opacity = '0';
     revealImg.src = '';
@@ -3008,7 +2961,7 @@ function showBarrageDamage(hitCount, dmgPer, side, isLastLethal, onComplete, car
 
     // パーティクル（各ヒット固有の要素として追跡）
     const splatters = [];
-    for (let p = 0; p < 4; p++) {
+    for (let p = 0; p < 2; p++) {
       const sp = document.createElement('div');
       sp.className = 'dmg-splatter';
       sp.style.left = hit.style.left;
@@ -3037,8 +2990,6 @@ function showBarrageDamage(hitCount, dmgPer, side, isLastLethal, onComplete, car
         area.className = '';
         dom.damageText.style.display = '';
       }, dur);
-      // フィニッシュブローと同時に波動を停止
-      if (_mushitsukiWaveStop) _mushitsukiWaveStop();
       // 完了通知は即座に（フィニッシュブローを待たせない）
       if (onComplete) onComplete();
     }
