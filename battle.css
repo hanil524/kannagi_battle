@@ -1424,48 +1424,6 @@ body {
   }
 }
 
-/* ===== 蟲憑き発動演出：カード画像フルスクリーン ===== */
-#mushitsuki-reveal {
-  position: fixed;
-  left: 0;
-  width: 100%;
-  pointer-events: none;
-  z-index: 9100;
-  overflow: visible;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-}
-
-#mushitsuki-reveal img {
-  width: auto;
-  height: 100%;
-  max-width: none;
-  object-fit: cover;
-  object-position: center;
-  display: block;
-  border-radius: 18px;
-  animation: mushitsukiAuraPulse 0.9s ease-in-out infinite;
-}
-
-@keyframes mushitsukiReveal {
-  0%   { opacity: 0;    transform: scale(0.92); }
-  12%  { opacity: 0.85; transform: scale(1.04); }
-  30%  { opacity: 1;    transform: scale(1.0); }
-  55%  { opacity: 0.95; transform: scale(1.02); }
-  75%  { opacity: 0.9;  transform: scale(1.0); }
-  88%  { opacity: 0.5;  transform: scale(0.98); }
-  100% { opacity: 0;    transform: scale(0.95); }
-}
-
-/* ===== 蟲憑きオーラパルス ===== */
-@keyframes mushitsukiAuraPulse {
-  0%   { filter: drop-shadow(0 0 8px rgba(200, 0, 0, 0.5)) drop-shadow(0 0 18px rgba(80, 0, 0, 0.3)); }
-  50%  { filter: drop-shadow(0 0 22px rgba(255, 0, 0, 0.85)) drop-shadow(0 0 45px rgba(160, 0, 0, 0.6)) drop-shadow(0 0 70px rgba(60, 0, 0, 0.3)); }
-  100% { filter: drop-shadow(0 0 8px rgba(200, 0, 0, 0.5)) drop-shadow(0 0 18px rgba(80, 0, 0, 0.3)); }
-}
-
 @keyframes barrageBurstAnim {
   0% {
     width: 0;

@@ -2872,65 +2872,8 @@ function showSoulDamage(absorbCount, who, isFinish) {
 }
 
 // 蟲憑き発動演出：カード画像を自陣地に大きく表示
-function showMushitsukiReveal(imgSrc, who, totalDurationMs) {
-  const revealEl = document.getElementById('mushitsuki-reveal');
-  const revealImg = document.getElementById('mushitsuki-reveal-img');
-  if (!revealEl || !revealImg) return;
-
-  // 表示範囲：who='player'→center-areaの上端〜player-hand-zoneの下端（自陣下半分）
-  //         who='opponent'→opp-hand-zoneの上端〜center-areaの下端（相手陣上半分）
-  const centerEl = document.getElementById('center-area');
-  const playerHandZoneEl = document.getElementById('player-hand-zone');
-  const oppHandZoneEl = document.getElementById('opp-hand-zone');
-
-  let topPx, heightPx;
-  if (centerEl && playerHandZoneEl && oppHandZoneEl) {
-    const centerRect = centerEl.getBoundingClientRect();
-    const playerHandRect = playerHandZoneEl.getBoundingClientRect();
-    const oppHandRect = oppHandZoneEl.getBoundingClientRect();
-    if (who === 'player') {
-      topPx = centerRect.top;
-      heightPx = playerHandRect.bottom - centerRect.top;
-    } else {
-      topPx = oppHandRect.top;
-      heightPx = centerRect.bottom - oppHandRect.top;
-    }
-  } else {
-    // フォールバック：画面下半分
-    topPx = window.innerHeight * 0.5;
-    heightPx = window.innerHeight * 0.5;
-  }
-
-  revealImg.src = imgSrc;
-  revealEl.style.top = topPx + 'px';
-  revealEl.style.height = heightPx + 'px';
-  revealEl.style.animation = 'none';
-  revealEl.style.opacity = '0';
-
-  // アニメーション開始
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      revealEl.style.animation = `mushitsukiReveal ${totalDurationMs}ms ease-in-out forwards`;
-    });
-  });
-
-  // 終了後クリーンアップ（画像フェードアウト）
-  setTimeout(() => {
-    revealEl.style.animation = 'none';
-    revealEl.style.opacity = '0';
-    revealImg.src = '';
-  }, totalDurationMs + 50);
-}
-
 // 蟲憑き専用：連続ダメージばらまき演出
 function showBarrageDamage(hitCount, dmgPer, side, isLastLethal, onComplete, cardImg, who) {
-  // 蟲憑き画像演出：-2連打の全体尺に合わせて表示
-  if (cardImg && who) {
-    // 合計尺：連打(hitCount-1)*80ms + 最後の1発のdur(1600or500) + 少し余裕
-    const barrageTotalMs = (hitCount - 1) * 80 + (isLastLethal ? 1600 : 500) + 200;
-    showMushitsukiReveal(cardImg, who, barrageTotalMs);
-  }
-
   const area = dom.damageOverlay;
   const cls = (side === 'top') ? 'show-top' : 'show-bottom';
   area.className = cls;
