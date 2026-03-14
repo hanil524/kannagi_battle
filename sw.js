@@ -3,8 +3,8 @@ const CACHE_NAME = 'kannagi-v2';
 // インストール時にキャッシュ
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.open(CACHE_NAME).then(cache =>
-      cache.addAll([
+    caches.open(CACHE_NAME).then(cache => {
+      const urls = [
         'images/deck.jpg',
         'images/hakaabaki.jpg',
         'images/hakaabaki2.jpg',
@@ -39,8 +39,10 @@ self.addEventListener('install', (e) => {
         'images/capture02.gif',
         'images/capture03.gif',
         'images/finish.jpg'
-      ])
-    )
+      ];
+      // 個別にキャッシュ（1つ失敗しても他は続行）
+      return Promise.all(urls.map(url => cache.add(url).catch(() => {})));
+    })
   );
   self.skipWaiting();
 });
