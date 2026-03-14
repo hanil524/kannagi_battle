@@ -4606,3 +4606,22 @@ body {
     box-shadow: inset 0 0 40px rgba(255, 80, 60, 0.35), 0 0 30px rgba(255, 80, 60, 0.2);
   }
 }
+
+/* ===== スクリーンシェイク（大ダメージ演出） ===== */
+body.screen-shake #field {
+  animation: screenShake 0.4s ease-out;
+}
+
+@keyframes screenShake {
+  0%   { transform: translate(0, 0); }
+  10%  { transform: translate(-12px, 9px); }
+  20%  { transform: translate(15px, -12px); }
+  30%  { transform: translate(-18px, -6px); }
+  40%  { transform: translate(12px, 15px); }
+  50%  { transform: translate(-9px, -15px); }
+  60%  { transform: translate(15px, 6px); }
+  70%  { transform: translate(-6px, 12px); }
+  80%  { transform: translate(9px, -6px); }
+  90%  { transform: translate(-3px, 3px); }
+  100% { transform: translate(0, 0); }
+}

@@ -2791,6 +2791,8 @@ function showDamage(amount, side, isFinish) {
     showBarrageDamage(b.hitCount, b.dmgPer, b.side, isFinish, b.resolve, b.cardImg, b.who);
     return;
   }
+  // 7ダメージ以上でスクリーンシェイク
+  if (amount >= 7) screenShake();
   dom.damageText.textContent = 'HP−' + amount;
   const cls = (side === 'top') ? 'show-top' : 'show-bottom';
   dom.damageOverlay.className = cls + (isFinish ? ' finish-damage' : '');
@@ -2882,10 +2884,16 @@ function showBarrageDamage(hitCount, dmgPer, side, isLastLethal, onComplete, car
   area.querySelectorAll('.dmg-burst,.dmg-splatter,.barrage-hit').forEach(e => e.remove());
 
   let i = 0;
+  // ばらまき開始時にスクリーンシェイク
+  screenShake();
+
   function fireOne() {
     if (i >= hitCount) return;
     const isLast = (i === hitCount - 1);
     const isFinish = isLast && isLastLethal;
+
+    // 最後のヒットでもスクリーンシェイク
+    if (isLast) screenShake();
 
     // ランダム位置に小型ダメージ生成
     const hit = document.createElement('div');
@@ -4022,6 +4030,18 @@ function startPlayerTurn() {
     turnLocked = false;
     updatePlayableAura();
   });
+}
+
+// ===================================================================
+// スクリーンシェイク演出（大ダメージ時）
+function screenShake() {
+  document.body.classList.remove('screen-shake');
+  // リフローを強制して再トリガー可能にする
+  void document.body.offsetWidth;
+  document.body.classList.add('screen-shake');
+  document.body.addEventListener('animationend', () => {
+    document.body.classList.remove('screen-shake');
+  }, { once: true });
 }
 
 // ===================================================================
