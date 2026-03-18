@@ -4784,6 +4784,8 @@ function applyDamageWithSoulAbsorb(amount, side, sourceCard) {
         if (cpuAbsorbed > 0) {
           showSoulDamage(cpuAbsorbed, 'opponent', isLethal);
         }
+        // 元のダメージが7以上なら魂吸収後の実ダメージに関わらず揺らす
+        if (amount >= 7) screenShake();
         if (actualDmg > 0) {
           showDamage(actualDmg, side, isLethal);
         } else if (_pendingBarrage) {
@@ -4960,6 +4962,9 @@ function finishSoulAbsorbSelect(totalDamage, side, st, resolve) {
     });
     showSoulDamage(absorbCount, 'player', isLethal);
   }
+
+  // 元のダメージが7以上なら魂吸収後の実ダメージに関わらず揺らす
+  if (totalDamage >= 7) screenShake();
 
   // ダメージ表示
   if (remainingDamage > 0) {

@@ -3588,10 +3588,10 @@ body {
   pointer-events: none;
   z-index: 99;
   background: radial-gradient(ellipse at center,
-    rgba(30, 80, 220, 0.95) 0%,
-    rgba(10, 50, 180, 0.8) 25%,
-    rgba(0, 20, 120, 0.5) 55%,
-    transparent 100%);
+      rgba(30, 80, 220, 0.95) 0%,
+      rgba(10, 50, 180, 0.8) 25%,
+      rgba(0, 20, 120, 0.5) 55%,
+      transparent 100%);
   animation: dmgBurst 0.8s ease-out forwards;
 }
 
@@ -4613,15 +4613,47 @@ body.screen-shake #field {
 }
 
 @keyframes screenShake {
-  0%   { transform: translate(0, 0); }
-  10%  { transform: translate(-12px, 9px); }
-  20%  { transform: translate(15px, -12px); }
-  30%  { transform: translate(-18px, -6px); }
-  40%  { transform: translate(12px, 15px); }
-  50%  { transform: translate(-9px, -15px); }
-  60%  { transform: translate(15px, 6px); }
-  70%  { transform: translate(-6px, 12px); }
-  80%  { transform: translate(9px, -6px); }
-  90%  { transform: translate(-3px, 3px); }
-  100% { transform: translate(0, 0); }
+  0% {
+    transform: translate(0, 0);
+  }
+
+  10% {
+    transform: translate(-12px, 9px);
+  }
+
+  20% {
+    transform: translate(15px, -12px);
+  }
+
+  30% {
+    transform: translate(-18px, -6px);
+  }
+
+  40% {
+    transform: translate(12px, 15px);
+  }
+
+  50% {
+    transform: translate(-9px, -15px);
+  }
+
+  60% {
+    transform: translate(15px, 6px);
+  }
+
+  70% {
+    transform: translate(-6px, 12px);
+  }
+
+  80% {
+    transform: translate(9px, -6px);
+  }
+
+  90% {
+    transform: translate(-3px, 3px);
+  }
+
+  100% {
+    transform: translate(0, 0);
+  }
 }
