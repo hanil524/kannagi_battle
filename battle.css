@@ -2983,9 +2983,9 @@ body {
 /* ===== 召喚波動エフェクト ===== */
 .summon-ripple {
   position: absolute;
-  border-radius: 50%;
+  border-radius: 14px;  /* カード型角丸（円形から変更） */
   border: 2px solid rgba(220, 60, 60, 0.85);
-  background: radial-gradient(circle, rgba(220, 60, 60, 0.25), transparent 70%);
+  background: linear-gradient(135deg, rgba(220, 60, 60, 0.2), transparent 70%);
   pointer-events: none;
   z-index: 0;
   transform: translate(-50%, -50%) scale(0);
@@ -2994,12 +2994,22 @@ body {
 
 .summon-ripple.ripple-purple {
   border-color: rgba(160, 60, 220, 0.85);
-  background: radial-gradient(circle, rgba(160, 60, 220, 0.25), transparent 70%);
+  background: linear-gradient(135deg, rgba(160, 60, 220, 0.2), transparent 70%);
 }
 
 .summon-ripple.ripple-yellow {
   border-color: rgba(230, 200, 40, 0.85);
-  background: radial-gradient(circle, rgba(230, 200, 40, 0.25), transparent 70%);
+  background: linear-gradient(135deg, rgba(230, 200, 40, 0.2), transparent 70%);
+}
+
+/* 縦長（怪異・季節・速攻場所札） */
+.summon-ripple.ripple-portrait {
+  border-radius: 14px;
+}
+
+/* 横長（場所札通常召喚） */
+.summon-ripple.ripple-landscape {
+  border-radius: 10px;
 }
 
 @keyframes summonRippleExpand {
@@ -4429,7 +4439,7 @@ body {
   max-width: 100%;
   display: block;
   border-radius: 12px;
-  box-shadow: 0 0 15px 6px rgba(255, 215, 0, 0.4), 0 0 10px 10px rgba(255, 215, 0, 0.15);
+  box-shadow: 0 0 8px 3px rgba(255, 215, 0, 0.25), 0 0 18px 5px rgba(255, 215, 0, 0.1);
 }
 
 @media (min-width:600px) {
@@ -4441,6 +4451,13 @@ body {
 
 #zero-search-preview-img.active {
   display: block;
+}
+
+/* 先行/後攻の強調（真っ白） */
+.zs-order-highlight {
+  color: #ffffff;
+  font-weight: 900;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
 }
 
 /* 選択枚数バッジ */
@@ -4459,7 +4476,7 @@ body {
 /* 決定ボタン */
 #zero-search-confirm {
   padding: clamp(5px, 0.9vh, 8px) 28px;
-  margin-bottom: clamp(2px, 0.5vh, 4px);
+  margin-bottom: clamp(2px, 0.5vh, 0px);
   background: linear-gradient(135deg, #1a3a6a, #0d2044);
   color: rgba(160, 180, 230, 0.8);
   border: 1px solid rgba(80, 120, 220, 0.3);
@@ -4488,10 +4505,10 @@ body {
 #zero-search-cards {
   flex-shrink: 0;
   /* カードエリアはカード自体のサイズだけ使う（伸びない） */
-  padding: 0px 4px 0px;
+  padding: 3px 3px 3px;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 4px;
+  gap: 2px;
   align-content: start;
   justify-content: center;
   justify-items: center;
@@ -4527,7 +4544,7 @@ body {
   background: linear-gradient(135deg, #5a2d82, #3a1a5e);
   color: #d4b0ff;
   border: 1px solid rgba(160, 100, 255, 0.5);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: bold;
   cursor: pointer;
   letter-spacing: 0;

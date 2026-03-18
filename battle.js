@@ -3076,7 +3076,8 @@ function showPlayEffect(card) {
 // ===================================================================
 // 召喚波動エフェクト（場に出たカードから波紋が広がる）
 // ===================================================================
-function showSummonRipple(targetEl, colorType) {
+// aspect: 'portrait'=縦長カード型, 'landscape'=横長カード型（場所札通常召喚）
+function showSummonRipple(targetEl, colorType, aspect) {
   if (!targetEl) return;
   const rect = targetEl.getBoundingClientRect();
   const parent = targetEl.closest('.field-card-row') || targetEl.parentElement;
@@ -3084,18 +3085,25 @@ function showSummonRipple(targetEl, colorType) {
   const parentRect = parent.getBoundingClientRect();
   const cx = rect.left + rect.width / 2 - parentRect.left;
   const cy = rect.top + rect.height / 2 - parentRect.top;
-  const size = Math.max(rect.width, rect.height);
+
+  // カード型の縦横比（portrait=縦長, landscape=横長）
+  const isLandscape = (aspect === 'landscape');
+  const baseSize = Math.max(rect.width, rect.height);
+  const rippleW = isLandscape ? (baseSize * 1.35) : (baseSize * 0.75);
+  const rippleH = isLandscape ? (baseSize * 0.9) : baseSize;
+
   // colorType: 'red'(場所札), 'purple'(怪異札), 'yellow'(季節札)
   const colorClass = colorType === 'purple' ? ' ripple-purple'
                    : colorType === 'yellow' ? ' ripple-yellow'
                    : '';
+  const shapeClass = isLandscape ? ' ripple-landscape' : ' ripple-portrait';
   for (let i = 0; i < 2; i++) {
     const ripple = document.createElement('div');
-    ripple.className = 'summon-ripple' + colorClass;
+    ripple.className = 'summon-ripple' + colorClass + shapeClass;
     ripple.style.left = cx + 'px';
     ripple.style.top = cy + 'px';
-    ripple.style.width = size + 'px';
-    ripple.style.height = size + 'px';
+    ripple.style.width = rippleW + 'px';
+    ripple.style.height = rippleH + 'px';
     ripple.style.animationDelay = (i * 0.15) + 's';
     parent.style.position = 'relative';
     parent.appendChild(ripple);
@@ -3460,9 +3468,10 @@ function placeCard(card) {
     // 場所札フローティングテキスト + 召喚波動
     requestAnimationFrame(() => {
       const bashoUid = String(card.uid);
+      const bashoAspect = hasSokkou ? 'portrait' : 'landscape'; // 速攻=縦長, 通常=横長
       const allBasho = dom.playerFieldCards.querySelectorAll('.basho-slot');
       allBasho.forEach(bEl => {
-        if (bEl.dataset.uid === bashoUid) { showFloatingText(bEl, '召喚', 'summon'); showSummonRipple(bEl, 'red'); }
+        if (bEl.dataset.uid === bashoUid) { showFloatingText(bEl, '召喚', 'summon'); showSummonRipple(bEl, 'red', bashoAspect); }
       });
     });
     // 召喚時効果チェック
@@ -3488,7 +3497,7 @@ function placeCard(card) {
       const seasonUid = String(card.uid);
       const allSeason = dom.playerFieldCards.querySelectorAll('.season-slot');
       allSeason.forEach(sEl => {
-        if (sEl.dataset.uid === seasonUid) { showFloatingText(sEl, '展開', 'tenkai'); showSummonRipple(sEl, 'yellow'); }
+        if (sEl.dataset.uid === seasonUid) { showFloatingText(sEl, '展開', 'tenkai'); showSummonRipple(sEl, 'yellow', 'portrait'); }
       });
     });
     updatePlayableAura();
@@ -3509,7 +3518,7 @@ function placeCard(card) {
       const kaiiUid = String(card.uid);
       const allKaii = dom.playerFieldCards.querySelectorAll('.kaii-attached');
       allKaii.forEach(kEl => {
-        if (kEl.dataset.uid === kaiiUid) { showFloatingText(kEl, '憑依', 'hyoui'); showSummonRipple(kEl, 'purple'); }
+        if (kEl.dataset.uid === kaiiUid) { showFloatingText(kEl, '憑依', 'hyoui'); showSummonRipple(kEl, 'purple', 'portrait'); }
       });
     });
   } else if (card.type === '道具札') {
@@ -3815,7 +3824,8 @@ function startGame() {
 function dealInitialHand(who, count) {
   const st = (who === 'player') ? player : opponent;
   for (let i = 0; i < count && st.deck.length > 0; i++) {
-    st.hand.push(st.deck.shift());
+    const card = st.deck.shift();
+    st.hand.push(card);
   }
   if (who === 'player') { renderPlayerHand(); updateDeckImg(dom.playerDeck, 'player'); }
   else { renderOppHand(); updateDeckImg(dom.oppDeck, 'opponent'); }
@@ -3869,11 +3879,12 @@ function showZeroSearch(who) {
     const previewImg = $('zero-search-preview-img');
     const confirmBtn = $('zero-search-confirm');
 
-    // 先後テキスト
-    const orderText = isFirstTurn
-      ? (who === 'player' ? 'あなたは【先行】です。' : '相手は【後攻】です。')
-      : (who === 'player' ? 'あなたは【後攻】です。' : '相手は【先行】です。');
-    orderEl.textContent = orderText;
+    // 先後テキスト（【先行】【後攻】部分だけ白色）
+    const sengoWord = isFirstTurn
+      ? (who === 'player' ? '先行' : '後攻')
+      : (who === 'player' ? '後攻' : '先行');
+    const sengoSubject = (who === 'player') ? 'あなたは' : '相手は';
+    orderEl.innerHTML = `${sengoSubject}【<span class="zs-order-highlight">${sengoWord}</span>】です。`;
 
     // 選択状態
     const selectedUids = new Set();
