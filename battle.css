@@ -4364,10 +4364,10 @@ body {
 
 /* 上部: 先後案内 */
 #zero-search-order {
-  padding: 8px 0 2px;
+  padding: clamp(3px, 0.8vh, 8px) 0 clamp(1px, 0.3vh, 2px);
   text-align: center;
   color: rgba(180, 200, 255, 0.85);
-  font-size: 14px;
+  font-size: clamp(11px, 1.5vh, 14px);
   font-weight: bold;
   letter-spacing: 2px;
   text-shadow: 0 0 12px rgba(120, 160, 255, 0.5);
@@ -4379,58 +4379,63 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0px 52px 0px;
-  flex-shrink: 0;
+  padding: 0px 52px 12px;
+  flex: 1;
+  /* 余ったスペースを上部エリアが伸縮して使う */
+  min-height: 0;
   gap: 0;
 }
 
 #zero-search-title {
-  font-size: 26px;
+  font-size: clamp(18px, 3.2vh, 26px);
   font-weight: 900;
   color: #ffffff;
   letter-spacing: 6px;
-  margin-bottom: 8px;
+  margin-bottom: clamp(2px, 0.8vh, 8px);
   text-shadow: 0 0 24px rgba(255, 255, 255, 0.4), 0 2px 6px rgba(0, 0, 0, 0.8);
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 #zero-search-desc {
-  font-size: 12px;
+  font-size: clamp(10px, 1.3vh, 12px);
   color: rgba(200, 210, 240, 0.85);
   text-align: center;
   line-height: 1.8;
   letter-spacing: 0.5px;
-  margin-bottom: 10px;
+  margin-bottom: clamp(4px, 1vh, 10px);
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 /* 選択カードプレビューエリア（横幅60%の大きな画像） */
 #zero-search-preview-wrap {
-  width: 50%;
+  width: 75%;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 12px;
-  min-height: 40px;
+  margin-bottom: clamp(4px, 1vh, 12px);
+  min-height: 0;
+  /* flex:1の縮小を許可 */
+  flex: 1;
 }
 
 #zero-search-preview-img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+  /* width:auto + height:autoでimg要素のボックス = カード画像の実際サイズになる */
+  /* → border-radiusとbox-shadowが正確にカードの輪郭に出る */
+  width: auto;
+  height: auto;
+  max-height: 100%;
+  max-width: 100%;
+  display: block;
   border-radius: 12px;
   box-shadow: 0 0 15px 6px rgba(255, 215, 0, 0.4), 0 0 10px 10px rgba(255, 215, 0, 0.15);
-  /* display:none → JS側でstyle.displayを直接操作するため省略 */
 }
 
 @media (min-width:600px) {
-  #zero-search-preview-img {
-    width: 60%;
-    height: 100%;
-  }
-
   #zero-search-cards {
     margin: 0 auto;
     width: 73%;
-    height: 100%;
   }
 }
 
@@ -4441,29 +4446,31 @@ body {
 /* 選択枚数バッジ */
 #zero-search-count {
   text-align: center;
-  font-size: 12px;
+  font-size: clamp(10px, 1.3vh, 12px);
   color: rgba(255, 220, 100, 0.9);
   font-weight: bold;
   letter-spacing: 1px;
-  margin-bottom: 8px;
+  margin-bottom: clamp(2px, 0.7vh, 8px);
   flex-shrink: 0;
   padding: 0 12px;
+  white-space: nowrap;
 }
 
 /* 決定ボタン */
 #zero-search-confirm {
-  padding: 8px 28px;
-  margin-bottom: 4px;
+  padding: clamp(5px, 0.9vh, 8px) 28px;
+  margin-bottom: clamp(2px, 0.5vh, 4px);
   background: linear-gradient(135deg, #1a3a6a, #0d2044);
   color: rgba(160, 180, 230, 0.8);
   border: 1px solid rgba(80, 120, 220, 0.3);
   border-radius: 8px;
-  font-size: 14px;
+  font-size: clamp(12px, 1.6vh, 14px);
   font-weight: bold;
   letter-spacing: 3px;
   cursor: pointer;
   transition: background 0.2s ease, color 0.2s ease, border 0.2s ease, box-shadow 0.2s ease;
   flex-shrink: 0;
+  white-space: nowrap;
 }
 
 #zero-search-confirm.ready {
@@ -4479,14 +4486,13 @@ body {
 
 /* 下部: カード一覧（4×2, 中央密着, 全身像表示） */
 #zero-search-cards {
-  flex: 1;
-  min-height: 0;
+  flex-shrink: 0;
+  /* カードエリアはカード自体のサイズだけ使う（伸びない） */
   padding: 0px 4px 0px;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: auto auto;
   gap: 4px;
-  align-content: center;
+  align-content: start;
   justify-content: center;
   justify-items: center;
 }
