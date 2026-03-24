@@ -2124,6 +2124,13 @@ async function handleKaiiEffect(kCard, who) {
           const numaCards = oppAllHand.filter(c => c.name === '沼御前');
           const otherCards = oppAllHand.filter(c => c.name !== '沼御前').sort((a, b) => soulN >= 5 ? (a.cost || 0) - (b.cost || 0) : (b.cost || 0) - (a.cost || 0));
           const shuffled = [...numaCards, ...otherCards];
+          const handdesSnaps = [];
+          for (let i = 0; i < exileCount; i++) {
+            const target = shuffled[i];
+            const snapEl = dom.oppHandCards.querySelector(`.battle-card[data-uid="${target.uid}"]`)
+                        || dom.oppOpenCards.querySelector(`.battle-card[data-uid="${target.uid}"]`);
+            if (snapEl) handdesSnaps.push({ rect: snapEl.getBoundingClientRect(), imgSrc: DECK_BACK_IMG });
+          }
           const handdesNames = [];
           for (let i = 0; i < exileCount; i++) {
             const target = shuffled[i];
@@ -2146,6 +2153,7 @@ async function handleKaiiEffect(kCard, who) {
           }
           renderOppHand(); renderOppOpen(); updateAllCounts();
           updateExileDisplay('opponent');
+          if (handdesSnaps.length > 0) showExileFly(handdesSnaps, dom.oppExile);
           requestAnimationFrame(() => {
             showFloatingText(dom.oppHandCards, 'ハンデス', 'handdes');
           });
@@ -2181,6 +2189,12 @@ async function handleKaiiEffect(kCard, who) {
       if (playerAllHand.length > 0) {
         if (playerAllHand.length <= 2) {
           // 2枚以下なら全部除外
+          const autoExileSnaps = [];
+          playerAllHand.forEach(c => {
+            const snapEl = dom.playerHandCards.querySelector(`.battle-card[data-uid="${c.uid}"]`)
+                        || dom.playerOpenCards.querySelector(`.battle-card[data-uid="${c.uid}"]`);
+            if (snapEl) autoExileSnaps.push({ rect: snapEl.getBoundingClientRect(), imgSrc: snapEl.querySelector('img')?.src || c.img });
+          });
           const autoExiledNames = [];
           playerAllHand.forEach(c => {
             let idx = oppSt.hand.findIndex(x => x.uid === c.uid);
@@ -2202,6 +2216,7 @@ async function handleKaiiEffect(kCard, who) {
           }
           renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
           updateExileDisplay('player');
+          if (autoExileSnaps.length > 0) showExileFly(autoExileSnaps, dom.playerExile);
           requestAnimationFrame(() => {
             showFloatingText(dom.playerHandCards, 'ハンデス', 'handdes');
           });
@@ -2665,6 +2680,12 @@ function startSelfHandExilePhase(count) {
       if (selected.size < maxExile) return;
       confirmBtn.removeEventListener('click', onConfirm);
       confirmBtn.removeEventListener('touchend', onConfirmTouch);
+      // スナップショット取得（非表示前）
+      const selfExileSnaps = [];
+      selected.forEach(uid => {
+        const el = cardElMap.get(uid);
+        if (el) selfExileSnaps.push({ rect: el.getBoundingClientRect(), imgSrc: el.querySelector('img')?.src || '' });
+      });
       overlay.style.display = 'none';
       overlay.classList.remove('active');
 
@@ -2692,6 +2713,7 @@ function startSelfHandExilePhase(count) {
         logHistory('player', `手札から「${exiledNames.join('」「')}」を除外した。`);
         renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
         updateExileDisplay('player');
+        if (selfExileSnaps.length > 0) showExileFly(selfExileSnaps, dom.playerExile);
         requestAnimationFrame(() => {
           showFloatingText(dom.playerHandCards, 'ハンデス', 'handdes');
         });
@@ -4066,8 +4088,8 @@ function showKaimonAnimation() {
       if (kaimonSkipped) return;
       dom.gateText.classList.add('kaimon-burst');
 
-      // 衝撃波リング（3重、大きめ）
-      for (let i = 0; i < 3; i++) {
+      // 衝撃波リング（2重）
+      for (let i = 0; i < 2; i++) {
         const ring = document.createElement('div');
         ring.className = 'kaimon-shockwave';
         ring.style.animationDelay = (i * 0.15) + 's';
@@ -4075,27 +4097,7 @@ function showKaimonAnimation() {
         ring.addEventListener('animationend', () => ring.remove());
       }
 
-      // 放射線（12方向、太め）
-      for (let i = 0; i < 12; i++) {
-        const ray = document.createElement('div');
-        ray.className = 'kaimon-ray';
-        ray.style.transform = 'translateX(-50%) rotate(' + (i * 30) + 'deg)';
-        dom.gateOverlay.appendChild(ray);
-        ray.addEventListener('animationend', () => ray.remove());
-      }
 
-      // 火花パーティクル（20個）
-      for (let i = 0; i < 20; i++) {
-        const p = document.createElement('div');
-        p.className = 'kaimon-particle';
-        const angle = (Math.PI * 2 / 20) * i + (Math.random() - 0.5) * 0.5;
-        const dist = 80 + Math.random() * 120;
-        p.style.setProperty('--px', Math.cos(angle) * dist + 'px');
-        p.style.setProperty('--py', Math.sin(angle) * dist + 'px');
-        p.style.animationDelay = (Math.random() * 0.2) + 's';
-        dom.gateOverlay.appendChild(p);
-        p.addEventListener('animationend', () => p.remove());
-      }
     }, 500);
 
     // フェーズ3: テキスト揺らし（画面振動風）
@@ -4935,6 +4937,12 @@ async function handleCpuSummonEffect(card) {
       if (playerAllHand.length > 0) {
         if (playerAllHand.length <= 2) {
           // 2枚以下→全て自動除外
+          const sandySnaps = [];
+          [...player.hand, ...player.open].forEach(c => {
+            const snapEl = dom.playerHandCards.querySelector(`.battle-card[data-uid="${c.uid}"]`)
+                        || dom.playerOpenCards.querySelector(`.battle-card[data-uid="${c.uid}"]`);
+            if (snapEl) sandySnaps.push({ rect: snapEl.getBoundingClientRect(), imgSrc: snapEl.querySelector('img')?.src || c.img });
+          });
           const autoExiledNames = [...player.hand, ...player.open].map(c => c.name);
           [...player.hand].forEach(c => exileCard('player', c));
           [...player.open].forEach(c => exileCard('player', c));
@@ -4943,6 +4951,7 @@ async function handleCpuSummonEffect(card) {
           logHistory('opponent', `「${card.name}」の効果で自分の手札「${autoExiledNames.join('」「')}」が除外された。`);
           renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
           updateExileDisplay('player');
+          if (sandySnaps.length > 0) showExileFly(sandySnaps, dom.playerExile);
           requestAnimationFrame(() => {
             showFloatingText(dom.playerHandCards, 'ハンデス', 'handdes');
           });
@@ -5326,7 +5335,13 @@ function cpuTurn() {
       // 攻撃できなければ場所札・季節札を召喚
       const postActions = buildCpuPostAttackActions();
       executeCpuActions(postActions, 0, () => {
-        setTimeout(() => { finishCpuTurn(); }, 300);
+        // フェーズ5: 未攻撃の場合のみ、速攻グループで攻撃
+        const sokkouIdx = pickCpuAttackTarget();
+        if (sokkouIdx !== null && opponent.field[sokkouIdx] && hasKeyword(opponent.field[sokkouIdx].basho, '速攻')) {
+          executeCpuAttack(sokkouIdx, () => { setTimeout(() => { finishCpuTurn(); }, 300); });
+        } else {
+          setTimeout(() => { finishCpuTurn(); }, 300);
+        }
       });
     }
   });
@@ -5490,7 +5505,7 @@ async function cpuPlaceCard(card) {
     cpuUsedFlags.dougu = true;
     // フライアニメ用スナップショット（renderOppHand前に取得、裏面）
     const cpuDouguEl = dom.oppHandCards.querySelector(`.battle-card[data-uid="${card.uid}"]`);
-    const cpuDouguSnap = cpuDouguEl ? { rect: cpuDouguEl.getBoundingClientRect(), imgSrc: DECK_BACK_IMG } : null;
+    const cpuDouguSnap = cpuDouguEl ? { rect: cpuDouguEl.getBoundingClientRect(), imgSrc: card.img || DECK_BACK_IMG } : null;
     renderField('opponent'); renderOppHand(); updateAllCounts();
     markUsed('opponent', card.type);
     logHistory('opponent', `相手が道具札「${card.name}」を発動した。`);
