@@ -2105,6 +2105,7 @@ body {
 /* ===== スタート画面 ===== */
 #start-overlay {
   position: absolute;
+  top: 0;
   left: 0;
   right: 0;
   bottom: 0;
@@ -2116,6 +2117,16 @@ body {
   z-index: 500;
   gap: 0;
   padding: 24px 20px;
+}
+
+/* 中身だけ非表示 → readyで表示（背景は常に不透明で戦闘場を隠す） */
+#start-overlay > * {
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+#start-overlay.ready > * {
+  opacity: 1;
 }
 
 #start-title {
@@ -2296,102 +2307,201 @@ body {
 
 #coin-text {
   color: #fff;
-  font-size: 26px;
+  font-size: 38px;
   font-weight: 900;
   letter-spacing: 6px;
   text-indent: 6px;
   text-shadow: 0 0 20px rgba(255, 255, 255, 0.4), 0 2px 6px rgba(0, 0, 0, 0.6);
 }
 
-/* 先攻/後攻 確定エフェクト: テキストスタンプ */
+/* 先攻/後攻 確定エフェクト */
 @keyframes coinStamp {
   0% {
-    transform: scale(2.2);
     opacity: 0;
-    text-shadow: 0 0 60px rgba(255, 255, 255, 0.9), 0 0 120px rgba(255, 200, 100, 0.6);
+    transform: scale(1.12);
+    text-shadow:
+      0 0 60px rgba(255, 255, 255, 1),
+      0 0 120px rgba(200, 220, 255, 0.8),
+      0 0 200px rgba(150, 180, 255, 0.4);
   }
-
-  25% {
-    transform: scale(1.05);
+  35% {
     opacity: 1;
-    text-shadow: 0 0 40px rgba(255, 255, 255, 0.8), 0 0 80px rgba(255, 200, 100, 0.5);
-  }
-
-  50% {
     transform: scale(1.0);
-    text-shadow: 0 0 30px rgba(255, 255, 255, 0.6), 0 0 60px rgba(255, 200, 100, 0.3);
+    text-shadow:
+      0 4px 30px rgba(255, 255, 255, 1),
+      0 0 50px rgba(255, 255, 255, 0.9),
+      0 0 90px rgba(200, 220, 255, 0.8),
+      0 0 140px rgba(150, 180, 255, 0.5),
+      0 8px 60px rgba(100, 140, 255, 0.3);
   }
-
+  60% {
+    text-shadow:
+      0 3px 25px rgba(255, 255, 255, 0.7),
+      0 0 45px rgba(255, 255, 255, 0.5),
+      0 0 80px rgba(200, 220, 255, 0.35),
+      0 6px 50px rgba(100, 140, 255, 0.15);
+  }
   100% {
-    transform: scale(1.0);
     opacity: 1;
-    text-shadow: 0 0 30px rgba(255, 255, 255, 0.6), 0 2px 8px rgba(0, 0, 0, 0.7);
+    transform: scale(1.0);
+    text-shadow:
+      0 2px 20px rgba(255, 255, 255, 0.5),
+      0 0 40px rgba(255, 255, 255, 0.25),
+      0 0 70px rgba(200, 220, 255, 0.12),
+      0 4px 40px rgba(100, 140, 255, 0.08);
   }
 }
 
 #coin-text.coin-stamp {
-  animation: coinStamp 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: coinStamp 0.5s ease-out forwards;
 }
 
-/* 確定時の衝撃波リング */
-.coin-shockwave {
+/* ===== 開門演出（零探し後・派手版） ===== */
+
+/* 画面フラッシュ */
+.kaimon-flash {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 40px;
-  height: 40px;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: white;
+  pointer-events: none;
+  animation: kaimonFlash 0.6s ease-out forwards;
+  z-index: 1;
+}
+
+@keyframes kaimonFlash {
+  0%   { opacity: 0; }
+  15%  { opacity: 0.8; }
+  100% { opacity: 0; }
+}
+
+/* 文字ズームイン（大きい状態から着地） */
+@keyframes kaimonZoomIn {
+  0% {
+    opacity: 0;
+    transform: scale(3.5);
+    text-shadow: 0 0 80px rgba(255,200,100,1), 0 0 160px rgba(255,150,50,0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(0.95);
+    text-shadow: 0 0 60px rgba(255,200,100,0.8), 0 0 120px rgba(255,150,50,0.5);
+  }
+  70% {
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1.0);
+    text-shadow: 0 0 50px rgba(255,255,255,0.5), 0 0 80px rgba(255,200,100,0.3), 0 4px 12px rgba(0,0,0,0.8);
+  }
+}
+
+/* 着地時のバースト（テキスト発光） */
+#gate-text.kaimon-burst {
+  text-shadow:
+    0 0 40px rgba(255,200,100,0.9),
+    0 0 80px rgba(255,150,50,0.6),
+    0 0 120px rgba(255,100,0,0.3),
+    0 4px 12px rgba(0,0,0,0.8);
+}
+
+/* 衝撃波リング（大きめ・3重） */
+.kaimon-shockwave {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 60px; height: 60px;
   border-radius: 50%;
-  border: 3px solid rgba(255, 220, 140, 0.8);
+  border: 4px solid rgba(255,180,80,0.9);
+  box-shadow: 0 0 20px rgba(255,150,50,0.5), inset 0 0 20px rgba(255,150,50,0.3);
   transform: translate(-50%, -50%) scale(0);
   pointer-events: none;
-  animation: coinShockExpand 0.7s ease-out forwards;
+  animation: kaimonShockExpand 0.9s ease-out forwards;
 }
 
-@keyframes coinShockExpand {
+@keyframes kaimonShockExpand {
   0% {
     transform: translate(-50%, -50%) scale(0);
     opacity: 1;
-    border-width: 3px;
+    border-width: 4px;
   }
-
-  60% {
-    opacity: 0.5;
-  }
-
+  40% { opacity: 0.7; }
   100% {
-    transform: translate(-50%, -50%) scale(8);
+    transform: translate(-50%, -50%) scale(12);
     opacity: 0;
     border-width: 1px;
   }
 }
 
-/* 確定時の放射線 */
-.coin-ray {
+/* 放射線（12方向・太め） */
+.kaimon-ray {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 2px;
-  height: 60px;
-  background: linear-gradient(180deg, rgba(255, 220, 140, 0.8), transparent);
+  left: 50%; top: 50%;
+  width: 3px;
+  height: 100px;
+  background: linear-gradient(180deg, rgba(255,200,100,0.9), rgba(255,150,50,0.4), transparent);
   transform-origin: 50% 0%;
   pointer-events: none;
-  animation: coinRayShoot 0.6s ease-out forwards;
+  animation: kaimonRayShoot 0.8s ease-out forwards;
 }
 
-@keyframes coinRayShoot {
+@keyframes kaimonRayShoot {
   0% {
     opacity: 0;
     transform: translateX(-50%) scaleY(0);
   }
-
-  20% {
+  15% {
     opacity: 1;
     transform: translateX(-50%) scaleY(1);
   }
-
   100% {
     opacity: 0;
-    transform: translateX(-50%) scaleY(1.5);
+    transform: translateX(-50%) scaleY(2);
+  }
+}
+
+/* 火花パーティクル */
+.kaimon-particle {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffe080, #ff8800);
+  box-shadow: 0 0 6px rgba(255,180,80,0.8);
+  pointer-events: none;
+  animation: kaimonParticleFly 0.8s ease-out forwards;
+}
+
+@keyframes kaimonParticleFly {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--px), var(--py)) scale(0.3);
+  }
+}
+
+/* 揺れ（振動エフェクト） */
+@keyframes kaimonShake {
+  0%   { transform: translate(0, 0) scale(1.0); }
+  15%  { transform: translate(-4px, 2px) scale(1.0); }
+  30%  { transform: translate(4px, -2px) scale(1.0); }
+  45%  { transform: translate(-3px, -1px) scale(1.0); }
+  60%  { transform: translate(3px, 1px) scale(1.0); }
+  75%  { transform: translate(-1px, 1px) scale(1.0); }
+  100% { transform: translate(0, 0) scale(1.0); }
+}
+
+/* フェードアウト */
+@keyframes kaimonFadeOut {
+  0% {
+    opacity: 1;
+    transform: scale(1.0);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.15);
   }
 }
 
@@ -4368,7 +4478,9 @@ body {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  background: linear-gradient(180deg, rgba(5, 5, 20, 0.97) 0%, rgba(10, 8, 30, 0.99) 100%);
+  background:
+    radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.85) 100%),
+    linear-gradient(180deg, #060810 0%, #0a0d1a 35%, #0d1122 65%, #06080f 100%);
   overflow: hidden;
 }
 

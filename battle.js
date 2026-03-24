@@ -3723,7 +3723,6 @@ function startGame() {
   hideExileModal();
   resetTurnFlags();
   updateAllCounts();
-  dom.startOverlay.style.display = 'none';
   dom.btnReset.disabled = false;
   dom.btnEndTurn.disabled = false;
   hideAttackBtn(); hidePreview(); hideKaiiPopup(); hideSeasonWarning();
@@ -3732,93 +3731,71 @@ function startGame() {
   // 先行/後攻ランダム決定（事前に決める）
   isFirstTurn = Math.random() < 0.5;
 
-  // === 開門演出 ===
-  const gen = gameGeneration; // リセット連打防止用
+  dom.startOverlay.style.display = 'none';
+  dom.startOverlay.classList.remove('ready');
+
+  // === 先攻/後攻コインフリップ演出（開門なし） ===
+  const gen = gameGeneration;
   dom.gateOverlay.classList.add('active');
   dom.gateOverlay.style.display = 'flex';
-  dom.gateText.style.animation = 'gateAppear 1.2s ease-out forwards';
+  dom.gateText.style.display = 'none'; // 開門テキスト非表示
   dom.coinText.textContent = '';
 
-  let gateSkipped = false;
-  let gateFlipInterval = null;
-  let gateTimer1 = null, gateTimer2 = null, gateTimer3 = null, gateTimer4 = null;
+  let coinSkipped = false;
+  let coinFlipInterval = null;
+  let coinTimer1 = null, coinTimer2 = null, coinTimer3 = null;
 
-  function finishGate() {
-    if (gateSkipped) return;
-    gateSkipped = true;
-    if (gen !== gameGeneration) return; // リセットされた→中断
-    if (gateFlipInterval) clearInterval(gateFlipInterval);
-    if (gateTimer1) clearTimeout(gateTimer1);
-    if (gateTimer2) clearTimeout(gateTimer2);
-    if (gateTimer3) clearTimeout(gateTimer3);
-    if (gateTimer4) clearTimeout(gateTimer4);
-    dom.gateOverlay.removeEventListener('click', onGateSkip);
-    dom.gateOverlay.removeEventListener('touchend', onGateSkipTouch);
-    dom.coinText.textContent = isFirstTurn ? '先 行' : '後 攻';
+  function finishCoinFlip() {
+    if (coinSkipped) return;
+    coinSkipped = true;
+    if (gen !== gameGeneration) return;
+    if (coinFlipInterval) clearInterval(coinFlipInterval);
+    if (coinTimer1) clearTimeout(coinTimer1);
+    if (coinTimer2) clearTimeout(coinTimer2);
+    if (coinTimer3) clearTimeout(coinTimer3);
+    dom.gateOverlay.removeEventListener('click', onCoinSkip);
+    dom.gateOverlay.removeEventListener('touchend', onCoinSkipTouch);
+    dom.coinText.textContent = isFirstTurn ? '先行' : '後攻';
     dom.coinText.style.textShadow = '0 0 30px rgba(255,255,255,0.6), 0 2px 8px rgba(0,0,0,0.7)';
-    dom.gateText.style.animation = '';
     dom.coinText.style.animation = '';
     dom.coinText.classList.remove('coin-stamp');
-    // 残留エフェクト要素を除去
-    dom.gateOverlay.querySelectorAll('.coin-shockwave, .coin-ray').forEach(el => el.remove());
     dom.gateOverlay.classList.remove('active');
     dom.gateOverlay.style.display = 'none';
+    dom.gateText.style.display = ''; // 元に戻す
     dom.coinText.style.textShadow = '';
     initGameAfterGate();
   }
 
-  function onGateSkip() { finishGate(); }
-  function onGateSkipTouch(e) { if (e.cancelable) e.preventDefault(); finishGate(); }
+  function onCoinSkip() { finishCoinFlip(); }
+  function onCoinSkipTouch(e) { if (e.cancelable) e.preventDefault(); finishCoinFlip(); }
 
-  dom.gateOverlay.addEventListener('click', onGateSkip);
-  dom.gateOverlay.addEventListener('touchend', onGateSkipTouch, { passive: false });
+  dom.gateOverlay.addEventListener('click', onCoinSkip);
+  dom.gateOverlay.addEventListener('touchend', onCoinSkipTouch, { passive: false });
 
-  gateTimer1 = setTimeout(() => {
-    if (gateSkipped) return;
-    // 先行/後攻コインフリップアニメーション（1秒間素早く切替）
-    let flipCount = 0;
-    gateFlipInterval = setInterval(() => {
-      dom.coinText.textContent = (flipCount % 2 === 0) ? '先 行' : '後 攻';
-      flipCount++;
-    }, 80);
+  // コインフリップ開始（即座に）
+  let flipCount = 0;
+  coinFlipInterval = setInterval(() => {
+    dom.coinText.textContent = (flipCount % 2 === 0) ? '先行' : '後攻';
+    flipCount++;
+  }, 80);
 
-    gateTimer2 = setTimeout(() => {
-      if (gateSkipped) return;
-      clearInterval(gateFlipInterval);
-      gateFlipInterval = null;
-      dom.coinText.textContent = isFirstTurn ? '先 行' : '後 攻';
-      dom.coinText.style.textShadow = '0 0 30px rgba(255,255,255,0.6), 0 2px 8px rgba(0,0,0,0.7)';
-      // 確定エフェクト: スタンプ + 衝撃波 + 放射線
-      dom.coinText.classList.add('coin-stamp');
-      // 衝撃波リング（2重）
-      for (let i = 0; i < 2; i++) {
-        const ring = document.createElement('div');
-        ring.className = 'coin-shockwave';
-        ring.style.animationDelay = (i * 0.12) + 's';
-        dom.gateOverlay.appendChild(ring);
-        ring.addEventListener('animationend', () => ring.remove());
-      }
-      // 放射線（8方向）
-      for (let i = 0; i < 8; i++) {
-        const ray = document.createElement('div');
-        ray.className = 'coin-ray';
-        ray.style.transform = 'translateX(-50%) rotate(' + (i * 45) + 'deg)';
-        dom.gateOverlay.appendChild(ray);
-        ray.addEventListener('animationend', () => ray.remove());
-      }
-    }, 1000);
+  coinTimer1 = setTimeout(() => {
+    if (coinSkipped) return;
+    clearInterval(coinFlipInterval);
+    coinFlipInterval = null;
+    dom.coinText.textContent = isFirstTurn ? '先行' : '後攻';
+    dom.coinText.style.textShadow = '';
+    // 確定エフェクト: スタンプ（スケール + 発光を1アニメーションに統合）
+    dom.coinText.classList.remove('coin-stamp');
+    void dom.coinText.offsetHeight; // リフロー
+    dom.coinText.classList.add('coin-stamp');
+  }, 1000);
 
-    // 結果表示後、少し待ってからフェードアウト
-    gateTimer3 = setTimeout(() => {
-      if (gateSkipped) return;
-      dom.gateText.style.animation = 'gateFadeOut 0.5s ease-out forwards';
-      dom.coinText.style.animation = 'gateFadeOut 0.5s ease-out forwards';
-      gateTimer4 = setTimeout(() => {
-        if (gateSkipped) return;
-        finishGate();
-      }, 500);
-    }, 2000);
-  }, 1200);
+  // 結果表示後、少し待ってからスムーズにフェードアウト
+  coinTimer2 = setTimeout(() => {
+    if (coinSkipped) return;
+    finishCoinFlip();
+  }, 2200);
 }
 
 function dealInitialHand(who, count) {
@@ -3854,16 +3831,118 @@ function initGameAfterGate() {
     }
     renderOppHand(); updateAllCounts();
 
-    // ターン開始
-    if (isFirstTurn) {
-      startPlayerTurn();
-    } else {
-      turnLocked = true;
-      showTurnAnnounce('ENEMY TURN', () => {
-        if (gen !== gameGeneration) return;
-        setTimeout(() => { if (gen === gameGeneration) cpuTurn(); }, 500);
-      });
+    // 零探し完了後 → 開門演出 → ターン開始
+    showKaimonAnimation().then(() => {
+      if (gen !== gameGeneration) return;
+      if (isFirstTurn) {
+        startPlayerTurn();
+      } else {
+        turnLocked = true;
+        showTurnAnnounce('ENEMY TURN', () => {
+          if (gen !== gameGeneration) return;
+          setTimeout(() => { if (gen === gameGeneration) cpuTurn(); }, 500);
+        });
+      }
+    });
+  });
+}
+
+// ===================================================================
+// 開門演出：零探し後、ゲーム開始直前の派手なアニメーション
+// ===================================================================
+function showKaimonAnimation() {
+  return new Promise((resolve) => {
+    const gen = gameGeneration;
+    dom.gateOverlay.classList.add('active');
+    dom.gateOverlay.style.display = 'flex';
+    dom.gateText.style.display = ''; // 開門テキスト表示
+    dom.coinText.textContent = '';
+    dom.coinText.style.display = 'none'; // コインテキスト非表示
+    dom.gateText.style.animation = 'none';
+    void dom.gateText.offsetHeight;
+
+    let kaimonSkipped = false;
+    let kTimer1 = null, kTimer2 = null, kTimer3 = null;
+
+    function finishKaimon() {
+      if (kaimonSkipped) return;
+      kaimonSkipped = true;
+      if (gen !== gameGeneration) return;
+      if (kTimer1) clearTimeout(kTimer1);
+      if (kTimer2) clearTimeout(kTimer2);
+      if (kTimer3) clearTimeout(kTimer3);
+      dom.gateOverlay.removeEventListener('click', onKaimonSkip);
+      dom.gateOverlay.removeEventListener('touchend', onKaimonSkipTouch);
+      dom.gateText.style.animation = '';
+      dom.gateText.classList.remove('kaimon-burst');
+      dom.gateOverlay.querySelectorAll('.kaimon-shockwave, .kaimon-ray, .kaimon-particle, .kaimon-flash').forEach(el => el.remove());
+      dom.gateOverlay.classList.remove('active');
+      dom.gateOverlay.style.display = 'none';
+      dom.coinText.style.display = '';
+      resolve();
     }
+
+    function onKaimonSkip() { finishKaimon(); }
+    function onKaimonSkipTouch(e) { if (e.cancelable) e.preventDefault(); finishKaimon(); }
+
+    dom.gateOverlay.addEventListener('click', onKaimonSkip);
+    dom.gateOverlay.addEventListener('touchend', onKaimonSkipTouch, { passive: false });
+
+    // フェーズ1: 画面フラッシュ + 文字ズームイン
+    const flash = document.createElement('div');
+    flash.className = 'kaimon-flash';
+    dom.gateOverlay.appendChild(flash);
+
+    dom.gateText.style.animation = 'kaimonZoomIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards';
+
+    // フェーズ2: 着地時に衝撃波 + 放射線 + パーティクル
+    kTimer1 = setTimeout(() => {
+      if (kaimonSkipped) return;
+      dom.gateText.classList.add('kaimon-burst');
+
+      // 衝撃波リング（3重、大きめ）
+      for (let i = 0; i < 3; i++) {
+        const ring = document.createElement('div');
+        ring.className = 'kaimon-shockwave';
+        ring.style.animationDelay = (i * 0.15) + 's';
+        dom.gateOverlay.appendChild(ring);
+        ring.addEventListener('animationend', () => ring.remove());
+      }
+
+      // 放射線（12方向、太め）
+      for (let i = 0; i < 12; i++) {
+        const ray = document.createElement('div');
+        ray.className = 'kaimon-ray';
+        ray.style.transform = 'translateX(-50%) rotate(' + (i * 30) + 'deg)';
+        dom.gateOverlay.appendChild(ray);
+        ray.addEventListener('animationend', () => ray.remove());
+      }
+
+      // 火花パーティクル（20個）
+      for (let i = 0; i < 20; i++) {
+        const p = document.createElement('div');
+        p.className = 'kaimon-particle';
+        const angle = (Math.PI * 2 / 20) * i + (Math.random() - 0.5) * 0.5;
+        const dist = 80 + Math.random() * 120;
+        p.style.setProperty('--px', Math.cos(angle) * dist + 'px');
+        p.style.setProperty('--py', Math.sin(angle) * dist + 'px');
+        p.style.animationDelay = (Math.random() * 0.2) + 's';
+        dom.gateOverlay.appendChild(p);
+        p.addEventListener('animationend', () => p.remove());
+      }
+    }, 500);
+
+    // フェーズ3: テキスト揺らし（画面振動風）
+    kTimer2 = setTimeout(() => {
+      if (kaimonSkipped) return;
+      dom.gateText.style.animation = 'kaimonShake 0.4s ease-out';
+    }, 600);
+
+    // フェーズ4: スムーズにフェードアウト（finishKaimonが処理）
+    kTimer3 = setTimeout(() => {
+      if (kaimonSkipped) return;
+      finishKaimon();
+    }, 2200);
   });
 }
 
@@ -3945,8 +4024,6 @@ function showZeroSearch(who) {
     const onConfirm = () => {
       confirmBtn.removeEventListener('click', onConfirm);
       confirmBtn.removeEventListener('touchend', onConfirmTouch);
-      overlay.style.display = 'none';
-      $('app').style.display = '';
 
       // 選択したカードをデッキ底に戻す
       const toBottom = [];
@@ -3965,6 +4042,8 @@ function showZeroSearch(who) {
       if (who === 'player') { renderPlayerHand(); } else { renderOppHand(); }
       updateAllCounts();
 
+      overlay.style.display = 'none';
+      $('app').style.display = '';
       resolve();
     };
     const onConfirmTouch = (e) => { if (e.cancelable) e.preventDefault(); onConfirm(); };
@@ -5887,11 +5966,28 @@ if (banmenFloatingBtn) {
 // ===================================================================
 // タイトル画面をヘッダーの下に配置
 // ===================================================================
-(function adjustStartOverlay() {
+(function initStartOverlay() {
   const header = $('app');
   const overlay = $('start-overlay');
-  if (header && overlay) {
+  const deckImg = $('start-deck-img');
+  if (!header || !overlay) return;
+
+  function reveal() {
     overlay.style.top = header.offsetHeight + 'px';
+    overlay.classList.add('ready');
+  }
+
+  // 画像が既にキャッシュ済みの場合
+  if (deckImg && deckImg.complete && deckImg.naturalHeight > 0) {
+    reveal();
+  } else if (deckImg) {
+    deckImg.addEventListener('load', reveal, { once: true });
+    // 画像エラー時もブロックしない
+    deckImg.addEventListener('error', reveal, { once: true });
+    // フォールバック: 1秒経っても来なければ表示
+    setTimeout(reveal, 1000);
+  } else {
+    reveal();
   }
 })();
 
