@@ -2756,7 +2756,7 @@ function executeAttackAnimation(targetEl, atkIdx, power, group) {
         if (bashoEl && g.basho) soulSnaps.push({ rect: bashoEl.getBoundingClientRect(), imgSrc: bashoEl.querySelector('img')?.src || g.basho.img || DECK_BACK_IMG });
         g.kaii.forEach(k => {
           const kEl = groupEl.querySelector(`.kaii-attached[data-uid="${k.uid}"]`);
-          if (kEl) soulSnaps.push({ rect: kEl.getBoundingClientRect(), imgSrc: kEl.querySelector('img')?.src || DECK_BACK_IMG });
+          if (kEl) soulSnaps.push({ rect: kEl.getBoundingClientRect(), imgSrc: k.img || DECK_BACK_IMG });
         });
       }
       if (g.basho) player.soul.push(g.basho);
@@ -5673,7 +5673,7 @@ async function executeCpuAttack(groupIdx, done) {
         if (bashoEl2 && group.basho) cpuSoulSnaps.push({ rect: bashoEl2.getBoundingClientRect(), imgSrc: bashoEl2.querySelector('img')?.src || group.basho.img || DECK_BACK_IMG });
         group.kaii.forEach(k => {
           const kEl2 = groupEl2.querySelector(`.kaii-attached[data-uid="${k.uid}"]`);
-          if (kEl2) cpuSoulSnaps.push({ rect: kEl2.getBoundingClientRect(), imgSrc: kEl2.querySelector('img')?.src || DECK_BACK_IMG });
+          if (kEl2) cpuSoulSnaps.push({ rect: kEl2.getBoundingClientRect(), imgSrc: k.img || DECK_BACK_IMG });
         });
       }
     }

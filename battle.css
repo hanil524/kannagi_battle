@@ -3519,7 +3519,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 16px;
-  z-index: 370;
+  z-index: 9050;
   background: rgba(0, 0, 0, 0.75);
 }
 
@@ -3593,7 +3593,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  z-index: 370;
+  z-index: 9050;
   pointer-events: none;
   background: rgba(0, 0, 0, 0.7);
 }
@@ -4735,6 +4735,7 @@ body {
   background: linear-gradient(135deg, #7a3da2, #5a2d82);
   box-shadow: 0 0 12px rgba(160, 100, 255, 0.4);
 }
+
 
 #banmen-floating-btn {
   position: fixed;
