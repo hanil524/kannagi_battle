@@ -2791,8 +2791,8 @@ function showDamage(amount, side, isFinish) {
     showBarrageDamage(b.hitCount, b.dmgPer, b.side, isFinish, b.resolve, b.cardImg, b.who);
     return;
   }
-  // 7ダメージ以上でスクリーンシェイク
-  if (amount >= 7) screenShake();
+  // 7ダメージ以上、またはフィニッシュブローでスクリーンシェイク
+  if (amount >= 7 || isFinish) screenShake();
   dom.damageText.textContent = 'HP−' + amount;
   const cls = (side === 'top') ? 'show-top' : 'show-bottom';
   dom.damageOverlay.className = cls + (isFinish ? ' finish-damage' : '');
@@ -4879,8 +4879,8 @@ function applyDamageWithSoulAbsorb(amount, side, sourceCard) {
         if (cpuAbsorbed > 0) {
           showSoulDamage(cpuAbsorbed, 'opponent', isLethal);
         }
-        // 元のダメージが7以上なら魂吸収後の実ダメージに関わらず揺らす
-        if (amount >= 7) screenShake();
+        // 元のダメージが7以上、またはフィニッシュなら揺らす
+        if (amount >= 7 || isLethal) screenShake();
         if (actualDmg > 0) {
           showDamage(actualDmg, side, isLethal);
         } else if (_pendingBarrage) {
@@ -5058,8 +5058,8 @@ function finishSoulAbsorbSelect(totalDamage, side, st, resolve) {
     showSoulDamage(absorbCount, 'player', isLethal);
   }
 
-  // 元のダメージが7以上なら魂吸収後の実ダメージに関わらず揺らす
-  if (totalDamage >= 7) screenShake();
+  // 元のダメージが7以上、またはフィニッシュなら揺らす
+  if (totalDamage >= 7 || isLethal) screenShake();
 
   // ダメージ表示
   if (remainingDamage > 0) {
@@ -5310,6 +5310,7 @@ async function cpuPlaceCard(card) {
     if (card.effect === 'damage_8') {
       logHistory('opponent', `「${card.name}」の効果で相手に8点のダメージを与えた。`);
       await applyDamageWithSoulAbsorb(8, 'bottom', card);
+      await new Promise(r => setTimeout(r, 100));
       checkWinLose();
     } else if (card.effect === 'draw_3') {
       drawCards('opponent', 3, card.name);
@@ -5329,6 +5330,7 @@ async function cpuPlaceCard(card) {
           updateAllCounts();
           logHistory('opponent', `「${card.name}」の効果で相手に4点のダメージを与えた。`);
           await applyDamageWithSoulAbsorb(4, 'bottom', card);
+          await new Promise(r => setTimeout(r, 100));
           checkWinLose();
         }
       }
@@ -5471,7 +5473,8 @@ async function executeCpuAttack(groupIdx, done) {
       showFinishBlowZoom('bottom');
       setTimeout(() => { showWinLoseResult(false); }, 1800);
     } else {
-      done();
+      // ダメージエフェクトを0.8秒見せてから次フェーズへ
+      setTimeout(done, 800);
     }
   }, 500);
 }
