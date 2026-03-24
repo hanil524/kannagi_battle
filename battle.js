@@ -4662,6 +4662,7 @@ async function handleCpuSummonEffect(card) {
         });
         // プレイヤーに3点ダメージ（魂吸収選択あり）
         await applyDamageWithSoulAbsorb(3, 'bottom', card);
+        await new Promise(r => setTimeout(r, 100));
         logHistory('opponent', `「${card.name}」の効果で相手に3点のダメージを与えた。`);
         checkWinLose();
       }
@@ -4685,6 +4686,7 @@ async function handleCpuSummonEffect(card) {
         updateExileDisplay('opponent');
         updateAllCounts();
         await applyDamageWithSoulAbsorb(4, 'bottom', card);
+        await new Promise(r => setTimeout(r, 100));
         logHistory('opponent', `「${card.name}」の効果で相手に4点のダメージを与えた。`);
         checkWinLose();
       }
@@ -4701,6 +4703,7 @@ async function handleCpuSummonEffect(card) {
     if (dmg > 0) {
       logHistory('opponent', `「${card.name}」の効果で相手に${dmg}点のダメージを与えた。`);
       await applyDamageWithSoulAbsorb(dmg, 'bottom', card);
+      await new Promise(r => setTimeout(r, 100));
       checkWinLose();
     }
   }
