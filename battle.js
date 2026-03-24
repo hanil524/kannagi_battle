@@ -4044,6 +4044,11 @@ function showZeroSearch(who) {
 
       overlay.style.display = 'none';
       $('app').style.display = '';
+      // 零探し中に画面回転していた場合のレイアウトリセット
+      document.querySelectorAll('.field-card-row').forEach(el => {
+        el.style.width = '';
+        el.style.maxWidth = '';
+      });
       resolve();
     };
     const onConfirmTouch = (e) => { if (e.cancelable) e.preventDefault(); onConfirm(); };
@@ -5699,8 +5704,34 @@ $('opp-hand-zone').addEventListener('click', (e) => {
 });
 // 相手の山札クリック
 dom.oppDeck.addEventListener('click', () => { showPopup('opp-deck-msg'); });
+let _resizeTimer = null;
 window.addEventListener('resize', () => {
-  [dom.playerHandCards, dom.oppHandCards, dom.playerFieldCards, dom.oppFieldCards, dom.playerSoulCards, dom.oppSoulCards].forEach(updateOverflow);
+  // デバウンス：ブラウザがレイアウトを確定させてから実行
+  if (_resizeTimer) clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(() => {
+    // スタートオーバーレイの位置再調整
+    const header = $('app');
+    const overlay = $('start-overlay');
+    if (header && overlay && overlay.style.display !== 'none') {
+      overlay.style.top = header.offsetHeight + 'px';
+    }
+    // ゲーム中ならインラインwidthをクリアしてから再レンダリング
+    if (turnNumber > 0) {
+      // フィールド行のインライン幅を一旦リセット
+      document.querySelectorAll('.field-card-row').forEach(el => {
+        el.style.width = '';
+        el.style.maxWidth = '';
+      });
+      renderPlayerHand();
+      renderOppHand();
+      renderField('player');
+      renderField('opponent');
+      updateAllCounts();
+      [dom.playerHandCards, dom.oppHandCards, dom.playerFieldCards, dom.oppFieldCards, dom.playerSoulCards, dom.oppSoulCards].forEach(updateOverflow);
+    } else {
+      [dom.playerHandCards, dom.oppHandCards, dom.playerFieldCards, dom.oppFieldCards, dom.playerSoulCards, dom.oppSoulCards].forEach(updateOverflow);
+    }
+  }, 150);
 });
 
 // ===================================================================
