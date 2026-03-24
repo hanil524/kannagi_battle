@@ -1464,7 +1464,7 @@ async function handleAttackEffect(basho, who) {
         // 除外から手札公開場へ移動
         const idx = st.exile.findIndex(c => c.uid === selected.uid);
         if (idx !== -1) {
-          const exSrcA = { rect: dom.playerExile.getBoundingClientRect(), imgSrc: selected.img || DECK_BACK_IMG };
+          const exSrcA = { rect: dom.playerExile.getBoundingClientRect(), imgSrc: selected.img || DECK_BACK_IMG, uid: String(selected.uid) };
           st.exile.splice(idx, 1);
           st.open.push(selected);
           logHistory('player', `「${basho.name}」の効果で除外から「${selected.name}」を手札公開場に戻した。`);
@@ -1623,10 +1623,11 @@ async function handleCpuAttackEffect(basho, st) {
       const target = graveyardCards[0];
       const idx = st.exile.findIndex(c => c.uid === target.uid);
       if (idx !== -1) {
-        const exSrcF = { rect: dom.oppExile.getBoundingClientRect(), imgSrc: DECK_BACK_IMG };
+        const exSrcF = { rect: dom.oppExile.getBoundingClientRect(), imgSrc: DECK_BACK_IMG, uid: String(target.uid) };
         st.exile.splice(idx, 1);
         st.open.push(target);
         logHistory('opponent', `「${basho.name}」の効果で除外から「${target.name}」を手札公開場に戻した。`);
+        renderOppOpen();
         updateExileDisplay('opponent');
         updateAllCounts();
         showOpenFly([exSrcF], dom.oppOpenCards);
@@ -1765,7 +1766,7 @@ async function handleKaiiEffect(kCard, who) {
       if (selected) {
         const idx = st.exile.findIndex(c => c.uid === selected.uid);
         if (idx !== -1) {
-          const exSrcB = { rect: dom.playerExile.getBoundingClientRect(), imgSrc: selected.img || DECK_BACK_IMG };
+          const exSrcB = { rect: dom.playerExile.getBoundingClientRect(), imgSrc: selected.img || DECK_BACK_IMG, uid: String(selected.uid) };
           st.exile.splice(idx, 1);
           st.open.push(selected);
           logHistory('player', `「${kCard.name}」の効果で除外から「${selected.name}」を手札公開場に戻した。`);
@@ -1785,10 +1786,11 @@ async function handleKaiiEffect(kCard, who) {
         const target = graveyardCards[0];
         const idx = st.exile.findIndex(c => c.uid === target.uid);
         if (idx !== -1) {
-          const exSrcG = { rect: dom.oppExile.getBoundingClientRect(), imgSrc: DECK_BACK_IMG };
+          const exSrcG = { rect: dom.oppExile.getBoundingClientRect(), imgSrc: DECK_BACK_IMG, uid: String(target.uid) };
           st.exile.splice(idx, 1);
           st.open.push(target);
           logHistory('opponent', `「${kCard.name}」の効果で除外から「${target.name}」を手札公開場に戻した。`);
+          renderOppOpen();
           updateExileDisplay('opponent');
           updateAllCounts();
           showOpenFly([exSrcG], dom.oppOpenCards);
@@ -1816,7 +1818,7 @@ async function handleKaiiEffect(kCard, who) {
       if (selected) {
         const idx = st.exile.findIndex(c => c.uid === selected.uid);
         if (idx !== -1) {
-          const exSrcC = { rect: dom.playerExile.getBoundingClientRect(), imgSrc: selected.img || DECK_BACK_IMG };
+          const exSrcC = { rect: dom.playerExile.getBoundingClientRect(), imgSrc: selected.img || DECK_BACK_IMG, uid: String(selected.uid) };
           st.exile.splice(idx, 1);
           st.open.push(selected);
           logHistory('player', `「${kCard.name}」の効果で除外から「${selected.name}」を手札公開場に戻した。`);
@@ -1838,10 +1840,11 @@ async function handleKaiiEffect(kCard, who) {
         const target = graveyardCards[0];
         const idx = st.exile.findIndex(c => c.uid === target.uid);
         if (idx !== -1) {
-          const exSrcH = { rect: dom.oppExile.getBoundingClientRect(), imgSrc: DECK_BACK_IMG };
+          const exSrcH = { rect: dom.oppExile.getBoundingClientRect(), imgSrc: DECK_BACK_IMG, uid: String(target.uid) };
           st.exile.splice(idx, 1);
           st.open.push(target);
           logHistory('opponent', `「${kCard.name}」の効果で除外から「${target.name}」を手札公開場に戻した。`);
+          renderOppOpen();
           updateExileDisplay('opponent');
           updateAllCounts();
           showOpenFly([exSrcH], dom.oppOpenCards);
@@ -2128,7 +2131,7 @@ async function handleKaiiEffect(kCard, who) {
           for (let i = 0; i < exileCount; i++) {
             const target = shuffled[i];
             const snapEl = dom.oppHandCards.querySelector(`.battle-card[data-uid="${target.uid}"]`)
-                        || dom.oppOpenCards.querySelector(`.battle-card[data-uid="${target.uid}"]`);
+              || dom.oppOpenCards.querySelector(`.battle-card[data-uid="${target.uid}"]`);
             if (snapEl) handdesSnaps.push({ rect: snapEl.getBoundingClientRect(), imgSrc: DECK_BACK_IMG });
           }
           const handdesNames = [];
@@ -2192,7 +2195,7 @@ async function handleKaiiEffect(kCard, who) {
           const autoExileSnaps = [];
           playerAllHand.forEach(c => {
             const snapEl = dom.playerHandCards.querySelector(`.battle-card[data-uid="${c.uid}"]`)
-                        || dom.playerOpenCards.querySelector(`.battle-card[data-uid="${c.uid}"]`);
+              || dom.playerOpenCards.querySelector(`.battle-card[data-uid="${c.uid}"]`);
             if (snapEl) autoExileSnaps.push({ rect: snapEl.getBoundingClientRect(), imgSrc: snapEl.querySelector('img')?.src || c.img });
           });
           const autoExiledNames = [];
@@ -2753,10 +2756,10 @@ function executeAttackAnimation(targetEl, atkIdx, power, group) {
       const groupEl = groupEls[atkIdx];
       if (groupEl) {
         const bashoEl = groupEl.querySelector('.basho-slot');
-        if (bashoEl && g.basho) soulSnaps.push({ rect: bashoEl.getBoundingClientRect(), imgSrc: bashoEl.querySelector('img')?.src || g.basho.img || DECK_BACK_IMG });
+        if (bashoEl && g.basho) soulSnaps.push({ rect: bashoEl.getBoundingClientRect(), imgSrc: bashoEl.querySelector('img')?.src || g.basho.img || DECK_BACK_IMG, uid: String(g.basho.uid) });
         g.kaii.forEach(k => {
           const kEl = groupEl.querySelector(`.kaii-attached[data-uid="${k.uid}"]`);
-          if (kEl) soulSnaps.push({ rect: kEl.getBoundingClientRect(), imgSrc: k.img || DECK_BACK_IMG });
+          if (kEl) soulSnaps.push({ rect: kEl.getBoundingClientRect(), imgSrc: k.img || DECK_BACK_IMG, uid: String(k.uid) });
         });
       }
       if (g.basho) player.soul.push(g.basho);
@@ -3168,8 +3171,8 @@ function showSummonRipple(targetEl, colorType, aspect) {
 
   // colorType: 'red'(場所札), 'purple'(怪異札), 'yellow'(季節札)
   const colorClass = colorType === 'purple' ? ' ripple-purple'
-                   : colorType === 'yellow' ? ' ripple-yellow'
-                   : '';
+    : colorType === 'yellow' ? ' ripple-yellow'
+      : '';
   const shapeClass = isLandscape ? ' ripple-landscape' : ' ripple-portrait';
   for (let i = 0; i < 2; i++) {
     const ripple = document.createElement('div');
@@ -3288,6 +3291,14 @@ function showSoulFly(snapshots, soulEl, onComplete) {
     if (onComplete) onComplete();
     return;
   }
+  // 目的地カードを到着まで隠す（各snapのuidで1対1対応）
+  const destMap = snapshots.map(s => {
+    if (!s.uid) return null;
+    const el = soulEl.querySelector(`[data-uid="${s.uid}"]`);
+    if (el) el.style.opacity = '0';
+    return el || null;
+  });
+
   const soulRect = soulEl.getBoundingClientRect();
   const destX = soulRect.left + soulRect.width / 2;
   const destY = soulRect.top + soulRect.height / 2;
@@ -3317,6 +3328,8 @@ function showSoulFly(snapshots, soulEl, onComplete) {
         });
       });
       setTimeout(() => {
+        // 到着した瞬間に対応する目的地カードを表示
+        if (destMap[idx]) destMap[idx].style.opacity = '';
         fly.classList.remove('soul-fly-active');
         fly.classList.add('soul-fly-shrink');
         setTimeout(() => {
@@ -3338,20 +3351,35 @@ function showOpenFly(snapshots, openEl, onComplete) {
     if (onComplete) onComplete();
     return;
   }
-  const openRect = openEl.getBoundingClientRect();
-  const destX = openRect.left + openRect.width / 2;
-  const destY = openRect.top + openRect.height / 2;
+  // 目的地カードを到着まで隠す（各snapのuidで1対1対応）
+  const destMap = snapshots.map(s => {
+    if (!s.uid) return null;
+    const el = openEl.querySelector(`[data-uid="${s.uid}"]`);
+    if (el) el.style.opacity = '0';
+    return el || null;
+  });
+
   let completed = 0;
   const total = snapshots.length;
   const STAGGER = 60;
 
   snapshots.forEach((snap, idx) => {
+    // 目的地カードのrectを使ってサイズと着地位置を決める（destElがない場合はsnap.rectサイズでコンテナ中央へ）
+    const destEl = destMap[idx];
+    const dRect = destEl ? destEl.getBoundingClientRect() : null;
+    const flyW = dRect ? dRect.width : snap.rect.width;
+    const flyH = dRect ? dRect.height : snap.rect.height;
+    const openRect = openEl.getBoundingClientRect();
+    const endX = dRect ? dRect.left : openRect.left + openRect.width / 2 - flyW / 2;
+    const endY = dRect ? dRect.top : openRect.top + openRect.height / 2 - flyH / 2;
+
     const fly = document.createElement('div');
     fly.className = 'open-fly-card';
-    fly.style.width = snap.rect.width + 'px';
-    fly.style.height = snap.rect.height + 'px';
-    fly.style.left = snap.rect.left + 'px';
-    fly.style.top = snap.rect.top + 'px';
+    fly.style.width = flyW + 'px';
+    fly.style.height = flyH + 'px';
+    // 出発位置：ソースの中央からスタート
+    fly.style.left = (snap.rect.left + snap.rect.width / 2 - flyW / 2) + 'px';
+    fly.style.top = (snap.rect.top + snap.rect.height / 2 - flyH / 2) + 'px';
     const img = document.createElement('img');
     img.src = snap.imgSrc || DECK_BACK_IMG;
     img.draggable = false;
@@ -3362,11 +3390,13 @@ function showOpenFly(snapshots, openEl, onComplete) {
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           fly.classList.add('open-fly-active');
-          fly.style.left = (destX - snap.rect.width / 2) + 'px';
-          fly.style.top = (destY - snap.rect.height / 2) + 'px';
+          fly.style.left = endX + 'px';
+          fly.style.top = endY + 'px';
         });
       });
       setTimeout(() => {
+        // 到着した瞬間に対応する目的地カードを表示
+        if (destMap[idx]) destMap[idx].style.opacity = '';
         fly.classList.remove('open-fly-active');
         fly.classList.add('open-fly-shrink');
         setTimeout(() => {
@@ -3410,6 +3440,7 @@ function hideSeasonWarning() { dom.seasonWarning.classList.remove('active'); dom
 // ===================================================================
 let dragCard = null, dragGhost = null, dragSourceEl = null, isDragging = false;
 let currentKaiiGhost = null, currentDropTarget = null;
+let lastDropX = null; // ドロップ位置のX座標（左右判定用）
 
 function setupDrag(el, card) {
   let startX, startY, touchId = null;
@@ -3525,6 +3556,8 @@ function setupDrag(el, card) {
         cleanup();
         return;
       }
+      // ドロップ位置を記録（placeCard内で左右判定に使用）
+      lastDropX = x;
       // 手札から探す
       let idx = player.hand.findIndex(c => c.uid === card.uid);
       if (idx !== -1) { player.hand.splice(idx, 1); placeCard(card); }
@@ -3533,6 +3566,7 @@ function setupDrag(el, card) {
         idx = player.open.findIndex(c => c.uid === card.uid);
         if (idx !== -1) { player.open.splice(idx, 1); card._fromOpen = true; placeCard(card); renderPlayerOpen(); }
       }
+      lastDropX = null;
     }
     cleanup();
   };
@@ -3628,13 +3662,23 @@ function clearDropTargets() {
 // カード配置
 // ===================================================================
 function placeCard(card) {
+  // ドロップ位置がフィールド中央より右なら右側(push)、左なら左側(unshift)
+  function insertToField(group) {
+    const fieldRect = dom.playerField.getBoundingClientRect();
+    const center = fieldRect.left + fieldRect.width / 2;
+    if (lastDropX !== null && lastDropX >= center) {
+      player.field.push(group);
+    } else {
+      player.field.unshift(group);
+    }
+  }
   if (card.type === '場所札') {
     const hasSokkou = card.keyword === '速攻';
     if (currentDropTarget !== null && player.field[currentDropTarget] && player.field[currentDropTarget].season && !player.field[currentDropTarget].basho) {
       player.field[currentDropTarget].basho = card;
       player.field[currentDropTarget]._summonedThisTurn = !hasSokkou;
     } else {
-      player.field.unshift({ season: null, basho: card, kaii: [], _summonedThisTurn: !hasSokkou });
+      insertToField({ season: null, basho: card, kaii: [], _summonedThisTurn: !hasSokkou });
     }
     showPlayEffect(card);
     markUsed('player', '場所札');
@@ -3662,7 +3706,7 @@ function placeCard(card) {
       old.kaii.forEach(k => player.soul.push(k));
       renderSoul('player');
     }
-    player.field.unshift({ season: card, basho: null, kaii: [], _summonedThisTurn: false });
+    insertToField({ season: card, basho: null, kaii: [], _summonedThisTurn: false });
     showPlayEffect(card);
     markUsed('player', '季節札');
     renderField('player'); renderPlayerHand(); updateAllCounts();
@@ -3700,7 +3744,7 @@ function placeCard(card) {
     // 道具札：効果発動演出のみ（全道具札共通）→効果処理→魂へ
     // フライアニメ用スナップショット（renderPlayerHand前に取得）
     const douguHandEl = dom.playerHandCards.querySelector(`.battle-card[data-uid="${card.uid}"]`);
-    const douguSnap = douguHandEl ? { rect: douguHandEl.getBoundingClientRect(), imgSrc: douguHandEl.querySelector('img')?.src || card.img || DECK_BACK_IMG } : null;
+    const douguSnap = douguHandEl ? { rect: douguHandEl.getBoundingClientRect(), imgSrc: douguHandEl.querySelector('img')?.src || card.img || DECK_BACK_IMG, uid: String(card.uid) } : null;
     markUsed('player', '道具札');
     renderPlayerHand();
     logHistory('player', `自分は道具札「${card.name}」を発動した。`);
@@ -3725,7 +3769,7 @@ function placeCard(card) {
           if (selected) {
             const idx = player.exile.findIndex(c => c.uid === selected.uid);
             if (idx !== -1) {
-              const exSrc1 = { rect: dom.playerExile.getBoundingClientRect(), imgSrc: selected.img || DECK_BACK_IMG };
+              const exSrc1 = { rect: dom.playerExile.getBoundingClientRect(), imgSrc: selected.img || DECK_BACK_IMG, uid: String(selected.uid) };
               player.exile.splice(idx, 1);
               player.open.push(selected);
               logHistory('player', `「${card.name}」の効果で除外から「${selected.name}」を手札公開場に戻した。`);
@@ -3751,7 +3795,7 @@ function placeCard(card) {
           if (selected) {
             const idx = player.exile.findIndex(c => c.uid === selected.uid);
             if (idx !== -1) {
-              const exSrc2 = { rect: dom.playerExile.getBoundingClientRect(), imgSrc: selected.img || DECK_BACK_IMG };
+              const exSrc2 = { rect: dom.playerExile.getBoundingClientRect(), imgSrc: selected.img || DECK_BACK_IMG, uid: String(selected.uid) };
               player.exile.splice(idx, 1);
               player.open.push(selected);
               logHistory('player', `「${card.name}」の効果で除外から「${selected.name}」を手札公開場に戻した。`);
@@ -3771,7 +3815,7 @@ function placeCard(card) {
       updatePlayableAura();
     })();
   } else {
-    player.field.unshift({ season: null, basho: card, kaii: [] });
+    insertToField({ season: null, basho: card, kaii: [] });
     showPlayEffect(card);
     renderField('player'); renderPlayerHand(); updateAllCounts();
   }
@@ -3960,7 +4004,7 @@ function startGame() {
   coinFlipInterval = setInterval(() => {
     dom.coinText.textContent = (flipCount % 2 === 0) ? '先行' : '後攻';
     flipCount++;
-  }, 80);
+  }, 50);
 
   coinTimer1 = setTimeout(() => {
     if (coinSkipped) return;
@@ -3972,13 +4016,13 @@ function startGame() {
     dom.coinText.classList.remove('coin-stamp');
     void dom.coinText.offsetHeight; // リフロー
     dom.coinText.classList.add('coin-stamp');
-  }, 1000);
+  }, 600);
 
   // 結果表示後、少し待ってからスムーズにフェードアウト
   coinTimer2 = setTimeout(() => {
     if (coinSkipped) return;
     finishCoinFlip();
-  }, 2200);
+  }, 1500);
 }
 
 function dealInitialHand(who, count) {
@@ -4050,14 +4094,13 @@ function showKaimonAnimation() {
     void dom.gateText.offsetHeight;
 
     let kaimonSkipped = false;
-    let kTimer1 = null, kTimer2 = null, kTimer3 = null;
+    let kTimer1 = null, kTimer3 = null;
 
     function finishKaimon() {
       if (kaimonSkipped) return;
       kaimonSkipped = true;
       if (gen !== gameGeneration) return;
       if (kTimer1) clearTimeout(kTimer1);
-      if (kTimer2) clearTimeout(kTimer2);
       if (kTimer3) clearTimeout(kTimer3);
       dom.gateOverlay.removeEventListener('click', onKaimonSkip);
       dom.gateOverlay.removeEventListener('touchend', onKaimonSkipTouch);
@@ -4076,14 +4119,10 @@ function showKaimonAnimation() {
     dom.gateOverlay.addEventListener('click', onKaimonSkip);
     dom.gateOverlay.addEventListener('touchend', onKaimonSkipTouch, { passive: false });
 
-    // フェーズ1: 画面フラッシュ + 文字ズームイン
-    const flash = document.createElement('div');
-    flash.className = 'kaimon-flash';
-    dom.gateOverlay.appendChild(flash);
-
+    // フェーズ1: 文字ズームイン（フラッシュなし）
     dom.gateText.style.animation = 'kaimonZoomIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards';
 
-    // フェーズ2: 着地時に衝撃波 + 放射線 + パーティクル
+    // フェーズ2: 着地時に衝撃波
     kTimer1 = setTimeout(() => {
       if (kaimonSkipped) return;
       dom.gateText.classList.add('kaimon-burst');
@@ -4096,21 +4135,13 @@ function showKaimonAnimation() {
         dom.gateOverlay.appendChild(ring);
         ring.addEventListener('animationend', () => ring.remove());
       }
+    }, 300);
 
-
-    }, 500);
-
-    // フェーズ3: テキスト揺らし（画面振動風）
-    kTimer2 = setTimeout(() => {
-      if (kaimonSkipped) return;
-      dom.gateText.style.animation = 'kaimonShake 0.4s ease-out';
-    }, 600);
-
-    // フェーズ4: スムーズにフェードアウト（finishKaimonが処理）
+    // フェーズ3: フェードアウト（40%短縮: 2200ms→1320ms）
     kTimer3 = setTimeout(() => {
       if (kaimonSkipped) return;
       finishKaimon();
-    }, 2200);
+    }, 1320);
   });
 }
 
@@ -4602,7 +4633,7 @@ function handleSummonEffect(card, who) {
           onConfirm: (selectedCard) => {
             // フライアニメ用スナップ（renderHand前に取得）
             const hSnap1 = dom.playerHandCards.querySelector(`.battle-card[data-uid="${selectedCard.uid}"]`)
-                        || dom.playerOpenCards.querySelector(`.battle-card[data-uid="${selectedCard.uid}"]`);
+              || dom.playerOpenCards.querySelector(`.battle-card[data-uid="${selectedCard.uid}"]`);
             const exSnap1 = hSnap1 ? { rect: hSnap1.getBoundingClientRect(), imgSrc: hSnap1.querySelector('img')?.src || selectedCard.img } : null;
             // 手札から除外
             let idx = player.hand.findIndex(c => c.uid === selectedCard.uid);
@@ -4662,7 +4693,7 @@ function handleSummonEffect(card, who) {
         if (selected) {
           const idx = player.exile.findIndex(c => c.uid === selected.uid);
           if (idx !== -1) {
-            const exSrcD = { rect: dom.playerExile.getBoundingClientRect(), imgSrc: selected.img || DECK_BACK_IMG };
+            const exSrcD = { rect: dom.playerExile.getBoundingClientRect(), imgSrc: selected.img || DECK_BACK_IMG, uid: String(selected.uid) };
             player.exile.splice(idx, 1);
             player.open.push(selected);
             logHistory('player', `「${card.name}」の効果で除外から「${selected.name}」を手札公開場に戻した。`);
@@ -4722,7 +4753,7 @@ function handleSummonEffect(card, who) {
           filter: (c) => hasTribe(c, '墓地'),
           onConfirm: (selectedCard) => {
             const hSnap2 = dom.playerHandCards.querySelector(`.battle-card[data-uid="${selectedCard.uid}"]`)
-                        || dom.playerOpenCards.querySelector(`.battle-card[data-uid="${selectedCard.uid}"]`);
+              || dom.playerOpenCards.querySelector(`.battle-card[data-uid="${selectedCard.uid}"]`);
             const exSnap2 = hSnap2 ? { rect: hSnap2.getBoundingClientRect(), imgSrc: hSnap2.querySelector('img')?.src || selectedCard.img } : null;
             let idx = player.hand.findIndex(c => c.uid === selectedCard.uid);
             if (idx !== -1) {
@@ -4774,7 +4805,7 @@ function handleSummonEffect(card, who) {
         if (selected) {
           const idx = player.exile.findIndex(c => c.uid === selected.uid);
           if (idx !== -1) {
-            const exSrcE = { rect: dom.playerExile.getBoundingClientRect(), imgSrc: selected.img || DECK_BACK_IMG };
+            const exSrcE = { rect: dom.playerExile.getBoundingClientRect(), imgSrc: selected.img || DECK_BACK_IMG, uid: String(selected.uid) };
             player.exile.splice(idx, 1);
             player.open.push(selected);
             logHistory('player', `「${card.name}」の効果で除外から「${selected.name}」を手札公開場に戻した。`);
@@ -4861,10 +4892,11 @@ async function handleCpuSummonEffect(card) {
       const target = graveyardCards[0];
       const idx = opponent.exile.findIndex(c => c.uid === target.uid);
       if (idx !== -1) {
-        const exSrcI = { rect: dom.oppExile.getBoundingClientRect(), imgSrc: DECK_BACK_IMG };
+        const exSrcI = { rect: dom.oppExile.getBoundingClientRect(), imgSrc: DECK_BACK_IMG, uid: String(target.uid) };
         opponent.exile.splice(idx, 1);
         opponent.open.push(target);
         logHistory('opponent', `「${card.name}」の効果で除外から「${target.name}」を手札公開場に戻した。`);
+        renderOppOpen();
         updateExileDisplay('opponent');
         updateAllCounts();
         showOpenFly([exSrcI], dom.oppOpenCards);
@@ -4924,10 +4956,11 @@ async function handleCpuSummonEffect(card) {
       const target = graveyardCards[0];
       const idx = opponent.exile.findIndex(c => c.uid === target.uid);
       if (idx !== -1) {
-        const exSrcJ = { rect: dom.oppExile.getBoundingClientRect(), imgSrc: DECK_BACK_IMG };
+        const exSrcJ = { rect: dom.oppExile.getBoundingClientRect(), imgSrc: DECK_BACK_IMG, uid: String(target.uid) };
         opponent.exile.splice(idx, 1);
         opponent.open.push(target);
         logHistory('opponent', `「${card.name}」の効果で除外から「${target.name}」を手札公開場に戻した。`);
+        renderOppOpen();
         updateExileDisplay('opponent');
         updateAllCounts();
         showOpenFly([exSrcJ], dom.oppOpenCards);
@@ -4940,7 +4973,7 @@ async function handleCpuSummonEffect(card) {
           const sandySnaps = [];
           [...player.hand, ...player.open].forEach(c => {
             const snapEl = dom.playerHandCards.querySelector(`.battle-card[data-uid="${c.uid}"]`)
-                        || dom.playerOpenCards.querySelector(`.battle-card[data-uid="${c.uid}"]`);
+              || dom.playerOpenCards.querySelector(`.battle-card[data-uid="${c.uid}"]`);
             if (snapEl) sandySnaps.push({ rect: snapEl.getBoundingClientRect(), imgSrc: snapEl.querySelector('img')?.src || c.img });
           });
           const autoExiledNames = [...player.hand, ...player.open].map(c => c.name);
@@ -5505,7 +5538,7 @@ async function cpuPlaceCard(card) {
     cpuUsedFlags.dougu = true;
     // フライアニメ用スナップショット（renderOppHand前に取得、裏面）
     const cpuDouguEl = dom.oppHandCards.querySelector(`.battle-card[data-uid="${card.uid}"]`);
-    const cpuDouguSnap = cpuDouguEl ? { rect: cpuDouguEl.getBoundingClientRect(), imgSrc: card.img || DECK_BACK_IMG } : null;
+    const cpuDouguSnap = cpuDouguEl ? { rect: cpuDouguEl.getBoundingClientRect(), imgSrc: card.img || DECK_BACK_IMG, uid: String(card.uid) } : null;
     renderField('opponent'); renderOppHand(); updateAllCounts();
     markUsed('opponent', card.type);
     logHistory('opponent', `相手が道具札「${card.name}」を発動した。`);
@@ -5527,10 +5560,11 @@ async function cpuPlaceCard(card) {
         const target = graveyardCards[0];
         const idx = opponent.exile.findIndex(c => c.uid === target.uid);
         if (idx !== -1) {
-          const exSrcK = { rect: dom.oppExile.getBoundingClientRect(), imgSrc: DECK_BACK_IMG };
+          const exSrcK = { rect: dom.oppExile.getBoundingClientRect(), imgSrc: DECK_BACK_IMG, uid: String(target.uid) };
           opponent.exile.splice(idx, 1);
           opponent.open.push(target);
           logHistory('opponent', `「${card.name}」の効果で除外から「${target.name}」を手札公開場に戻した。`);
+          renderOppOpen();
           updateExileDisplay('opponent');
           updateAllCounts();
           showOpenFly([exSrcK], dom.oppOpenCards);
@@ -5549,10 +5583,11 @@ async function cpuPlaceCard(card) {
         const target = graveyardCards[0];
         const idx = opponent.exile.findIndex(c => c.uid === target.uid);
         if (idx !== -1) {
-          const exSrcL = { rect: dom.oppExile.getBoundingClientRect(), imgSrc: DECK_BACK_IMG };
+          const exSrcL = { rect: dom.oppExile.getBoundingClientRect(), imgSrc: DECK_BACK_IMG, uid: String(target.uid) };
           opponent.exile.splice(idx, 1);
           opponent.open.push(target);
           logHistory('opponent', `「${card.name}」の効果で除外から「${target.name}」を手札公開場に戻した。`);
+          renderOppOpen();
           updateExileDisplay('opponent');
           updateAllCounts();
           showOpenFly([exSrcL], dom.oppOpenCards);
@@ -5670,10 +5705,10 @@ async function executeCpuAttack(groupIdx, done) {
       const groupEl2 = groupEls2[groupIdx];
       if (groupEl2) {
         const bashoEl2 = groupEl2.querySelector('.basho-slot');
-        if (bashoEl2 && group.basho) cpuSoulSnaps.push({ rect: bashoEl2.getBoundingClientRect(), imgSrc: bashoEl2.querySelector('img')?.src || group.basho.img || DECK_BACK_IMG });
+        if (bashoEl2 && group.basho) cpuSoulSnaps.push({ rect: bashoEl2.getBoundingClientRect(), imgSrc: bashoEl2.querySelector('img')?.src || group.basho.img || DECK_BACK_IMG, uid: String(group.basho.uid) });
         group.kaii.forEach(k => {
           const kEl2 = groupEl2.querySelector(`.kaii-attached[data-uid="${k.uid}"]`);
-          if (kEl2) cpuSoulSnaps.push({ rect: kEl2.getBoundingClientRect(), imgSrc: k.img || DECK_BACK_IMG });
+          if (kEl2) cpuSoulSnaps.push({ rect: kEl2.getBoundingClientRect(), imgSrc: k.img || DECK_BACK_IMG, uid: String(k.uid) });
         });
       }
     }
@@ -6184,7 +6219,7 @@ if (banmenFloatingBtn) {
     // ボタン範囲外に出たらキャンセル
     const margin = 8; // 少し余裕を持たせる
     if (touch.clientX < rect.left - margin || touch.clientX > rect.right + margin ||
-        touch.clientY < rect.top - margin || touch.clientY > rect.bottom + margin) {
+      touch.clientY < rect.top - margin || touch.clientY > rect.bottom + margin) {
       _btnTouchCancelled = true;
       const btn = _btnTouchTarget;
       btn.classList.remove('btn-pressing');
