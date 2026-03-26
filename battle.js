@@ -1510,11 +1510,11 @@ async function handleAttackEffect(basho, who) {
             logHistory('player', `「${basho.name}」の効果で「${selectedCard.name}」を除外した。`);
             renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
             updateExileDisplay('player');
-            if (eS1) showExileFly([eS1], dom.playerExile);
-            requestAnimationFrame(() => {
-              showFloatingText(dom.playerExile, '除外', 'exile');
-            });
             applyDamageWithSoulAbsorb(dmg, 'top', basho).then(() => {
+              if (eS1) showExileFly([eS1], dom.playerExile);
+              requestAnimationFrame(() => {
+                showFloatingText(dom.playerExile, '除外', 'exile');
+              });
               logHistory('player', `「${basho.name}」の効果で相手に${dmg}点のダメージを与えた。`);
               checkWinLose();
               resolve();
@@ -1587,12 +1587,12 @@ async function handleAttackEffect(basho, who) {
             logHistory('player', `「${basho.name}」の効果で「${selectedCard.name}」を除外した。`);
             renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
             updateExileDisplay('player');
-            if (eS2) showExileFly([eS2], dom.playerExile);
-            requestAnimationFrame(() => {
-              showFloatingText(dom.playerExile, '除外', 'exile');
-            });
-            // 相手に3点ライフダメージ
+            // 相手に3点ライフダメージ（魂吸収確認後にフライエフェクト）
             applyDamageWithSoulAbsorb(3, 'top', basho).then(() => {
+              if (eS2) showExileFly([eS2], dom.playerExile);
+              requestAnimationFrame(() => {
+                showFloatingText(dom.playerExile, '除外', 'exile');
+              });
               logHistory('player', `「${basho.name}」の効果で相手に3点のダメージを与えた。`);
               checkWinLose();
               if (!gameEnded) {
@@ -1652,11 +1652,11 @@ async function handleCpuAttackEffect(basho, st) {
         logHistory('opponent', `「${basho.name}」の効果で「${target.name}」を除外した。`);
         renderOppHand(); updateAllCounts();
         updateExileDisplay('opponent');
+        await applyDamageWithSoulAbsorb(4, 'bottom', basho);
         if (cE1) showExileFly([cE1], dom.oppExile);
         requestAnimationFrame(() => {
           showFloatingText(dom.oppExile, '除外', 'exile');
         });
-        await applyDamageWithSoulAbsorb(4, 'bottom', basho);
         logHistory('opponent', `「${basho.name}」の効果で相手に4点のダメージを与えた。`);
         checkWinLose();
       }
@@ -1680,12 +1680,12 @@ async function handleCpuAttackEffect(basho, st) {
         logHistory('opponent', `「${basho.name}」の効果で「${target.name}」を除外した。`);
         renderOppHand(); updateAllCounts();
         updateExileDisplay('opponent');
+        // プレイヤーに3点ライフダメージ（魂吸収確認後にフライエフェクト）
+        await applyDamageWithSoulAbsorb(3, 'bottom', basho);
         if (cE2) showExileFly([cE2], dom.oppExile);
         requestAnimationFrame(() => {
           showFloatingText(dom.oppExile, '除外', 'exile');
         });
-        // プレイヤーに3点ライフダメージ
-        await applyDamageWithSoulAbsorb(3, 'bottom', basho);
         logHistory('opponent', `「${basho.name}」の効果で相手に3点のダメージを与えた。`);
         checkWinLose();
         if (!gameEnded) {
@@ -1731,11 +1731,11 @@ async function handleKaiiEffect(kCard, who) {
             logHistory('player', `「${kCard.name}」の効果で「${selectedCard.name}」を除外した。`);
             renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
             updateExileDisplay('player');
-            if (eS3) showExileFly([eS3], dom.playerExile);
-            requestAnimationFrame(() => {
-              showFloatingText(dom.playerExile, '除外', 'exile');
-            });
             applyDamageWithSoulAbsorb(dmg, 'top', kCard).then(() => {
+              if (eS3) showExileFly([eS3], dom.playerExile);
+              requestAnimationFrame(() => {
+                showFloatingText(dom.playerExile, '除外', 'exile');
+              });
               logHistory('player', `「${kCard.name}」の効果で相手に${dmg}点のダメージを与えた。`);
               checkWinLose();
               resolve();
@@ -1825,9 +1825,9 @@ async function handleKaiiEffect(kCard, who) {
           renderPlayerOpen();
           updateExileDisplay('player');
           updateAllCounts();
-          showOpenFly([exSrcC], dom.playerOpenCards);
           logHistory('player', `「${kCard.name}」の効果で相手に${dmg}点のダメージを与えた。`);
           await applyDamageWithSoulAbsorb(dmg, 'top', kCard);
+          showOpenFly([exSrcC], dom.playerOpenCards);
           checkWinLose();
         }
       }
@@ -1847,9 +1847,9 @@ async function handleKaiiEffect(kCard, who) {
           renderOppOpen();
           updateExileDisplay('opponent');
           updateAllCounts();
-          showOpenFly([exSrcH], dom.oppOpenCards);
           logHistory('opponent', `「${kCard.name}」の効果で相手に${dmg}点のダメージを与えた。`);
           await applyDamageWithSoulAbsorb(dmg, 'bottom', kCard);
+          showOpenFly([exSrcH], dom.oppOpenCards);
           checkWinLose();
         }
       }
@@ -1915,17 +1915,7 @@ async function handleKaiiEffect(kCard, who) {
     }
     updateAllCounts();
 
-    // 除外飛行アニメーション（awaitせず起動だけしておく）
     const exileEl = (who === 'player') ? dom.playerExile : dom.oppExile;
-    let flyPromise = Promise.resolve();
-    if (exileFlySnapshots.length > 0) {
-      flyPromise = new Promise(resolve => {
-        showExileFly(exileFlySnapshots, exileEl, () => {
-          showFloatingText(exileEl, '全除外', 'exile');
-          resolve();
-        });
-      });
-    }
 
     const dmg = graveyardCount * 2;
     if (dmg > 0) {
@@ -1933,7 +1923,7 @@ async function handleKaiiEffect(kCard, who) {
       logHistory(logWho, `「${kCard.name}」の効果で相手に${dmg}点のダメージを与えた。（墓地属性${graveyardCount}枚×2）`);
       const side = (who === 'player') ? 'top' : 'bottom';
 
-      // 蟲憑き専用：除外飛行アニメーションと連続ダメージばらまき演出を同時に起動
+      // 蟲憑き専用：魂吸収確認後に除外飛行アニメーションと連続ダメージばらまき演出を同時起動
       let barrageResolve;
       const barragePromise = new Promise(r => { barrageResolve = r; });
       _pendingBarrage = { hitCount: graveyardCount, dmgPer: 2, side: side, resolve: barrageResolve, cardImg: 'images/finish.jpg', who: who };
@@ -1942,12 +1932,29 @@ async function handleKaiiEffect(kCard, who) {
       } else {
         await applyDamageWithSoulAbsorb(dmg, 'bottom', kCard);
       }
+      // 魂吸収確認後にフライエフェクト起動
+      let flyPromise = Promise.resolve();
+      if (exileFlySnapshots.length > 0) {
+        flyPromise = new Promise(resolve => {
+          showExileFly(exileFlySnapshots, exileEl, () => {
+            showFloatingText(exileEl, '全除外', 'exile');
+            resolve();
+          });
+        });
+      }
       // 除外飛行アニメーションとばらまき演出の両方の完了を待ってからフィニッシュ判定
       await Promise.all([flyPromise, barragePromise]);
       checkWinLose();
     } else {
-      // ダメージなしの場合は飛行アニメーションの完了だけ待つ
-      await flyPromise;
+      // ダメージなしの場合は飛行アニメーションのみ
+      if (exileFlySnapshots.length > 0) {
+        await new Promise(resolve => {
+          showExileFly(exileFlySnapshots, exileEl, () => {
+            showFloatingText(exileEl, '全除外', 'exile');
+            resolve();
+          });
+        });
+      }
     }
   }
 
@@ -3776,9 +3783,9 @@ function placeCard(card) {
               renderPlayerOpen();
               updateExileDisplay('player');
               updateAllCounts();
-              showOpenFly([exSrc1], dom.playerOpenCards);
               logHistory('player', `「${card.name}」の効果で相手に4点のダメージを与えた。`);
               await applyDamageWithSoulAbsorb(4, 'top', card);
+              showOpenFly([exSrc1], dom.playerOpenCards);
               checkWinLose();
             }
           }
@@ -4647,14 +4654,13 @@ function handleSummonEffect(card, who) {
             logHistory('player', `「${card.name}」の効果で「${selectedCard.name}」を除外した。`);
             renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
             updateExileDisplay('player');
-            if (exSnap1) showExileFly([exSnap1], dom.playerExile);
-            // 除外フローティングテキスト
-            requestAnimationFrame(() => {
-              const exileImg = dom.playerExile.querySelector('.exile-top-card');
-              if (exileImg) showFloatingText(dom.playerExile, '除外', 'exile');
-            });
-            // 相手に3点ダメージ
+            // 相手に3点ダメージ（魂吸収確認後にフライエフェクト）
             applyDamageWithSoulAbsorb(3, 'top', card).then(() => {
+              if (exSnap1) showExileFly([exSnap1], dom.playerExile);
+              requestAnimationFrame(() => {
+                const exileImg = dom.playerExile.querySelector('.exile-top-card');
+                if (exileImg) showFloatingText(dom.playerExile, '除外', 'exile');
+              });
               logHistory('player', `「${card.name}」の効果で相手に3点のダメージを与えた。`);
               checkWinLose();
               turnLocked = false;
@@ -4700,8 +4706,8 @@ function handleSummonEffect(card, who) {
             renderPlayerOpen();
             updateExileDisplay('player');
             updateAllCounts();
-            showOpenFly([exSrcD], dom.playerOpenCards);
             await applyDamageWithSoulAbsorb(4, 'top', card);
+            showOpenFly([exSrcD], dom.playerOpenCards);
             logHistory('player', `「${card.name}」の効果で相手に4点のダメージを与えた。`);
             checkWinLose();
           }
@@ -4899,8 +4905,8 @@ async function handleCpuSummonEffect(card) {
         renderOppOpen();
         updateExileDisplay('opponent');
         updateAllCounts();
-        showOpenFly([exSrcI], dom.oppOpenCards);
         await applyDamageWithSoulAbsorb(4, 'bottom', card);
+        showOpenFly([exSrcI], dom.oppOpenCards);
         await new Promise(r => setTimeout(r, 100));
         logHistory('opponent', `「${card.name}」の効果で相手に4点のダメージを与えた。`);
         checkWinLose();
@@ -5567,9 +5573,9 @@ async function cpuPlaceCard(card) {
           renderOppOpen();
           updateExileDisplay('opponent');
           updateAllCounts();
-          showOpenFly([exSrcK], dom.oppOpenCards);
           logHistory('opponent', `「${card.name}」の効果で相手に4点のダメージを与えた。`);
           await applyDamageWithSoulAbsorb(4, 'bottom', card);
+          showOpenFly([exSrcK], dom.oppOpenCards);
           await new Promise(r => setTimeout(r, 100));
           checkWinLose();
         }
