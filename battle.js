@@ -4181,6 +4181,7 @@ function showZeroSearch(who) {
     cardsEl.innerHTML = '';
     previewImg.src = DECK_BACK_IMG;
     previewImg.style.display = 'block';
+    previewImg.style.visibility = 'hidden'; // レイアウト確定前の一瞬表示を防ぐ
     confirmBtn.classList.add('ready'); // 0枚でも決定可能
 
     // 手札8枚を表示
@@ -4266,6 +4267,8 @@ function showZeroSearch(who) {
 
     $('app').style.display = 'none';
     overlay.style.display = 'flex';
+    // flex レイアウト確定後に表示（一瞬大きく映るフラッシュ防止）
+    requestAnimationFrame(() => { previewImg.style.visibility = ''; });
   });
 }
 
