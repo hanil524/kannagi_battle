@@ -141,6 +141,7 @@ let turnNumber = 0;          // ターン数（先行1=1, 後攻1=2, 先行2=3, 
 let turnLocked = false;       // ターン遷移中の操作ロック
 let gameEnded = false;        // 勝敗決定後フラグ
 let gameGeneration = 0;       // リセット連打防止用世代カウンター
+let soloMode = false;         // 一人回しモード（CPUが行動しない）
 
 // ===================================================================
 // 行動履歴
@@ -245,6 +246,7 @@ const dom = {
   effectCardImg: $('effect-card-img'),
   startOverlay: $('start-overlay'),
   startBtn: $('start-btn'),
+  soloBtn: $('solo-btn'),
   handOverflowOverlay: $('hand-overflow-overlay'),
   handOverflowConfirm: $('hand-overflow-confirm'),
   handOverflowRemaining: $('hand-overflow-remaining'),
@@ -2847,17 +2849,18 @@ function showWinLoseResult(isWin) {
   const appEl = $('app');
   if (appEl) appEl.style.zIndex = '490';
 
-  // 連勝カウンター
+  // 連勝カウンター（対戦/一人回しで別キー）
+  const streakKey = soloMode ? 'kannagi_win_streak_solo' : 'kannagi_win_streak';
   const streakEl = $('win-streak');
   if (isWin) {
-    let streak = parseInt(localStorage.getItem('kannagi_win_streak') || '0', 10);
+    let streak = parseInt(localStorage.getItem(streakKey) || '0', 10);
     streak++;
-    localStorage.setItem('kannagi_win_streak', String(streak));
+    localStorage.setItem(streakKey, String(streak));
     streakEl.textContent = streak + '連勝';
-    streakEl.style.display = 'block'; // FIX: ''ではCSSのdisplay:noneが残る
+    streakEl.style.display = 'block';
     logHistory('system', `対戦相手を倒しました。現在${streak}連勝中！`);
   } else {
-    localStorage.setItem('kannagi_win_streak', '0');
+    localStorage.setItem(streakKey, '0');
     streakEl.style.display = 'none';
     logHistory('system', `敗北しました…。連勝記録がリセットされました。`);
   }
@@ -4073,7 +4076,7 @@ function initGameAfterGate() {
         renderPlayerHand();
         renderOppHand();
       });
-      if (isFirstTurn) {
+      if (isFirstTurn || soloMode) {
         startPlayerTurn();
       } else {
         turnLocked = true;
@@ -5318,6 +5321,15 @@ function proceedEndTurn() {
   renderField('player');
   updatePlayableAura();
 
+  // 一人回しモード：ENEMY TURN告知・CPUターンを丸ごとスキップ
+  if (soloMode) {
+    resetSideFlags('opponent');
+    opponent.field.forEach(g => { g._summonedThisTurn = false; });
+    renderField('opponent');
+    startPlayerTurn();
+    return;
+  }
+
   showTurnAnnounce('ENEMY TURN', () => {
     if (gen !== gameGeneration) return;
     setTimeout(() => {
@@ -5347,6 +5359,13 @@ function cpuTurn() {
     drawCards('opponent', 1);
   }
   cpuFirstAction = false;
+
+  // 一人回しモード：CPUはカード使用・攻撃をせず即ターン終了
+  if (soloMode) {
+    setTimeout(() => { finishCpuTurn(); }, 300);
+    return;
+  }
+
   // CPUフラグリセット
   cpuUsedFlags.basho = false;
   cpuUsedFlags.kaii = false;
@@ -5949,7 +5968,8 @@ if (menuOverlay) {
 // ===================================================================
 // イベント
 // ===================================================================
-dom.startBtn.addEventListener('click', startGame);
+dom.startBtn.addEventListener('click', () => { soloMode = false; startGame(); });
+dom.soloBtn.addEventListener('click', () => { soloMode = true; startGame(); });
 dom.retryBtn.addEventListener('click', startGame);
 
 // デッキリスト画像ポップアップ
