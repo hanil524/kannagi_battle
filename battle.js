@@ -4226,7 +4226,7 @@ function showZeroSearch(who) {
     const countEl = $('zero-search-count');
     const updateCount = () => {
       const n = selectedUids.size;
-      countEl.textContent = n === 0 ? 'デッキの底に送るカードを選択（任意）' : `${n}枚をデッキ底に送る→${n}枚ドロー`;
+      countEl.textContent = n === 0 ? 'キープする手札を選択（任意）' : `${n}枚を手札にキープする→${8 - n}枚ドロー`;
     };
     updateCount();
 
@@ -4235,17 +4235,17 @@ function showZeroSearch(who) {
       confirmBtn.removeEventListener('click', onConfirm);
       confirmBtn.removeEventListener('touchend', onConfirmTouch);
 
-      // 選択したカードをデッキ底に戻す
+      // 選択していないカード（非キープ）をデッキ底に戻す
       const toBottom = [];
-      selectedUids.forEach(uid => {
-        const idx = st.hand.findIndex(c => c.uid === uid);
-        if (idx !== -1) {
-          toBottom.push(st.hand.splice(idx, 1)[0]);
+      [...st.hand].forEach(card => {
+        if (!selectedUids.has(card.uid)) {
+          const idx = st.hand.findIndex(c => c.uid === card.uid);
+          if (idx !== -1) toBottom.push(st.hand.splice(idx, 1)[0]);
         }
       });
       toBottom.forEach(c => st.deck.push(c)); // デッキ一番下に追加
 
-      // 戻した枚数分引き直し（ゲーム開始前なのでドロー扱いにしない）
+      // 底に送った枚数分引き直し（ゲーム開始前なのでドロー扱いにしない）
       if (toBottom.length > 0) {
         dealInitialHand(who, toBottom.length);
       }
