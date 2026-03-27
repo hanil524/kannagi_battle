@@ -4717,6 +4717,17 @@ body {
   display: block;
 }
 
+/* 零探し カード退場アニメーション（非キープ：上へ消える） */
+@keyframes zsCardExit {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-38px); }
+}
+/* 零探し カード登場アニメーション（新ドロー：下から現れる） */
+@keyframes zsCardEnter {
+  from { opacity: 0; transform: translateY(22px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 /* 先行/後攻の強調（真っ白） */
 .zs-order-highlight {
   color: #ffffff;

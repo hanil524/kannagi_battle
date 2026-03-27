@@ -2542,8 +2542,28 @@ function startExileOrderPhase(config) {
     dom.exileModalCards.innerHTML = '';
     dom.exileModalEmpty.style.display = 'none';
 
-    // ボタン非表示（自動完了）
+    // ボタン非表示（全選択完了まで非表示）
     dom.exileModalButtons.style.display = 'none';
+    dom.exileModalSkip.style.display = 'none'; // スキップ不要
+    dom.exileModalConfirm.disabled = true;
+    dom.exileModalConfirm.classList.remove('ready');
+
+    // 決定ボタンの一度きりリスナー
+    let confirmListening = false;
+    const onOrderConfirm = (e) => {
+      e.stopPropagation();
+      dom.exileModalConfirm.removeEventListener('click', onOrderConfirm);
+      dom.exileModalConfirm.removeEventListener('touchend', onOrderConfirmTouch);
+      dom.exileModalSkip.style.display = '';
+      dom.exileModalButtons.style.display = 'none';
+      exileSelectMode = false;
+      dom.exileModal.style.display = 'none';
+      dom.exileModal.classList.remove('active');
+      exileModalActive = false;
+      dom.exileModalDesc.textContent = '';
+      resolve(ordered);
+    };
+    const onOrderConfirmTouch = (e) => { if (e.cancelable) e.preventDefault(); onOrderConfirm(e); };
 
     // カードエレメントマップ（再描画用）
     const cardElMap = new Map(); // card.uid -> el
@@ -2573,6 +2593,15 @@ function startExileOrderPhase(config) {
       });
       if (remaining > 0) {
         dom.exileModalDesc.innerHTML = (config.desc || '') + '<br><b>残り' + remaining + '枚</b>';
+        // 選択を戻したら決定ボタンを隠す
+        dom.exileModalButtons.style.display = 'none';
+        dom.exileModalConfirm.disabled = true;
+        dom.exileModalConfirm.classList.remove('ready');
+        if (confirmListening) {
+          dom.exileModalConfirm.removeEventListener('click', onOrderConfirm);
+          dom.exileModalConfirm.removeEventListener('touchend', onOrderConfirmTouch);
+          confirmListening = false;
+        }
       }
     }
 
@@ -2599,16 +2628,14 @@ function startExileOrderPhase(config) {
         remaining--;
         refreshBadges();
 
-        // 全て選択完了
-        if (remaining <= 0) {
-          setTimeout(() => {
-            exileSelectMode = false;
-            dom.exileModal.style.display = 'none';
-            dom.exileModal.classList.remove('active');
-            exileModalActive = false;
-            dom.exileModalDesc.textContent = '';
-            resolve(ordered);
-          }, 300);
+        // 全て選択完了 → 決定ボタンを表示して待つ
+        if (remaining <= 0 && !confirmListening) {
+          confirmListening = true;
+          dom.exileModalConfirm.disabled = false;
+          dom.exileModalConfirm.classList.add('ready');
+          dom.exileModalButtons.style.display = 'flex';
+          dom.exileModalConfirm.addEventListener('click', onOrderConfirm);
+          dom.exileModalConfirm.addEventListener('touchend', onOrderConfirmTouch, { passive: false });
         }
       };
       const onPickTouch = (e) => {
@@ -4234,32 +4261,76 @@ function showZeroSearch(who) {
     const onConfirm = () => {
       confirmBtn.removeEventListener('click', onConfirm);
       confirmBtn.removeEventListener('touchend', onConfirmTouch);
+      confirmBtn.disabled = true;
 
-      // 選択していないカード（非キープ）をデッキ底に戻す
-      const toBottom = [];
-      [...st.hand].forEach(card => {
-        if (!selectedUids.has(card.uid)) {
-          const idx = st.hand.findIndex(c => c.uid === card.uid);
-          if (idx !== -1) toBottom.push(st.hand.splice(idx, 1)[0]);
+      // キープ選択状態を即解除（光り続けるのを防ぐ）
+      cardsEl.querySelectorAll('.zs-selected').forEach(el => el.classList.remove('zs-selected'));
+
+      // dataset.uidは文字列なので文字列セットで比較
+      const selectedUidStrs = new Set([...selectedUids].map(String));
+
+      // 非キープカードのDOM要素を取得
+      const exitEls = Array.from(cardsEl.querySelectorAll('.battle-card'))
+        .filter(el => !selectedUidStrs.has(el.dataset.uid));
+
+      // カード削除時のレイアウト崩れ防止：高さを今の値で固定
+      cardsEl.style.height = cardsEl.offsetHeight + 'px';
+      cardsEl.style.overflow = 'hidden';
+
+      // ① 非キープカードを同時にスライドアップ＆フェードアウト
+      exitEls.forEach(el => {
+        el.style.pointerEvents = 'none';
+        el.style.animation = 'zsCardExit 0.22s ease forwards';
+      });
+
+      setTimeout(() => {
+        // DOMから除去
+        exitEls.forEach(el => el.remove());
+
+        // 非キープカードをデッキ底に送る
+        const toBottom = [];
+        [...st.hand].forEach(card => {
+          if (!selectedUids.has(card.uid)) {
+            const idx = st.hand.findIndex(c => c.uid === card.uid);
+            if (idx !== -1) toBottom.push(st.hand.splice(idx, 1)[0]);
+          }
+        });
+        toBottom.forEach(c => st.deck.push(c));
+
+        // ② 新しくドローするカードを取得してhandに追加
+        const drawCount = toBottom.length;
+        const newCards = [];
+        for (let i = 0; i < drawCount; i++) {
+          if (st.deck.length === 0) break;
+          const c = st.deck.shift();
+          st.hand.push(c);
+          newCards.push(c);
         }
-      });
-      toBottom.forEach(c => st.deck.push(c)); // デッキ一番下に追加
 
-      // 底に送った枚数分引き直し（ゲーム開始前なのでドロー扱いにしない）
-      if (toBottom.length > 0) {
-        dealInitialHand(who, toBottom.length);
-      }
-      if (who === 'player') { renderPlayerHand(); } else { renderOppHand(); }
-      updateAllCounts();
+        // ③ 新カードを1枚ずつ下から順番に登場させる
+        newCards.forEach((card, i) => {
+          setTimeout(() => {
+            const el = createCardEl(card, false);
+            el.style.pointerEvents = 'none';
+            el.style.animation = 'zsCardEnter 0.2s ease forwards';
+            cardsEl.appendChild(el);
+          }, i * 130);
+        });
 
-      overlay.style.display = 'none';
-      $('app').style.display = '';
-      // 零探し中に画面回転していた場合のレイアウトリセット
-      document.querySelectorAll('.field-card-row').forEach(el => {
-        el.style.width = '';
-        el.style.maxWidth = '';
-      });
-      resolve();
+        // ④ 全カード登場後0.8秒待って次のシーンへ
+        const totalWait = newCards.length * 130 + 200 + 800;
+        setTimeout(() => {
+          if (who === 'player') { renderPlayerHand(); } else { renderOppHand(); }
+          updateAllCounts();
+          overlay.style.display = 'none';
+          $('app').style.display = '';
+          document.querySelectorAll('.field-card-row').forEach(el => {
+            el.style.width = '';
+            el.style.maxWidth = '';
+          });
+          resolve();
+        }, totalWait);
+      }, 260); // フェードアウト完了待ち
     };
     const onConfirmTouch = (e) => { if (e.cancelable) e.preventDefault(); onConfirm(); };
     confirmBtn.addEventListener('click', onConfirm);
