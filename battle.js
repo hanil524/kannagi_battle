@@ -267,7 +267,7 @@ const dom = {
   soulAbsorbConfirm: $('soul-absorb-confirm'),
   finishZoomImg: $('finish-zoom-img'),
   btnReset: $('btn-reset'),
-  btnEndTurn: $('btn-end-turn'),
+  btnTitle: $('btn-title'),
   pBashoBtn: $('p-basho-btn'), pKaiiBtn: $('p-kaii-btn'),
   pDouguBtn: $('p-dougu-btn'), pSeasonBtn: $('p-season-btn'),
   oBashoBtn: $('o-basho-btn'), oKaiiBtn: $('o-kaii-btn'),
@@ -3481,11 +3481,29 @@ let lastDropX = null; // ドロップ位置のX座標（左右判定用）
 
 function setupDrag(el, card) {
   let startX, startY, touchId = null;
+  let lastTrailTime = 0, lastTrailX = null, lastTrailY = null;
+  const spawnTrail = (x, y) => {
+    const now = Date.now();
+    if (now - lastTrailTime < 18) return;
+    // 1つ前の位置にオーラを生成（現在位置と重ならず点滅しない）
+    if (lastTrailX !== null) {
+      const trail = document.createElement('div');
+      trail.className = 'drag-trail';
+      trail.style.left = (lastTrailX - 25) + 'px';
+      trail.style.top  = (lastTrailY - 35) + 'px';
+      document.body.appendChild(trail);
+      trail.addEventListener('animationend', () => trail.remove());
+    }
+    lastTrailTime = now;
+    lastTrailX = x;
+    lastTrailY = y;
+  };
   const onStart = (x, y) => { startX = x; startY = y; isDragging = false; };
   const onMove = (x, y) => {
     if (isDragging) {
       dragGhost.style.left = (x - 25) + 'px';
       dragGhost.style.top = (y - 35) + 'px';
+      spawnTrail(x, y);
       // カード選択フェイズ中は除外ゾーンへの移動のみ（場の反応を抑制）
       if (!cardSelectPhase) {
         if (card.type === '怪異札') updateKaiiDropTarget(x, y);
@@ -3519,7 +3537,7 @@ function setupDrag(el, card) {
       document.body.appendChild(dragGhost);
       dragGhost.style.left = (x - 25) + 'px';
       dragGhost.style.top = (y - 35) + 'px';
-      el.style.opacity = '0.25';
+      el.style.opacity = '1';
       if (cardSelectPhase) {
         dom.playerExile.classList.add('drag-over-exile');
       } else if (handOverflowPhase) {
@@ -3988,7 +4006,7 @@ function startGame() {
   resetTurnFlags();
   updateAllCounts();
   dom.btnReset.disabled = false;
-  dom.btnEndTurn.disabled = false;
+  // btnTitle は常に有効（disabled管理不要）
   hideAttackBtn(); hidePreview(); hideKaiiPopup(); hideSeasonWarning();
   dom.endTurnCenter.style.display = '';
 
@@ -4214,6 +4232,8 @@ function showZeroSearch(who) {
     // 手札8枚を表示
     st.hand.forEach(card => {
       const el = createCardEl(card, false);
+      el.classList.add('zs-initial');
+      el.style.opacity = '0'; // delay中の一瞬表示を防ぐ（アニメーション開始で上書きされる）
       let touchStartY = 0;
 
       el.addEventListener('touchstart', (e) => {
@@ -4283,6 +4303,15 @@ function showZeroSearch(who) {
         el.style.animation = 'zsCardExit 0.22s ease forwards';
       });
 
+      // キープカードに詰め移動ブラーを同時適用
+      const keepEls = Array.from(cardsEl.querySelectorAll('.battle-card'))
+        .filter(el => selectedUidStrs.has(el.dataset.uid));
+      keepEls.forEach(el => {
+        el.classList.remove('zs-initial');
+        el.style.opacity = ''; // インラインopacityを解除（zsKeepSettleに引き継ぎ）
+        el.style.animation = 'zsKeepSettle 0.3s ease forwards';
+      });
+
       setTimeout(() => {
         // DOMから除去
         exitEls.forEach(el => el.remove());
@@ -4312,7 +4341,7 @@ function showZeroSearch(who) {
           setTimeout(() => {
             const el = createCardEl(card, false);
             el.style.pointerEvents = 'none';
-            el.style.animation = 'zsCardEnter 0.2s ease forwards';
+            el.style.animation = 'zsCardEnter 0.25s ease forwards';
             cardsEl.appendChild(el);
           }, i * 130);
         });
@@ -5501,7 +5530,7 @@ function canCpuPlay(card) {
 // 攻撃前アクション：怪異札・道具札のみ
 function buildCpuPreAttackActions() {
   const actions = [];
-  const hand = [...opponent.hand].sort((a, b) => {
+  const hand = [...opponent.hand, ...opponent.open].sort((a, b) => {
     const aHasDraw = (a.effect && a.effect.startsWith('draw')) ? 1 : 0;
     const bHasDraw = (b.effect && b.effect.startsWith('draw')) ? 1 : 0;
     if (aHasDraw !== bHasDraw) return bHasDraw - aHasDraw;
@@ -5521,7 +5550,7 @@ function buildCpuPreAttackActions() {
 // 攻撃後アクション：未使用の怪異札・道具札（攻撃中に手に入ったカード用）
 function buildCpuPostSpellActions() {
   const actions = [];
-  const hand = [...opponent.hand].sort((a, b) => (b.cost || 0) - (a.cost || 0));
+  const hand = [...opponent.hand, ...opponent.open].sort((a, b) => (b.cost || 0) - (a.cost || 0));
   for (const c of hand) {
     if (c.type === '怪異札' && !cpuUsedFlags.kaii && canCpuPlay(c)) { actions.push(c); break; }
   }
@@ -5534,7 +5563,7 @@ function buildCpuPostSpellActions() {
 // 攻撃後アクション：場所札・季節札
 function buildCpuPostAttackActions() {
   const actions = [];
-  const hand = [...opponent.hand].sort((a, b) => {
+  const hand = [...opponent.hand, ...opponent.open].sort((a, b) => {
     const aHasDraw = (a.effect && a.effect.startsWith('draw')) ? 1 : 0;
     const bHasDraw = (b.effect && b.effect.startsWith('draw')) ? 1 : 0;
     if (aHasDraw !== bHasDraw) return bHasDraw - aHasDraw;
@@ -5560,14 +5589,21 @@ async function executeCpuActions(actions, idx, done) {
   if (idx >= actions.length) { done(); return; }
   const card = actions[idx];
   // 再チェック（前のアクションで状態が変わった可能性）
-  if (!canCpuPlay(card) || !opponent.hand.find(c => c.uid === card.uid)) {
+  const inHand = opponent.hand.find(c => c.uid === card.uid);
+  const inOpen = opponent.open.find(c => c.uid === card.uid);
+  if (!canCpuPlay(card) || (!inHand && !inOpen)) {
     executeCpuActions(actions, idx + 1, done);
     return;
   }
-  // 手札から除去
-  const hi = opponent.hand.findIndex(c => c.uid === card.uid);
-  if (hi === -1) { executeCpuActions(actions, idx + 1, done); return; }
-  opponent.hand.splice(hi, 1);
+  // 手札または公開場から除去
+  let hi = opponent.hand.findIndex(c => c.uid === card.uid);
+  if (hi !== -1) {
+    opponent.hand.splice(hi, 1);
+  } else {
+    hi = opponent.open.findIndex(c => c.uid === card.uid);
+    if (hi === -1) { executeCpuActions(actions, idx + 1, done); return; }
+    opponent.open.splice(hi, 1);
+  }
 
   // カード配置
   await cpuPlaceCard(card);
@@ -5935,7 +5971,35 @@ $('reset-confirm-no').addEventListener('touchend', (e) => {
   rc.style.display = 'none';
   rc.classList.remove('active');
 }, { passive: false });
-dom.btnEndTurn.addEventListener('click', endTurn);
+// 背景クリックで閉じる
+$('reset-confirm').addEventListener('click', (e) => {
+  if (e.target !== e.currentTarget) return;
+  const rc = $('reset-confirm');
+  rc.style.display = 'none';
+  rc.classList.remove('active');
+});
+// タイトルボタン
+const titleConfirmEl   = $('title-confirm');
+const titleConfirmYes  = $('title-confirm-yes');
+const titleConfirmNo   = $('title-confirm-no');
+
+dom.btnTitle.addEventListener('click', () => {
+  titleConfirmEl.classList.add('active');
+  titleConfirmEl.style.display = 'flex';
+});
+titleConfirmNo.addEventListener('click', () => {
+  titleConfirmEl.classList.remove('active');
+  titleConfirmEl.style.display = 'none';
+});
+// 背景クリックで閉じる
+titleConfirmEl.addEventListener('click', (e) => {
+  if (e.target !== e.currentTarget) return;
+  titleConfirmEl.classList.remove('active');
+  titleConfirmEl.style.display = 'none';
+});
+titleConfirmYes.addEventListener('click', () => {
+  location.reload();
+});
 // 中央ターン終了ボタン
 dom.endTurnCenter.addEventListener('click', (e) => { e.stopPropagation(); endTurn(); });
 dom.endTurnCenter.addEventListener('touchend', (e) => { if (e.cancelable) e.preventDefault(); e.stopPropagation(); endTurn(); }, { passive: false });

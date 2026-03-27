@@ -48,7 +48,7 @@
     <button class="footer-btn" id="btn-history" disabled>履歴</button>
     <button class="footer-btn" id="btn-howto">操作方法</button>
     <button class="footer-btn" id="btn-reset" disabled>リセット</button>
-    <button class="footer-btn" id="btn-end-turn" disabled>ターン終了</button>
+    <button class="footer-btn" id="btn-title">タイトル</button>
   </div>
 
   <!-- スタート -->
@@ -420,6 +420,15 @@
       <button id="opp-hand-exile-confirm" disabled>決定する</button>
     </div>
     <button class="banmen-btn">盤面</button>
+  </div>
+
+  <!-- タイトル確認ポップアップ -->
+  <div id="title-confirm" style="display:none;">
+    <span id="title-confirm-title">本当にタイトルへ戻りますか？</span>
+    <div id="reset-confirm-buttons">
+      <button id="title-confirm-yes">はい</button>
+      <button id="title-confirm-no">いいえ</button>
+    </div>
   </div>
 
   <!-- リセット確認ポップアップ -->
