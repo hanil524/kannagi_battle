@@ -2256,6 +2256,7 @@ body {
 #deck-list-link {
   color: #b08830;
   font-size: 12px;
+  font-weight: bold;
   text-decoration: none;
   letter-spacing: 1px;
   margin-bottom: 4px;
