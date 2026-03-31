@@ -13,27 +13,32 @@ button.btn-touch-cancelled {
   pointer-events: none !important;
 }
 
-html,
-body {
+html {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #111;
+  background: #000;
+}
+
+body {
+  width: 100%;
+  max-width: 430px;
+  height: 100vh;
+  height: 100dvh;
+  max-height: 900px;
+  margin: 0 auto;
+  margin-top: max(0px, calc(50dvh - 450px));
+  position: relative;
+  overflow: hidden;
+  background: #000;
+  box-shadow: 0 0 40px 8px rgba(255, 255, 255, 0.12);
   font-family: 'Helvetica Neue', Arial, sans-serif;
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
-}
-
-body {
   display: flex;
   flex-direction: column;
-  max-width: 430px;
-  height: 100vh;
-  height: 100dvh;
-  margin: 0 auto;
-  position: relative;
 }
 
 /* ===== アプリ外枠 ===== */
@@ -2176,15 +2181,30 @@ body {
   margin-bottom: 24px;
 }
 
+#start-buttons-row {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 14px;
+}
+
+.start-btn-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 #start-btn {
   background: linear-gradient(160deg, #6e1212 0%, #3e0808 55%, #2d0606 100%);
   color: #f0ece4;
   border: 1px solid rgba(190, 90, 60, 0.38);
-  padding: 11px 48px;
+  padding: 11px 28px;
   border-radius: 12px;
   font-size: 16px;
   font-weight: bold;
-  letter-spacing: 2px;
+  letter-spacing: 4px;
+  text-indent: 4px;
   cursor: pointer;
   text-shadow: 0 1px 8px rgba(180, 40, 20, 0.6), 0 0 2px rgba(0, 0, 0, 0.9);
   transition: transform 0.1s ease;
@@ -2200,7 +2220,7 @@ body {
 #start-sub {
   color: rgba(195, 175, 140, 0.6);
   font-size: 11px;
-  margin-bottom: 22px;
+  margin-bottom: 0;
   letter-spacing: 0.5px;
 }
 
@@ -2208,11 +2228,12 @@ body {
   background: linear-gradient(160deg, #0e3018 0%, #082010 55%, #051508 100%);
   color: #f0ece4;
   border: 1px solid rgba(60, 140, 85, 0.32);
-  padding: 11px 48px;
+  padding: 11px 28px;
   border-radius: 12px;
   font-size: 16px;
   font-weight: bold;
-  letter-spacing: 2px;
+  letter-spacing: 4px;
+  text-indent: 4px;
   cursor: pointer;
   text-shadow: 0 1px 8px rgba(20, 90, 50, 0.6), 0 0 2px rgba(0, 0, 0, 0.9);
   transition: transform 0.1s ease;
@@ -2228,7 +2249,7 @@ body {
 #solo-sub {
   color: rgba(195, 175, 140, 0.6);
   font-size: 11px;
-  margin-bottom: 14px;
+  margin-bottom: 0;
   letter-spacing: 0.5px;
 }
 
@@ -2422,199 +2443,71 @@ body {
   animation: coinStamp 0.5s ease-out forwards;
 }
 
-/* ===== 開門演出（零探し後・派手版） ===== */
+/* ===== 開門演出（リッチ版・GPU最適化） ===== */
 
-/* 画面フラッシュ */
-.kaimon-flash {
+/* 横帯：中央から左右に伸びる金色ライン */
+.kaimon-line {
   position: absolute;
-  top: 0;
   left: 0;
   right: 0;
-  bottom: 0;
-  background: white;
+  top: 50%;
+  height: 1px;
+  transform: translateY(-50%) scaleX(0);
+  background: linear-gradient(90deg, transparent 0%, rgba(180, 140, 60, 0.15) 15%, rgba(200, 160, 80, 0.5) 40%, rgba(220, 180, 100, 0.8) 50%, rgba(200, 160, 80, 0.5) 60%, rgba(180, 140, 60, 0.15) 85%, transparent 100%);
   pointer-events: none;
-  animation: kaimonFlash 0.6s ease-out forwards;
-  z-index: 1;
+  z-index: -1;
+  animation: kaimonLineExpand 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-@keyframes kaimonFlash {
-  0% {
-    opacity: 0;
-  }
-
-  15% {
-    opacity: 0.8;
-  }
-
-  100% {
-    opacity: 0;
-  }
+.kaimon-line:nth-child(2) {
+  height: 40px;
+  opacity: 0.15;
+  background: linear-gradient(90deg, transparent 5%, rgba(200, 160, 80, 0.6) 30%, rgba(220, 180, 100, 1) 50%, rgba(200, 160, 80, 0.6) 70%, transparent 95%);
+  animation-delay: 0.05s;
 }
 
-/* 文字ズームイン（大きい状態から着地） */
-@keyframes kaimonZoomIn {
+@keyframes kaimonLineExpand {
   0% {
+    transform: translateY(-50%) scaleX(0);
     opacity: 0;
-    transform: scale(3.5);
-    text-shadow: 0 0 80px rgba(255, 200, 100, 1), 0 0 160px rgba(255, 150, 50, 0.8);
   }
-
-  50% {
+  30% {
     opacity: 1;
-    transform: scale(0.95);
-    text-shadow: 0 0 60px rgba(255, 200, 100, 0.8), 0 0 120px rgba(255, 150, 50, 0.5);
   }
-
-  70% {
-    transform: scale(1.05);
+  100% {
+    transform: translateY(-50%) scaleX(1);
+    opacity: 1;
   }
+}
 
+/* 文字フェードイン */
+@keyframes kaimonTextIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.92);
+  }
   100% {
     opacity: 1;
     transform: scale(1.0);
-    text-shadow: 0 0 50px rgba(255, 255, 255, 0.5), 0 0 80px rgba(255, 200, 100, 0.3), 0 4px 12px rgba(0, 0, 0, 0.8);
   }
 }
 
-/* 着地時のバースト（テキスト発光） */
-#gate-text.kaimon-burst {
+/* 文字の金色発光 */
+#gate-text.kaimon-glow {
   text-shadow:
-    0 0 40px rgba(255, 200, 100, 0.9),
-    0 0 80px rgba(255, 150, 50, 0.6),
-    0 0 120px rgba(255, 100, 0, 0.3),
+    0 0 20px rgba(220, 180, 100, 0.8),
+    0 0 50px rgba(200, 150, 60, 0.5),
+    0 0 80px rgba(180, 120, 30, 0.25),
     0 4px 12px rgba(0, 0, 0, 0.8);
 }
 
-/* 衝撃波リング（大きめ・3重） */
-.kaimon-shockwave {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  border: 4px solid rgba(255, 180, 80, 0.9);
-  box-shadow: 0 0 20px rgba(255, 150, 50, 0.5), inset 0 0 20px rgba(255, 150, 50, 0.3);
-  transform: translate(-50%, -50%) scale(0);
-  pointer-events: none;
-  animation: kaimonShockExpand 0.9s ease-out forwards;
-}
-
-@keyframes kaimonShockExpand {
-  0% {
-    transform: translate(-50%, -50%) scale(0);
-    opacity: 1;
-    border-width: 4px;
-  }
-
-  40% {
-    opacity: 0.7;
-  }
-
-  100% {
-    transform: translate(-50%, -50%) scale(12);
-    opacity: 0;
-    border-width: 1px;
-  }
-}
-
-/* 放射線（12方向・太め） */
-.kaimon-ray {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 3px;
-  height: 100px;
-  background: linear-gradient(180deg, rgba(255, 200, 100, 0.9), rgba(255, 150, 50, 0.4), transparent);
-  transform-origin: 50% 0%;
-  pointer-events: none;
-  animation: kaimonRayShoot 0.8s ease-out forwards;
-}
-
-@keyframes kaimonRayShoot {
-  0% {
-    opacity: 0;
-    transform: translateX(-50%) scaleY(0);
-  }
-
-  15% {
-    opacity: 1;
-    transform: translateX(-50%) scaleY(1);
-  }
-
-  100% {
-    opacity: 0;
-    transform: translateX(-50%) scaleY(2);
-  }
-}
-
-/* 火花パーティクル */
-.kaimon-particle {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: radial-gradient(circle, #ffe080, #ff8800);
-  box-shadow: 0 0 6px rgba(255, 180, 80, 0.8);
-  pointer-events: none;
-  animation: kaimonParticleFly 0.8s ease-out forwards;
-}
-
-@keyframes kaimonParticleFly {
+/* 全体フェードアウト */
+@keyframes kaimonAllOut {
   0% {
     opacity: 1;
-    transform: translate(0, 0) scale(1);
   }
-
   100% {
     opacity: 0;
-    transform: translate(var(--px), var(--py)) scale(0.3);
-  }
-}
-
-/* 揺れ（振動エフェクト） */
-@keyframes kaimonShake {
-  0% {
-    transform: translate(0, 0) scale(1.0);
-  }
-
-  15% {
-    transform: translate(-4px, 2px) scale(1.0);
-  }
-
-  30% {
-    transform: translate(4px, -2px) scale(1.0);
-  }
-
-  45% {
-    transform: translate(-3px, -1px) scale(1.0);
-  }
-
-  60% {
-    transform: translate(3px, 1px) scale(1.0);
-  }
-
-  75% {
-    transform: translate(-1px, 1px) scale(1.0);
-  }
-
-  100% {
-    transform: translate(0, 0) scale(1.0);
-  }
-}
-
-/* フェードアウト */
-@keyframes kaimonFadeOut {
-  0% {
-    opacity: 1;
-    transform: scale(1.0);
-  }
-
-  100% {
-    opacity: 0;
-    transform: scale(1.15);
   }
 }
 
@@ -3386,7 +3279,7 @@ body {
 
 /* ===== 効果発動オーバーレイ ===== */
 #effect-overlay {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
@@ -4817,25 +4710,20 @@ body {
   /* animation-delayは使わない。opacity:0はJS側のinline styleで制御 */
 }
 
-/* 零探し カード退場アニメーション（非キープ：上へ消える） */
+/* 零探し カード退場アニメーション（非キープ：上へシュッと消える） */
 @keyframes zsCardExit {
-  from { opacity: 1;   transform: translateY(0);     filter: blur(0px); }
-  35%  { opacity: 0.75; transform: translateY(-16px); filter: blur(2.5px) drop-shadow(0 16px 4px rgba(180,210,255,0.35)) drop-shadow(0 26px 7px rgba(180,210,255,0.18)); }
-  70%  { opacity: 0.25; transform: translateY(-30px); filter: blur(3.5px) drop-shadow(0 8px 3px rgba(180,210,255,0.1)); }
-  to   { opacity: 0;   transform: translateY(-38px); filter: blur(1px); }
+  from { opacity: 1;   transform: translateY(0) scale(1); }
+  to   { opacity: 0;   transform: translateY(-30px) scale(0.92); }
 }
 /* 零探し カード登場アニメーション（新ドロー：下から現れる） */
 @keyframes zsCardEnter {
-  from { opacity: 0;   transform: translateY(24px); filter: blur(5px) drop-shadow(0 -18px 5px rgba(180,210,255,0.3)) drop-shadow(0 -28px 8px rgba(180,210,255,0.15)); }
-  55%  { opacity: 0.85; transform: translateY(3px);  filter: blur(1.5px) drop-shadow(0 -6px 3px rgba(180,210,255,0.15)); }
-  80%  { opacity: 0.97; transform: translateY(-1px); filter: blur(0.3px); }
-  to   { opacity: 1;   transform: translateY(0);    filter: blur(0px); }
+  from { opacity: 0;   transform: translateY(20px) scale(0.92); }
+  to   { opacity: 1;   transform: translateY(0) scale(1); }
 }
-/* 零探し キープカードの詰め移動ブラー＋右残像 */
+/* 零探し キープカードの詰め移動 */
 @keyframes zsKeepSettle {
-  from { filter: blur(2.5px) drop-shadow(10px 0 5px rgba(180,210,255,0.3)); }
-  60%  { filter: blur(0.8px) drop-shadow(3px 0 2px rgba(180,210,255,0.12)); }
-  to   { filter: blur(0px)   drop-shadow(0 0 0 transparent); }
+  from { opacity: 0.8; }
+  to   { opacity: 1; }
 }
 
 /* 先行/後攻の強調（真っ白） */
@@ -5017,7 +4905,7 @@ body {
 }
 
 /* ===== スクリーンシェイク（大ダメージ演出） ===== */
-body.screen-shake #field {
+body.screen-shake {
   animation: screenShake 0.4s ease-out;
 }
 

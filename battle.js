@@ -4142,26 +4142,30 @@ function showKaimonAnimation() {
     const gen = gameGeneration;
     dom.gateOverlay.classList.add('active');
     dom.gateOverlay.style.display = 'flex';
-    dom.gateText.style.display = ''; // 開門テキスト表示
+    dom.gateText.style.display = '';
     dom.coinText.textContent = '';
-    dom.coinText.style.display = 'none'; // コインテキスト非表示
+    dom.coinText.style.display = 'none';
     dom.gateText.style.animation = 'none';
+    dom.gateText.style.opacity = '0';
     void dom.gateText.offsetHeight;
 
     let kaimonSkipped = false;
-    let kTimer1 = null, kTimer3 = null;
+    let kTimer1 = null, kTimer2 = null, kTimer3 = null;
 
     function finishKaimon() {
       if (kaimonSkipped) return;
       kaimonSkipped = true;
       if (gen !== gameGeneration) return;
       if (kTimer1) clearTimeout(kTimer1);
+      if (kTimer2) clearTimeout(kTimer2);
       if (kTimer3) clearTimeout(kTimer3);
       dom.gateOverlay.removeEventListener('click', onKaimonSkip);
       dom.gateOverlay.removeEventListener('touchend', onKaimonSkipTouch);
       dom.gateText.style.animation = '';
-      dom.gateText.classList.remove('kaimon-burst');
-      dom.gateOverlay.querySelectorAll('.kaimon-shockwave, .kaimon-ray, .kaimon-particle, .kaimon-flash').forEach(el => el.remove());
+      dom.gateText.style.opacity = '';
+      dom.gateText.classList.remove('kaimon-glow');
+      dom.gateOverlay.style.animation = '';
+      dom.gateOverlay.querySelectorAll('.kaimon-line').forEach(el => el.remove());
       dom.gateOverlay.classList.remove('active');
       dom.gateOverlay.style.display = 'none';
       dom.coinText.style.display = '';
@@ -4174,29 +4178,33 @@ function showKaimonAnimation() {
     dom.gateOverlay.addEventListener('click', onKaimonSkip);
     dom.gateOverlay.addEventListener('touchend', onKaimonSkipTouch, { passive: false });
 
-    // フェーズ1: 文字ズームイン（フラッシュなし）
-    dom.gateText.style.animation = 'kaimonZoomIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards';
+    // フェーズ1: 金色の横帯が中央から左右に伸びる
+    for (let i = 0; i < 2; i++) {
+      const line = document.createElement('div');
+      line.className = 'kaimon-line';
+      dom.gateOverlay.appendChild(line);
+    }
 
-    // フェーズ2: 着地時に衝撃波
+    // フェーズ2: 文字がフェードインし金色に発光
     kTimer1 = setTimeout(() => {
       if (kaimonSkipped) return;
-      dom.gateText.classList.add('kaimon-burst');
+      dom.gateText.style.animation = 'kaimonTextIn 0.5s ease-out forwards';
+    }, 250);
 
-      // 衝撃波リング（2重）
-      for (let i = 0; i < 2; i++) {
-        const ring = document.createElement('div');
-        ring.className = 'kaimon-shockwave';
-        ring.style.animationDelay = (i * 0.15) + 's';
-        dom.gateOverlay.appendChild(ring);
-        ring.addEventListener('animationend', () => ring.remove());
-      }
-    }, 300);
+    kTimer2 = setTimeout(() => {
+      if (kaimonSkipped) return;
+      dom.gateText.classList.add('kaimon-glow');
+    }, 550);
 
-    // フェーズ3: フェードアウト（40%短縮: 2200ms→1320ms）
+    // フェーズ3: 全体フェードアウト
     kTimer3 = setTimeout(() => {
       if (kaimonSkipped) return;
-      finishKaimon();
-    }, 1320);
+      dom.gateOverlay.style.animation = 'kaimonAllOut 0.4s ease-in forwards';
+      dom.gateOverlay.addEventListener('animationend', function onEnd() {
+        dom.gateOverlay.removeEventListener('animationend', onEnd);
+        finishKaimon();
+      });
+    }, 1400);
   });
 }
 
@@ -4227,6 +4235,7 @@ function showZeroSearch(who) {
     previewImg.src = DECK_BACK_IMG;
     previewImg.style.display = 'block';
     previewImg.style.visibility = 'hidden'; // レイアウト確定前の一瞬表示を防ぐ
+    confirmBtn.disabled = false;
     confirmBtn.classList.add('ready'); // 0枚でも決定可能
 
     // 手札8枚を表示
@@ -4343,11 +4352,11 @@ function showZeroSearch(who) {
             el.style.pointerEvents = 'none';
             el.style.animation = 'zsCardEnter 0.25s ease forwards';
             cardsEl.appendChild(el);
-          }, i * 130);
+          }, i * 60);
         });
 
         // ④ 全カード登場後0.8秒待って次のシーンへ
-        const totalWait = newCards.length * 130 + 200 + 800;
+        const totalWait = newCards.length * 60 + 200 + 800;
         setTimeout(() => {
           if (who === 'player') { renderPlayerHand(); } else { renderOppHand(); }
           updateAllCounts();
