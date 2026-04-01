@@ -2264,6 +2264,18 @@ body {
   text-shadow: 0 0 12px rgba(180, 130, 30, 0.4);
 }
 
+#deck-list-link::before {
+  content: '';
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 4px 0 4px 7px;
+  border-color: transparent transparent transparent #b08830;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
 #deck-list-link:active {
   opacity: 0.6;
 }
