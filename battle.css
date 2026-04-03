@@ -2145,7 +2145,8 @@ body {
   justify-content: center;
   z-index: 500;
   gap: 0;
-  padding: 24px 20px;
+  padding: 24px 20px 56px;
+  /* padding-bottom: フッター高さ分を確保し、コンテンツの視覚的中心を維持 */
 }
 
 /* 中身だけ非表示 → readyで表示（背景は常に不透明で戦闘場を隠す） */
@@ -2175,9 +2176,9 @@ body {
   object-fit: contain;
   border-radius: 12px;
   box-shadow:
-    0 8px 48px rgba(0, 0, 0, 0.92),
-    0 0 70px rgba(130, 70, 8, 0.18),
-    0 0 130px rgba(80, 15, 5, 0.12);
+    0 0 15px 4px rgba(255, 255, 255, 0.09),
+    0 0 40px 10px rgba(255, 255, 255, 0.04),
+    0 0 70px 20px rgba(255, 255, 255, 0.02);
   margin-bottom: 24px;
 }
 
@@ -2212,6 +2213,11 @@ body {
   margin-bottom: 6px;
 }
 
+#start-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 32px rgba(140, 15, 15, 0.7), inset 0 1px 0 rgba(240, 140, 100, 0.15);
+}
+
 #start-btn:active {
   background: linear-gradient(160deg, #7e1818 0%, #4e0e0e 55%, #3a0a0a 100%);
   transform: scale(0.97);
@@ -2239,6 +2245,11 @@ body {
   transition: transform 0.1s ease;
   box-shadow: 0 4px 28px rgba(8, 60, 25, 0.5), inset 0 1px 0 rgba(100, 200, 130, 0.08);
   margin-bottom: 6px;
+}
+
+#solo-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 32px rgba(8, 60, 25, 0.65), inset 0 1px 0 rgba(100, 200, 130, 0.12);
 }
 
 #solo-btn:active {
