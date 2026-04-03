@@ -1,13 +1,5 @@
 User-agent: *
-# メインページはクロール不可（審査中のため）
-Disallow: /index.html
-Disallow: /$
-
-# Service Workerはページではないのでクロール不要
-Disallow: /sw.js
-
-# 法的ページはクロール許可
-Allow: /privacy.html
-Allow: /disclaimer.html
+# 審査中のため全ページをクロール不可
+Disallow: /
 
 Sitemap: https://hanil524.github.io/kannagi_battle/sitemap.xml
