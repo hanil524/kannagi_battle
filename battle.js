@@ -3537,7 +3537,7 @@ function setupDrag(el, card) {
       document.body.appendChild(dragGhost);
       dragGhost.style.left = (x - 25) + 'px';
       dragGhost.style.top = (y - 35) + 'px';
-      el.style.opacity = '1';
+      el.style.visibility = 'hidden';
       if (cardSelectPhase) {
         dom.playerExile.classList.add('drag-over-exile');
       } else if (handOverflowPhase) {
@@ -3627,7 +3627,7 @@ function setupDrag(el, card) {
   };
   function cleanup() {
     if (dragGhost) { dragGhost.remove(); dragGhost = null; }
-    if (dragSourceEl) { dragSourceEl.style.opacity = ''; dragSourceEl = null; }
+    if (dragSourceEl) { dragSourceEl.style.visibility = ''; dragSourceEl.style.opacity = ''; dragSourceEl = null; }
     removeKaiiGhost(); clearDropTargets(); hideSeasonWarning();
     dragCard = null;
     dom.playerField.classList.remove('drag-over');
