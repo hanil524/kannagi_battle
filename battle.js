@@ -985,7 +985,7 @@ function showPreview(card, side, fromKaiiPopup) {
     return;
   }
   dom.previewImg.src = card.img;
-  let showSide = (side === 'player') ? 'show-top' : 'show-bottom';
+  let showSide = (side === 'player' || exileModalActive || exileViewActive) ? 'show-top' : 'show-bottom';
   dom.preview.className = 'active ' + showSide;
   dom.preview.style.display = 'flex';
 }
