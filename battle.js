@@ -4594,6 +4594,7 @@ function showZeroSearch(who) {
       }, { passive: true });
 
       const onSelect = () => {
+        if (confirmBtn.disabled) return;
         if (selectedUids.has(card.uid)) {
           // 解除
           selectedUids.delete(card.uid);
@@ -4645,6 +4646,18 @@ function showZeroSearch(who) {
     keepAllBtn.addEventListener('click', onKeepAll);
     keepAllBtn.addEventListener('touchend', onKeepAllTouch, { passive: false });
 
+    const finishZeroSearch = () => {
+      if (who === 'player') { renderPlayerHand(); } else { renderOppHand(); }
+      updateAllCounts();
+      overlay.style.display = 'none';
+      $('app').style.display = '';
+      document.querySelectorAll('.field-card-row').forEach(el => {
+        el.style.width = '';
+        el.style.maxWidth = '';
+      });
+      resolve();
+    };
+
     // 決定ボタン
     const onConfirm = () => {
       if (confirmBtn.disabled) return;
@@ -4653,15 +4666,20 @@ function showZeroSearch(who) {
       confirmBtn.disabled = true;
       keepAllBtn.disabled = true;
 
-      // キープ選択状態を即解除（光り続けるのを防ぐ）
-      cardsEl.querySelectorAll('.zs-selected').forEach(el => el.classList.remove('zs-selected'));
-
       // dataset.uidは文字列なので文字列セットで比較
       const selectedUidStrs = new Set([...selectedUids].map(String));
 
       // 非キープカードのDOM要素を取得
       const exitEls = Array.from(cardsEl.querySelectorAll('.battle-card'))
         .filter(el => !selectedUidStrs.has(el.dataset.uid));
+
+      // 全てキープなら、選択表示を保って交換演出の待機を省く。
+      if (exitEls.length === 0) {
+        finishZeroSearch();
+        return;
+      }
+
+      cardsEl.querySelectorAll('.zs-selected').forEach(el => el.classList.remove('zs-selected'));
 
       // カード削除時のレイアウト崩れ防止：高さを今の値で固定
       cardsEl.style.height = cardsEl.offsetHeight + 'px';
@@ -4718,17 +4736,7 @@ function showZeroSearch(who) {
 
         // ④ 全カード登場後0.8秒待って次のシーンへ
         const totalWait = newCards.length * 60 + 200 + 800;
-        scheduleGameAction(() => {
-          if (who === 'player') { renderPlayerHand(); } else { renderOppHand(); }
-          updateAllCounts();
-          overlay.style.display = 'none';
-          $('app').style.display = '';
-          document.querySelectorAll('.field-card-row').forEach(el => {
-            el.style.width = '';
-            el.style.maxWidth = '';
-          });
-          resolve();
-        }, totalWait);
+        scheduleGameAction(finishZeroSearch, totalWait);
       }, 260); // フェードアウト完了待ち
     };
     const onConfirmTouch = (e) => { if (e.cancelable) e.preventDefault(); onConfirm(); };
