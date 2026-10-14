@@ -48,6 +48,7 @@ function exileCard(who, card) {
   const st = (who === 'player') ? player : opponent;
   if (hasKeyword(card, '不屈')) {
     st.open.push(card);
+    logHistory(who, `「${card.name}」は不屈で手札公開場に戻った。`);
     if (who === 'player') {
       renderPlayerOpen();
     } else {
@@ -135,6 +136,7 @@ let dragAttackGroupIdx = null;
 let dragAttackSourceEl = null;
 let dragAttackStartX = 0;
 let dragAttackStartY = 0;
+let cancelBashoMouseDrag = null;
 const DRAG_MOVE_THRESHOLD = 10;
 let handOverflowPhase = false;
 let turnNumber = 0;          // ターン数（先行1=1, 後攻1=2, 先行2=3, …）
@@ -890,6 +892,7 @@ function syncCardRow(container, cards, faceDown, who, cls, draggable) {
 // 描画：場
 // ===================================================================
 function renderField(who) {
+  if (cancelBashoMouseDrag) cancelBashoMouseDrag();
   if (dragAttackActive) cleanupDragAttack();
   const st = (who === 'player') ? player : opponent;
   const container = (who === 'player') ? dom.playerFieldCards : dom.oppFieldCards;
@@ -941,6 +944,11 @@ function renderField(who) {
     }
     container.appendChild(wrapper);
   });
+  fitFieldRow(container);
+  updateOverflow(container);
+}
+
+function fitFieldRow(container) {
   // field-card-rowの幅を親(field-zone)のコンテンツ幅に強制固定
   // （flex-shrink:0のfield-groupが溢れてclientWidthが膨張するのを防ぐ）
   const parent = container.parentElement;
@@ -950,7 +958,6 @@ function renderField(who) {
     container.style.width = pw + 'px';
     container.style.maxWidth = pw + 'px';
   }
-  updateOverflow(container);
 }
 
 // ===================================================================
@@ -976,14 +983,14 @@ function renderSoul(who) {
 function updateOverflow(container) {
   container.style.justifyContent = '';
   container.style.paddingLeft = '';
-  const items = Array.from(container.children);
+  const isFieldRow = container.classList.contains('field-card-row');
+  const items = Array.from(container.children).filter(el => !isFieldRow || el.classList.contains('field-group'));
   if (items.length === 0) return;
   items.forEach(el => { el.style.marginRight = ''; });
   const cW = container.clientWidth;
   if (cW <= 0) return;
 
   // 場のcard-rowか判定（field-card-rowクラスを持つ場合はgap値が大きい）
-  const isFieldRow = container.classList.contains('field-card-row');
   const defaultGap = isFieldRow ? parseInt(getComputedStyle(container).gap) || 14 : 2;
 
   let totalW = 0;
@@ -1250,13 +1257,26 @@ function setupBashoSelect(el, groupIdx) {
 
   // --- マウス：少し動かしたら即ドラッグ攻撃開始 ---
   el.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
     if (isAttacking || turnLocked || gameEnded || isDragging || kaiiPopupActive || banmenViewActive) return;
     const group = player.field[groupIdx];
     if (!group || !group.basho || group._summonedThisTurn || attackUsedThisTurn) return;
+    if (cancelBashoMouseDrag) cancelBashoMouseDrag();
     dragAttackStartX = e.clientX;
     dragAttackStartY = e.clientY;
     let mouseReady = true;
+    const cleanup = () => {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      mouseReady = false;
+      if (cancelBashoMouseDrag === cleanup) cancelBashoMouseDrag = null;
+    };
     const onMouseMove = (ev) => {
+      if (!(ev.buttons & 1) || !el.isConnected) {
+        cleanup();
+        if (dragAttackSourceEl === el) cancelDragAttack();
+        return;
+      }
       if (!dragAttackActive && mouseReady) {
         const dx = Math.abs(ev.clientX - dragAttackStartX);
         const dy = Math.abs(ev.clientY - dragAttackStartY);
@@ -1269,11 +1289,10 @@ function setupBashoSelect(el, groupIdx) {
       if (dragAttackActive) updateDragAttackBeam(ev.clientX, ev.clientY);
     };
     const onMouseUp = (ev) => {
-      document.removeEventListener('mousemove', onMouseMove);
-      document.removeEventListener('mouseup', onMouseUp);
-      mouseReady = false;
+      cleanup();
       if (dragAttackActive) finalizeDragAttack(ev.clientX, ev.clientY);
     };
+    cancelBashoMouseDrag = cleanup;
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
   });
@@ -1567,7 +1586,7 @@ async function handleAttackEffect(basho, who) {
           filter: (c) => hasTribe(c, '墓地'),
           onConfirm: (selectedCard) => {
             const hS1 = dom.playerHandCards.querySelector(`.battle-card[data-uid="${selectedCard.uid}"]`) || dom.playerOpenCards.querySelector(`.battle-card[data-uid="${selectedCard.uid}"]`);
-            const eS1 = hS1 ? { rect: hS1.getBoundingClientRect(), imgSrc: hS1.querySelector('img')?.src || selectedCard.img } : null;
+            const eS1 = hS1 ? { rect: hS1.getBoundingClientRect(), imgSrc: hS1.querySelector('img')?.src || selectedCard.img, uid: String(selectedCard.uid) } : null;
             let idx = st.hand.findIndex(c => c.uid === selectedCard.uid);
             if (idx !== -1) {
               st.hand.splice(idx, 1);
@@ -1575,8 +1594,8 @@ async function handleAttackEffect(basho, who) {
               idx = st.open.findIndex(c => c.uid === selectedCard.uid);
               if (idx !== -1) st.open.splice(idx, 1);
             }
-            exileCard(who, selectedCard);
-            logHistory('player', `「${basho.name}」の効果で「${selectedCard.name}」を除外した。`);
+            const didExile = exileCard(who, selectedCard);
+            if (didExile) logHistory('player', `「${basho.name}」の効果で「${selectedCard.name}」を除外した。`);
             renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
             updateExileDisplay('player');
             applyDamageWithSoulAbsorb(dmg, 'top', basho).then(() => {
@@ -1651,7 +1670,7 @@ async function handleAttackEffect(basho, who) {
           filter: (c) => hasTribe(c, '墓地'),
           onConfirm: (selectedCard) => {
             const hS2 = dom.playerHandCards.querySelector(`.battle-card[data-uid="${selectedCard.uid}"]`) || dom.playerOpenCards.querySelector(`.battle-card[data-uid="${selectedCard.uid}"]`);
-            const eS2 = hS2 ? { rect: hS2.getBoundingClientRect(), imgSrc: hS2.querySelector('img')?.src || selectedCard.img } : null;
+            const eS2 = hS2 ? { rect: hS2.getBoundingClientRect(), imgSrc: hS2.querySelector('img')?.src || selectedCard.img, uid: String(selectedCard.uid) } : null;
             let idx = st.hand.findIndex(c => c.uid === selectedCard.uid);
             if (idx !== -1) {
               st.hand.splice(idx, 1);
@@ -1659,8 +1678,8 @@ async function handleAttackEffect(basho, who) {
               idx = st.open.findIndex(c => c.uid === selectedCard.uid);
               if (idx !== -1) st.open.splice(idx, 1);
             }
-            exileCard(who, selectedCard);
-            logHistory('player', `「${basho.name}」の効果で「${selectedCard.name}」を除外した。`);
+            const didExile = exileCard(who, selectedCard);
+            if (didExile) logHistory('player', `「${basho.name}」の効果で「${selectedCard.name}」を除外した。`);
             renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
             updateExileDisplay('player');
             // 相手に3点ライフダメージ（魂吸収確認後にフライエフェクト）
@@ -1730,10 +1749,10 @@ async function handleCpuAttackEffect(basho, st) {
       if (idx !== -1) {
         const cS1 = dom.oppHandCards.querySelector(`.battle-card[data-uid="${target.uid}"]`)
           || dom.oppOpenCards.querySelector(`.battle-card[data-uid="${target.uid}"]`);
-        const cE1 = cS1 ? { rect: cS1.getBoundingClientRect(), imgSrc: DECK_BACK_IMG } : null;
+        const cE1 = cS1 ? { rect: cS1.getBoundingClientRect(), imgSrc: DECK_BACK_IMG, uid: String(target.uid) } : null;
         source.splice(idx, 1);
-        exileCard('opponent', target); // FIX: 'who'は未定義 → 'opponent'に固定
-        logHistory('opponent', `「${basho.name}」の効果で「${target.name}」を除外した。`);
+        const didExile = exileCard('opponent', target);
+        if (didExile) logHistory('opponent', `「${basho.name}」の効果で「${target.name}」を除外した。`);
         renderOppHand(); renderOppOpen(); updateAllCounts();
         updateExileDisplay('opponent');
         await applyDamageWithSoulAbsorb(4, 'bottom', basho);
@@ -1762,10 +1781,10 @@ async function handleCpuAttackEffect(basho, st) {
       if (idx !== -1) {
         const cS2 = dom.oppHandCards.querySelector(`.battle-card[data-uid="${target.uid}"]`)
           || dom.oppOpenCards.querySelector(`.battle-card[data-uid="${target.uid}"]`);
-        const cE2 = cS2 ? { rect: cS2.getBoundingClientRect(), imgSrc: DECK_BACK_IMG } : null;
+        const cE2 = cS2 ? { rect: cS2.getBoundingClientRect(), imgSrc: DECK_BACK_IMG, uid: String(target.uid) } : null;
         source.splice(idx, 1);
-        exileCard('opponent', target); // FIX: 'who'は未定義 → 'opponent'に固定
-        logHistory('opponent', `「${basho.name}」の効果で「${target.name}」を除外した。`);
+        const didExile = exileCard('opponent', target);
+        if (didExile) logHistory('opponent', `「${basho.name}」の効果で「${target.name}」を除外した。`);
         renderOppHand(); renderOppOpen(); updateAllCounts();
         updateExileDisplay('opponent');
         // プレイヤーに3点ライフダメージ（魂吸収確認後にフライエフェクト）
@@ -1809,7 +1828,7 @@ async function handleKaiiEffect(kCard, who) {
           filter: (c) => hasTribe(c, '墓地'),
           onConfirm: (selectedCard) => {
             const hS3 = dom.playerHandCards.querySelector(`.battle-card[data-uid="${selectedCard.uid}"]`) || dom.playerOpenCards.querySelector(`.battle-card[data-uid="${selectedCard.uid}"]`);
-            const eS3 = hS3 ? { rect: hS3.getBoundingClientRect(), imgSrc: hS3.querySelector('img')?.src || selectedCard.img } : null;
+            const eS3 = hS3 ? { rect: hS3.getBoundingClientRect(), imgSrc: hS3.querySelector('img')?.src || selectedCard.img, uid: String(selectedCard.uid) } : null;
             let idx = st.hand.findIndex(c => c.uid === selectedCard.uid);
             if (idx !== -1) {
               st.hand.splice(idx, 1);
@@ -1817,8 +1836,8 @@ async function handleKaiiEffect(kCard, who) {
               idx = st.open.findIndex(c => c.uid === selectedCard.uid);
               if (idx !== -1) st.open.splice(idx, 1);
             }
-            exileCard(who, selectedCard);
-            logHistory('player', `「${kCard.name}」の効果で「${selectedCard.name}」を除外した。`);
+            const didExile = exileCard(who, selectedCard);
+            if (didExile) logHistory('player', `「${kCard.name}」の効果で「${selectedCard.name}」を除外した。`);
             renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
             updateExileDisplay('player');
             applyDamageWithSoulAbsorb(dmg, 'top', kCard).then(() => {
@@ -1970,7 +1989,7 @@ async function handleKaiiEffect(kCard, who) {
       if (el) {
         const rect = el.getBoundingClientRect();
         const imgEl = el.querySelector('img');
-        exileFlySnapshots.push({ rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height }, imgSrc: imgEl ? imgEl.src : DECK_BACK_IMG });
+        exileFlySnapshots.push({ rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height }, imgSrc: imgEl ? imgEl.src : DECK_BACK_IMG, uid: String(c.uid) });
       }
     });
     // 公開場カードをキャプチャ
@@ -1979,7 +1998,7 @@ async function handleKaiiEffect(kCard, who) {
       if (el) {
         const rect = el.getBoundingClientRect();
         const imgEl = el.querySelector('img');
-        exileFlySnapshots.push({ rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height }, imgSrc: imgEl ? imgEl.src : DECK_BACK_IMG });
+        exileFlySnapshots.push({ rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height }, imgSrc: imgEl ? imgEl.src : DECK_BACK_IMG, uid: String(c.uid) });
       }
     });
     // 魂カードをキャプチャ
@@ -1988,7 +2007,7 @@ async function handleKaiiEffect(kCard, who) {
       if (el) {
         const rect = el.getBoundingClientRect();
         const imgEl = el.querySelector('img');
-        exileFlySnapshots.push({ rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height }, imgSrc: imgEl ? imgEl.src : DECK_BACK_IMG });
+        exileFlySnapshots.push({ rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height }, imgSrc: imgEl ? imgEl.src : DECK_BACK_IMG, uid: String(c.uid) });
       }
     });
 
@@ -2035,8 +2054,8 @@ async function handleKaiiEffect(kCard, who) {
       let flyPromise = Promise.resolve();
       if (exileFlySnapshots.length > 0) {
         flyPromise = gamePromise(resolve => {
-          showExileFly(exileFlySnapshots, exileEl, () => {
-            showFloatingText(exileEl, '全除外', 'exile');
+          showExileFly(exileFlySnapshots, exileEl, count => {
+            if (count > 0) showFloatingText(exileEl, '全除外', 'exile');
             resolve();
           });
         });
@@ -2049,8 +2068,8 @@ async function handleKaiiEffect(kCard, who) {
       // ダメージなしの場合は飛行アニメーションのみ
       if (exileFlySnapshots.length > 0) {
         await gamePromise(resolve => {
-          showExileFly(exileFlySnapshots, exileEl, () => {
-            showFloatingText(exileEl, '全除外', 'exile');
+          showExileFly(exileFlySnapshots, exileEl, count => {
+            if (count > 0) showFloatingText(exileEl, '全除外', 'exile');
             resolve();
           });
         });
@@ -2105,7 +2124,7 @@ async function handleKaiiEffect(kCard, who) {
             filter: () => true, // 全カード対象
             onConfirm: (selectedCard) => {
               const hS4 = dom.playerHandCards.querySelector(`.battle-card[data-uid="${selectedCard.uid}"]`) || dom.playerOpenCards.querySelector(`.battle-card[data-uid="${selectedCard.uid}"]`);
-              const eS4 = hS4 ? { rect: hS4.getBoundingClientRect(), imgSrc: hS4.querySelector('img')?.src || selectedCard.img } : null;
+              const eS4 = hS4 ? { rect: hS4.getBoundingClientRect(), imgSrc: hS4.querySelector('img')?.src || selectedCard.img, uid: String(selectedCard.uid) } : null;
               let idx = st.hand.findIndex(c => c.uid === selectedCard.uid);
               if (idx !== -1) {
                 st.hand.splice(idx, 1);
@@ -2113,12 +2132,12 @@ async function handleKaiiEffect(kCard, who) {
                 idx = st.open.findIndex(c => c.uid === selectedCard.uid);
                 if (idx !== -1) st.open.splice(idx, 1);
               }
-              exileCard(who, selectedCard);
-              logHistory('player', `「${kCard.name}」の効果で「${selectedCard.name}」を除外した。`);
+              const didExile = exileCard(who, selectedCard);
+              if (didExile) logHistory('player', `「${kCard.name}」の効果で「${selectedCard.name}」を除外した。`);
               renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
               updateExileDisplay('player');
               if (eS4) showExileFly([eS4], dom.playerExile);
-              requestAnimationFrame(() => {
+              if (didExile) requestAnimationFrame(() => {
                 showFloatingText(dom.playerExile, '除外', 'exile');
               });
               resolve();
@@ -2173,13 +2192,13 @@ async function handleKaiiEffect(kCard, who) {
           if (idx !== -1) st.open.splice(idx, 1);
         }
         const cS3 = dom.oppHandCards.querySelector(`.battle-card[data-uid="${target.uid}"]`) || dom.oppOpenCards.querySelector(`.battle-card[data-uid="${target.uid}"]`);
-        const cE3 = cS3 ? { rect: cS3.getBoundingClientRect(), imgSrc: DECK_BACK_IMG } : null;
-        exileCard(who, target);
-        logHistory('opponent', `「${kCard.name}」の効果で「${target.name}」を除外した。`);
+        const cE3 = cS3 ? { rect: cS3.getBoundingClientRect(), imgSrc: DECK_BACK_IMG, uid: String(target.uid) } : null;
+        const didExile = exileCard(who, target);
+        if (didExile) logHistory('opponent', `「${kCard.name}」の効果で「${target.name}」を除外した。`);
         renderOppHand(); renderOppOpen(); updateAllCounts();
         updateExileDisplay('opponent');
         if (cE3) showExileFly([cE3], dom.oppExile);
-        requestAnimationFrame(() => {
+        if (didExile) requestAnimationFrame(() => {
           showFloatingText(dom.oppExile, '除外', 'exile');
         });
       }
@@ -2204,7 +2223,7 @@ async function handleKaiiEffect(kCard, who) {
           filter: (c) => hasTribe(c, '墓地'),
           onConfirm: (selectedCard) => {
             const hS5 = dom.playerHandCards.querySelector(`.battle-card[data-uid="${selectedCard.uid}"]`) || dom.playerOpenCards.querySelector(`.battle-card[data-uid="${selectedCard.uid}"]`);
-            const eS5 = hS5 ? { rect: hS5.getBoundingClientRect(), imgSrc: hS5.querySelector('img')?.src || selectedCard.img } : null;
+            const eS5 = hS5 ? { rect: hS5.getBoundingClientRect(), imgSrc: hS5.querySelector('img')?.src || selectedCard.img, uid: String(selectedCard.uid) } : null;
             let idx = st.hand.findIndex(c => c.uid === selectedCard.uid);
             if (idx !== -1) {
               st.hand.splice(idx, 1);
@@ -2212,8 +2231,8 @@ async function handleKaiiEffect(kCard, who) {
               idx = st.open.findIndex(c => c.uid === selectedCard.uid);
               if (idx !== -1) st.open.splice(idx, 1);
             }
-            exileCard(who, selectedCard);
-            logHistory('player', `「${kCard.name}」の効果で「${selectedCard.name}」を除外した。`);
+            const didExile = exileCard(who, selectedCard);
+            if (didExile) logHistory('player', `「${kCard.name}」の効果で「${selectedCard.name}」を除外した。`);
             renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
             updateExileDisplay('player');
             if (eS5) showExileFly([eS5], dom.playerExile);
@@ -2243,7 +2262,7 @@ async function handleKaiiEffect(kCard, who) {
             const target = shuffled[i];
             const snapEl = dom.oppHandCards.querySelector(`.battle-card[data-uid="${target.uid}"]`)
               || dom.oppOpenCards.querySelector(`.battle-card[data-uid="${target.uid}"]`);
-            if (snapEl) handdesSnaps.push({ rect: snapEl.getBoundingClientRect(), imgSrc: DECK_BACK_IMG });
+            if (snapEl) handdesSnaps.push({ rect: snapEl.getBoundingClientRect(), imgSrc: DECK_BACK_IMG, uid: String(target.uid) });
           }
           const handdesNames = [];
           for (let i = 0; i < exileCount; i++) {
@@ -2251,14 +2270,12 @@ async function handleKaiiEffect(kCard, who) {
             let idx = oppSt.hand.findIndex(c => c.uid === target.uid);
             if (idx !== -1) {
               oppSt.hand.splice(idx, 1);
-              exileCard(oppWho, target);
-              handdesNames.push(target.name);
+              if (exileCard(oppWho, target)) handdesNames.push(target.name);
             } else {
               idx = oppSt.open.findIndex(c => c.uid === target.uid);
               if (idx !== -1) {
                 oppSt.open.splice(idx, 1);
-                exileCard(oppWho, target);
-                handdesNames.push(target.name);
+                if (exileCard(oppWho, target)) handdesNames.push(target.name);
               }
             }
           }
@@ -2288,9 +2305,9 @@ async function handleKaiiEffect(kCard, who) {
         if (idx !== -1) st.open.splice(idx, 1);
       }
       const cS4 = dom.oppHandCards.querySelector(`.battle-card[data-uid="${target.uid}"]`) || dom.oppOpenCards.querySelector(`.battle-card[data-uid="${target.uid}"]`);
-      const cE4 = cS4 ? { rect: cS4.getBoundingClientRect(), imgSrc: DECK_BACK_IMG } : null;
-      exileCard(who, target);
-      logHistory('opponent', `「${kCard.name}」の効果で「${target.name}」を除外した。`);
+      const cE4 = cS4 ? { rect: cS4.getBoundingClientRect(), imgSrc: DECK_BACK_IMG, uid: String(target.uid) } : null;
+      const didExile = exileCard(who, target);
+      if (didExile) logHistory('opponent', `「${kCard.name}」の効果で「${target.name}」を除外した。`);
       renderOppHand(); renderOppOpen(); updateAllCounts();
       updateExileDisplay('opponent');
       if (cE4) showExileFly([cE4], dom.oppExile);
@@ -2307,21 +2324,19 @@ async function handleKaiiEffect(kCard, who) {
           playerAllHand.forEach(c => {
             const snapEl = dom.playerHandCards.querySelector(`.battle-card[data-uid="${c.uid}"]`)
               || dom.playerOpenCards.querySelector(`.battle-card[data-uid="${c.uid}"]`);
-            if (snapEl) autoExileSnaps.push({ rect: snapEl.getBoundingClientRect(), imgSrc: snapEl.querySelector('img')?.src || c.img });
+            if (snapEl) autoExileSnaps.push({ rect: snapEl.getBoundingClientRect(), imgSrc: snapEl.querySelector('img')?.src || c.img, uid: String(c.uid) });
           });
           const autoExiledNames = [];
           playerAllHand.forEach(c => {
             let idx = oppSt.hand.findIndex(x => x.uid === c.uid);
             if (idx !== -1) {
               oppSt.hand.splice(idx, 1);
-              exileCard(oppWho, c);
-              autoExiledNames.push(c.name);
+              if (exileCard(oppWho, c)) autoExiledNames.push(c.name);
             } else {
               idx = oppSt.open.findIndex(x => x.uid === c.uid);
               if (idx !== -1) {
                 oppSt.open.splice(idx, 1);
-                exileCard(oppWho, c);
-                autoExiledNames.push(c.name);
+                if (exileCard(oppWho, c)) autoExiledNames.push(c.name);
               }
             }
           });
@@ -2356,8 +2371,8 @@ async function handleCpuKaiiEffect(kCard, st, dmg) {
       const idx = source.findIndex(c => c.uid === target.uid);
       if (idx !== -1) {
         source.splice(idx, 1);
-        exileCard('opponent', target);
-        logHistory('opponent', `「${kCard.name}」の効果で「${target.name}」を除外した。`);
+        const didExile = exileCard('opponent', target);
+        if (didExile) logHistory('opponent', `「${kCard.name}」の効果で「${target.name}」を除外した。`);
         renderOppHand(); renderOppOpen(); updateAllCounts();
         updateExileDisplay('opponent');
         requestAnimationFrame(() => {
@@ -2836,7 +2851,7 @@ function startSelfHandExilePhase(count) {
       const selfExileSnaps = [];
       selected.forEach(uid => {
         const el = cardElMap.get(uid);
-        if (el) selfExileSnaps.push({ rect: el.getBoundingClientRect(), imgSrc: el.querySelector('img')?.src || '' });
+        if (el) selfExileSnaps.push({ rect: el.getBoundingClientRect(), imgSrc: el.querySelector('img')?.src || '', uid: String(uid) });
       });
       overlay.style.display = 'none';
       overlay.classList.remove('active');
@@ -2847,22 +2862,20 @@ function startSelfHandExilePhase(count) {
         let idx = player.hand.findIndex(c => c.uid === uid);
         if (idx !== -1) {
           const c = player.hand.splice(idx, 1)[0];
-          exileCard('player', c);
-          exiledNames.push(c.name);
+          if (exileCard('player', c)) exiledNames.push(c.name);
           exiled++;
         } else {
           idx = player.open.findIndex(c => c.uid === uid);
           if (idx !== -1) {
             const c = player.open.splice(idx, 1)[0];
-            exileCard('player', c);
-            exiledNames.push(c.name);
+            if (exileCard('player', c)) exiledNames.push(c.name);
             exiled++;
           }
         }
       });
 
       if (exiled > 0) {
-        logHistory('player', `手札から「${exiledNames.join('」「')}」を除外した。`);
+        if (exiledNames.length > 0) logHistory('player', `手札から「${exiledNames.join('」「')}」を除外した。`);
         renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
         updateExileDisplay('player');
         if (selfExileSnaps.length > 0) showExileFly(selfExileSnaps, dom.playerExile);
@@ -3016,6 +3029,14 @@ function showWinLoseResult(isWin) {
 
 // 蟲憑き連続ばらまきフラグ（nullでなければ次のshowDamageで発動）
 let _pendingBarrage = null;
+let damageDisplayVersion = 0;
+let damageHideTimer = null;
+
+function beginDamageDisplay() {
+  clearTimeout(damageHideTimer);
+  damageHideTimer = null;
+  return ++damageDisplayVersion;
+}
 
 // HPダメージエフェクト
 function showDamage(amount, side, isFinish) {
@@ -3023,10 +3044,11 @@ function showDamage(amount, side, isFinish) {
   if (_pendingBarrage) {
     const b = _pendingBarrage;
     _pendingBarrage = null;
-    showBarrageDamage(b.hitCount, b.dmgPer, b.side, isFinish, b.resolve, b.cardImg, b.who);
+    showBarrageDamage(b.hitCount, b.dmgPer, b.side, isFinish, b.resolve, b.cardImg, b.who, amount);
     return;
   }
   // 7ダメージ以上、またはフィニッシュブローでスクリーンシェイク
+  const displayVersion = beginDamageDisplay();
   if (amount >= 7 || isFinish) screenShake();
   dom.damageText.textContent = 'HP−' + amount;
   const cls = (side === 'top') ? 'show-top' : 'show-bottom';
@@ -3058,7 +3080,9 @@ function showDamage(amount, side, isFinish) {
   }
 
   const duration = isFinish ? 1600 : 850;
-  scheduleGameAction(() => {
+  damageHideTimer = scheduleGameAction(() => {
+    if (displayVersion !== damageDisplayVersion) return;
+    damageHideTimer = null;
     dom.damageOverlay.style.display = 'none';
     dom.damageOverlay.className = '';
     dom.damageOverlay.querySelectorAll('.dmg-burst,.dmg-splatter').forEach(e => e.remove());
@@ -3110,7 +3134,8 @@ function showSoulDamage(absorbCount, who, isFinish) {
 
 // 蟲憑き発動演出：カード画像を自陣地に大きく表示
 // 蟲憑き専用：連続ダメージばらまき演出
-function showBarrageDamage(hitCount, dmgPer, side, isLastLethal, onComplete, cardImg, who) {
+function showBarrageDamage(hitCount, dmgPer, side, isLastLethal, onComplete, cardImg, who, actualDamage = hitCount * dmgPer) {
+  const displayVersion = beginDamageDisplay();
   const area = dom.damageOverlay;
   const cls = (side === 'top') ? 'show-top' : 'show-bottom';
   area.className = cls;
@@ -3123,6 +3148,10 @@ function showBarrageDamage(hitCount, dmgPer, side, isLastLethal, onComplete, car
   screenShake();
 
   function fireOne() {
+    if (displayVersion !== damageDisplayVersion) {
+      if (onComplete) onComplete();
+      return;
+    }
     if (i >= hitCount) return;
     const isLast = (i === hitCount - 1);
     const isFinish = isLast && isLastLethal;
@@ -3135,7 +3164,10 @@ function showBarrageDamage(hitCount, dmgPer, side, isLastLethal, onComplete, car
     hit.className = 'barrage-hit' + (isFinish ? ' barrage-finish' : '');
     hit.style.left = (15 + Math.random() * 70) + '%';
     hit.style.top = (15 + Math.random() * 60) + '%';
-    hit.textContent = '−' + dmgPer;
+    // 吸収した分も波動は残し、赤い数字の合計だけを実際のHPダメージに合わせる。
+    const hitDamage = Math.min(dmgPer, Math.max(0, actualDamage - (hitCount - i - 1) * dmgPer));
+    hit.textContent = hitDamage > 0 ? '−' + hitDamage : '';
+    hit.hidden = hitDamage === 0;
     area.appendChild(hit);
 
     // バーストエフェクト
@@ -3172,6 +3204,7 @@ function showBarrageDamage(hitCount, dmgPer, side, isLastLethal, onComplete, car
     } else {
       // オーバーレイ片付け（エフェクト消え終わり後）
       scheduleGameAction(() => {
+        if (displayVersion !== damageDisplayVersion) return;
         area.style.display = 'none';
         area.className = '';
         dom.damageText.style.display = '';
@@ -3391,8 +3424,14 @@ function showDrawFly(who, cardUid, onArrive) {
 // exileEl: 除外ゾーンのDOM要素
 // ===================================================================
 function showExileFly(snapshots, exileEl, onComplete) {
+  // 不屈で公開場に戻った札は、除外へ飛ばさない。
+  if (snapshots && exileEl) {
+    const st = exileEl === dom.playerExile ? player : opponent;
+    const returnedUids = new Set(st.open.filter(c => hasKeyword(c, '不屈')).map(c => String(c.uid)));
+    snapshots = snapshots.filter(snap => !returnedUids.has(String(snap.uid)));
+  }
   if (!snapshots || snapshots.length === 0 || !exileEl) {
-    if (onComplete) onComplete();
+    if (onComplete) onComplete(0);
     return;
   }
   const exileRect = exileEl.getBoundingClientRect();
@@ -3432,7 +3471,7 @@ function showExileFly(snapshots, exileEl, onComplete) {
         setTimeout(() => {
           fly.remove();
           completed++;
-          if (completed === total && onComplete) onComplete();
+          if (completed === total && onComplete) onComplete(total);
         }, 250);
       }, 470);
     }, idx * STAGGER);
@@ -3793,6 +3832,7 @@ function setupDrag(el, card) {
 
 window.addEventListener('blur', () => {
   if (cancelCardDrag) cancelCardDrag();
+  if (cancelBashoMouseDrag) cancelBashoMouseDrag();
   if (dragAttackActive) cancelDragAttack();
 });
 
@@ -4080,6 +4120,8 @@ function startGame() {
   gameResetCleanups.clear();
   cleanups.forEach(cleanup => cleanup());
   if (cancelCardDrag) cancelCardDrag();
+  if (cancelBashoMouseDrag) cancelBashoMouseDrag();
+  beginDamageDisplay();
   uidCounter = 1;
   player.deck = buildSampleDeck();
   player.hand = []; player.field = []; player.soul = []; player.exile = []; player.open = []; player.life = 30;
@@ -4616,7 +4658,7 @@ function startPlayerTurn() {
   renderField('player');
   showTurnAnnounce('YOUR TURN', () => {
     if (gen !== gameGeneration) return;
-    logHistory('system', `▶あなたのターン (${Math.ceil(turnNumber / 2)}ターン目)`);
+    logHistory('system', `▶あなたのターン (${soloMode ? turnNumber : Math.ceil(turnNumber / 2)}ターン目)`);
     // 先行1ターン目のみドローなし。後攻なら1ターン目からドロー。
     const isPlayerSenkou = isFirstTurn; // isFirstTurn=true → プレイヤーが先行
     const skipDraw = (isPlayerSenkou && turnNumber === 1);
@@ -4939,7 +4981,7 @@ function handleSummonEffect(card, who) {
             // フライアニメ用スナップ（renderHand前に取得）
             const hSnap1 = dom.playerHandCards.querySelector(`.battle-card[data-uid="${selectedCard.uid}"]`)
               || dom.playerOpenCards.querySelector(`.battle-card[data-uid="${selectedCard.uid}"]`);
-            const exSnap1 = hSnap1 ? { rect: hSnap1.getBoundingClientRect(), imgSrc: hSnap1.querySelector('img')?.src || selectedCard.img } : null;
+            const exSnap1 = hSnap1 ? { rect: hSnap1.getBoundingClientRect(), imgSrc: hSnap1.querySelector('img')?.src || selectedCard.img, uid: String(selectedCard.uid) } : null;
             // 手札から除外
             let idx = player.hand.findIndex(c => c.uid === selectedCard.uid);
             if (idx !== -1) {
@@ -4948,8 +4990,8 @@ function handleSummonEffect(card, who) {
               idx = player.open.findIndex(c => c.uid === selectedCard.uid);
               if (idx !== -1) player.open.splice(idx, 1);
             }
-            exileCard('player', selectedCard);
-            logHistory('player', `「${card.name}」の効果で「${selectedCard.name}」を除外した。`);
+            const didExile = exileCard('player', selectedCard);
+            if (didExile) logHistory('player', `「${card.name}」の効果で「${selectedCard.name}」を除外した。`);
             renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
             updateExileDisplay('player');
             // 相手に3点ダメージ（魂吸収確認後にフライエフェクト）
@@ -5065,7 +5107,7 @@ function handleSummonEffect(card, who) {
           onConfirm: (selectedCard) => {
             const hSnap2 = dom.playerHandCards.querySelector(`.battle-card[data-uid="${selectedCard.uid}"]`)
               || dom.playerOpenCards.querySelector(`.battle-card[data-uid="${selectedCard.uid}"]`);
-            const exSnap2 = hSnap2 ? { rect: hSnap2.getBoundingClientRect(), imgSrc: hSnap2.querySelector('img')?.src || selectedCard.img } : null;
+            const exSnap2 = hSnap2 ? { rect: hSnap2.getBoundingClientRect(), imgSrc: hSnap2.querySelector('img')?.src || selectedCard.img, uid: String(selectedCard.uid) } : null;
             let idx = player.hand.findIndex(c => c.uid === selectedCard.uid);
             if (idx !== -1) {
               player.hand.splice(idx, 1);
@@ -5073,8 +5115,8 @@ function handleSummonEffect(card, who) {
               idx = player.open.findIndex(c => c.uid === selectedCard.uid);
               if (idx !== -1) player.open.splice(idx, 1);
             }
-            exileCard('player', selectedCard);
-            logHistory('player', `「${card.name}」の効果で「${selectedCard.name}」を除外した。`);
+            const didExile = exileCard('player', selectedCard);
+            if (didExile) logHistory('player', `「${card.name}」の効果で「${selectedCard.name}」を除外した。`);
             renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
             updateExileDisplay('player');
             if (exSnap2) showExileFly([exSnap2], dom.playerExile);
@@ -5144,11 +5186,10 @@ function handleSummonEffect(card, who) {
               hIdx = opponent.open.findIndex(c => c.uid === chosen.uid);
               if (hIdx !== -1) opponent.open.splice(hIdx, 1);
             }
-            exileCard('opponent', chosen);
-            exiledNames.push(chosen.name);
+            if (exileCard('opponent', chosen)) exiledNames.push(chosen.name);
           }
           if (exileCount > 0) {
-            logHistory('player', `「${card.name}」の効果で相手の手札「${exiledNames.join('」「')}」を除外した。`);
+            if (exiledNames.length > 0) logHistory('player', `「${card.name}」の効果で相手の手札「${exiledNames.join('」「')}」を除外した。`);
             renderOppHand(); renderOppOpen(); updateAllCounts();
             updateExileDisplay('opponent');
             requestAnimationFrame(() => {
@@ -5180,8 +5221,8 @@ async function handleCpuSummonEffect(card) {
       const idx = source.findIndex(c => c.uid === target.uid);
       if (idx !== -1) {
         source.splice(idx, 1);
-        exileCard('opponent', target);
-        logHistory('opponent', `「${card.name}」の効果で「${target.name}」を除外した。`);
+        const didExile = exileCard('opponent', target);
+        if (didExile) logHistory('opponent', `「${card.name}」の効果で「${target.name}」を除外した。`);
         renderOppHand(); renderOppOpen(); updateAllCounts();
         updateExileDisplay('opponent');
         // 除外フローティングテキスト
@@ -5260,8 +5301,8 @@ async function handleCpuSummonEffect(card) {
       const idx = source.findIndex(c => c.uid === target.uid);
       if (idx !== -1) {
         source.splice(idx, 1);
-        exileCard('opponent', target);
-        logHistory('opponent', `「${card.name}」の効果で「${target.name}」を除外した。`);
+        const didExile = exileCard('opponent', target);
+        if (didExile) logHistory('opponent', `「${card.name}」の効果で「${target.name}」を除外した。`);
         renderOppHand(); renderOppOpen(); updateAllCounts();
         updateExileDisplay('opponent');
         requestAnimationFrame(() => {
@@ -5301,14 +5342,14 @@ async function handleCpuSummonEffect(card) {
           [...player.hand, ...player.open].forEach(c => {
             const snapEl = dom.playerHandCards.querySelector(`.battle-card[data-uid="${c.uid}"]`)
               || dom.playerOpenCards.querySelector(`.battle-card[data-uid="${c.uid}"]`);
-            if (snapEl) sandySnaps.push({ rect: snapEl.getBoundingClientRect(), imgSrc: snapEl.querySelector('img')?.src || c.img });
+            if (snapEl) sandySnaps.push({ rect: snapEl.getBoundingClientRect(), imgSrc: snapEl.querySelector('img')?.src || c.img, uid: String(c.uid) });
           });
-          const autoExiledNames = [...player.hand, ...player.open].map(c => c.name);
+          const autoExiledNames = playerAllHand.filter(c => !hasKeyword(c, '不屈')).map(c => c.name);
           player.hand = [];
           player.open = [];
           // 不屈で公開場へ戻る札を、除外後の配列初期化で消さない。
           playerAllHand.forEach(c => exileCard('player', c));
-          logHistory('opponent', `「${card.name}」の効果で自分の手札「${autoExiledNames.join('」「')}」が除外された。`);
+          if (autoExiledNames.length > 0) logHistory('opponent', `「${card.name}」の効果で自分の手札「${autoExiledNames.join('」「')}」が除外された。`);
           renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
           updateExileDisplay('player');
           if (sandySnaps.length > 0) showExileFly(sandySnaps, dom.playerExile);
@@ -5442,7 +5483,7 @@ function applyDamageWithSoulAbsorb(amount, side, sourceCard) {
         } else if (_pendingBarrage) {
           // 全吸収でもばらまき演出は実行
           const b = _pendingBarrage; _pendingBarrage = null;
-          showBarrageDamage(b.hitCount, b.dmgPer, b.side, false, b.resolve, b.cardImg, b.who);
+          showBarrageDamage(b.hitCount, b.dmgPer, b.side, false, b.resolve, b.cardImg, b.who, 0);
         }
         resolve(actualDmg);
       } else {
@@ -5628,7 +5669,7 @@ function finishSoulAbsorbSelect(totalDamage, side, st, resolve) {
   } else if (_pendingBarrage) {
     // 全吸収でもばらまき演出は実行
     const b = _pendingBarrage; _pendingBarrage = null;
-    showBarrageDamage(b.hitCount, b.dmgPer, b.side, false, b.resolve, b.cardImg, b.who);
+    showBarrageDamage(b.hitCount, b.dmgPer, b.side, false, b.resolve, b.cardImg, b.who, 0);
   }
 
   resolve(remainingDamage);
@@ -6254,7 +6295,13 @@ const howtoCloseX = $('howto-close-x');
 const howtoCloseBtn = $('howto-close-btn');
 
 function showHowtoModal() {
-  if (howtoModal) howtoModal.classList.add('active');
+  if (howtoModal) {
+    howtoModal.querySelectorAll('img[data-src]').forEach(img => {
+      img.src = img.dataset.src;
+      img.removeAttribute('data-src');
+    });
+    howtoModal.classList.add('active');
+  }
   if (banmenViewActive && banmenFloatingBtn) banmenFloatingBtn.style.visibility = 'hidden';
 }
 function hideHowtoModal() {
@@ -6381,6 +6428,7 @@ window.addEventListener('resize', () => {
     if (header && overlay && overlay.style.display !== 'none') {
       overlay.style.top = header.offsetHeight + 'px';
     }
+    if (banmenViewActive) positionBanmenReturnButton();
     // ゲーム中ならインラインwidthをクリアしてから再レンダリング
     if (turnNumber > 0) {
       // フィールド行のインライン幅を一旦リセット
@@ -6390,8 +6438,9 @@ window.addEventListener('resize', () => {
       });
       renderPlayerHand();
       renderOppHand();
-      renderField('player');
-      renderField('opponent');
+      // 場のDOMを保ち、進行中のフリップ・攻撃演出を途中で消さない。
+      fitFieldRow(dom.playerFieldCards);
+      fitFieldRow(dom.oppFieldCards);
       updateAllCounts();
       [dom.playerHandCards, dom.oppHandCards, dom.playerFieldCards, dom.oppFieldCards, dom.playerSoulCards, dom.oppSoulCards].forEach(updateOverflow);
     } else {
@@ -6522,6 +6571,21 @@ const banmenTargetIds = [
   'opp-hand-exile-overlay'
 ];
 
+function positionBanmenReturnButton() {
+  if (!banmenFloatingBtn) return;
+  const source = banmenSourceBtn && banmenSourceBtn.getBoundingClientRect();
+  const body = document.body.getBoundingClientRect();
+  const width = 44, height = 44, gap = 8;
+  const left = source && source.width ? source.left : body.left + gap;
+  const top = source && source.height ? source.top : body.bottom - height - gap;
+  const minLeft = Math.max(gap, body.left + gap);
+  const maxLeft = Math.max(minLeft, Math.min(innerWidth, body.right) - width - gap);
+  const minTop = Math.max(gap, body.top + gap);
+  const maxTop = Math.max(minTop, Math.min(innerHeight, body.bottom) - height - gap);
+  banmenFloatingBtn.style.left = Math.max(minLeft, Math.min(left, maxLeft)) + 'px';
+  banmenFloatingBtn.style.top = Math.max(minTop, Math.min(top, maxTop)) + 'px';
+}
+
 function enterBanmenView(sourceBtn) {
   if (banmenViewActive) return;
   banmenViewActive = true;
@@ -6529,11 +6593,7 @@ function enterBanmenView(sourceBtn) {
   banmenHiddenOverlays.length = 0;
 
   // 押されたボタンの位置を取得（フローティングボタンを全く同じ位置に配置）
-  if (sourceBtn && banmenFloatingBtn) {
-    const rect = sourceBtn.getBoundingClientRect();
-    banmenFloatingBtn.style.top = rect.top + 'px';
-    banmenFloatingBtn.style.left = rect.left + 'px';
-  }
+  positionBanmenReturnButton();
 
   // 現在表示中の選択オーバーレイを全て一時非表示
   banmenTargetIds.forEach(id => {

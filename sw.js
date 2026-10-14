@@ -36,9 +36,6 @@ self.addEventListener('install', (e) => {
         'images/card_12_p (26).jpg',
         'images/card_12_p (27).jpg',
         'images/card_12_p (28).jpg',
-        'images/capture01.gif',
-        'images/capture02.gif',
-        'images/capture03.gif',
         'images/finish.jpg'
       ];
       // 個別にキャッシュ（1つ失敗しても他は続行）
