@@ -270,6 +270,8 @@ const dom = {
   typeUsedMsg: $('type-used-msg'),
   attackBtn: $('attack-btn'),
   endTurnCenter: $('end-turn-center'),
+  endTurnAura: $('end-turn-aura'),
+  centerArea: $('center-area'),
   gateOverlay: $('gate-overlay'),
   gateText: $('gate-text'),
   coinText: $('coin-text'),
@@ -402,7 +404,35 @@ function clearPlayableAura() {
   dom.playerOpenCards.querySelectorAll('.battle-card.playable').forEach(el => el.classList.remove('playable'));
   dom.playerFieldCards.querySelectorAll('.basho-slot.playable').forEach(el => el.classList.remove('playable'));
 }
+
+function updateEndTurnHint() {
+  const canAct = turnNumber > 0 && !turnLocked && !gameEnded && !isAttacking &&
+    !handOverflowPhase && !cardSelectPhase && !soulAbsorbPhase && !exileSelectMode &&
+    !banmenViewActive && !isDragging && !dragAttackActive &&
+    dom.endTurnCenter.style.display !== 'none' &&
+    !endTurnHintPanels.some(el => el.classList.contains('active') ||
+      el.style.display === 'flex' || el.style.display === 'block');
+  const canUseCard = canAct && [...player.hand, ...player.open].some(card => canPlayCardBool(card, 'player'));
+  const canAttack = canAct && !attackUsedThisTurn && player.field.some(group => group.basho && !group._summonedThisTurn);
+  const hint = canAct && !canUseCard && !canAttack;
+  dom.endTurnCenter.classList.toggle('turn-end-hint', hint);
+  dom.endTurnCenter.title = hint ? '使えるカードや攻撃できる場所札がありません' : '';
+  if (hint) {
+    const buttonRect = dom.endTurnCenter.getBoundingClientRect();
+    const areaRect = dom.centerArea.getBoundingClientRect();
+    const buttonStyle = getComputedStyle(dom.endTurnCenter);
+    const width = parseFloat(buttonStyle.width), height = parseFloat(buttonStyle.height);
+    Object.assign(dom.endTurnAura.style, {
+      left: (buttonRect.left + buttonRect.width / 2 - areaRect.left - width / 2) + 'px',
+      top: (buttonRect.top + buttonRect.height / 2 - areaRect.top - height / 2) + 'px',
+      width: width + 'px', height: height + 'px'
+    });
+  }
+  dom.endTurnAura.classList.toggle('active', hint);
+}
+
 function updatePlayableAura() {
+  updateEndTurnHint();
   // 自分のターン中かつ手札超過フェイズでない場合のみ緑オーラ表示
   if (turnLocked || handOverflowPhase || gameEnded) {
     clearPlayableAura();
@@ -639,6 +669,7 @@ function updateAllCounts() {
   // 季節アイコン更新
   updateSeasonIcons('player');
   updateSeasonIcons('opponent');
+  updateEndTurnHint();
 }
 function setText(id, v) { const e = $(id); if (e) e.textContent = v; }
 
@@ -819,12 +850,18 @@ function hideExileViewModal() {
   hidePreview();
 }
 // 閲覧モーダル内の背景タップで閉じる
-exileViewModal.addEventListener('click', (e) => {
-  if (e.target === exileViewModal || e.target === exileViewTitle) hideExileViewModal();
-});
-exileViewModal.addEventListener('touchend', (e) => {
-  if (e.target === exileViewModal || e.target === exileViewTitle) { if (e.cancelable) e.preventDefault(); hideExileViewModal(); }
-}, { passive: false });
+function handleExileViewClose(e) {
+  if (e.target !== exileViewModal && e.target !== exileViewTitle) return;
+  e.stopPropagation();
+  if (e.cancelable) e.preventDefault();
+  if (currentPreviewCard) {
+    hidePreview(); clearAllGlow();
+  } else {
+    hideExileViewModal();
+  }
+}
+exileViewModal.addEventListener('click', handleExileViewClose);
+exileViewModal.addEventListener('touchend', handleExileViewClose, { passive: false });
 
 // 除外ゾーンクリックでモーダル表示
 function toggleExileModal(who) {
@@ -980,6 +1017,22 @@ function renderSoul(who) {
 // ===================================================================
 // 溢れ防止
 // ===================================================================
+function updateHandRestClip(container) {
+  if (container !== dom.playerHandCards && container !== dom.playerOpenCards) return;
+  const row = container.getBoundingClientRect();
+  if (!row.width || !row.height) return;
+  const snap = Math.round; // 元の overflow の切り取り境界に合わせる。
+  // 読み取りをまとめ、通常のカードとオーラは元の列の範囲に切り取る。
+  const clips = Array.from(container.children).map(el => {
+    const rect = el.getBoundingClientRect();
+    const transform = getComputedStyle(el).transform;
+    const move = transform === 'none' ? { m41: 0, m42: 0 } : new DOMMatrixReadOnly(transform);
+    const left = rect.left - move.m41, top = rect.top - move.m42;
+    return [el, `inset(${snap(row.top) - top}px ${left + rect.width - snap(row.right)}px ${top + rect.height - snap(row.bottom)}px ${snap(row.left) - left}px)`];
+  });
+  clips.forEach(([el, clip]) => el.style.setProperty('--hand-rest-clip', clip));
+}
+
 function updateOverflow(container) {
   container.style.justifyContent = '';
   container.style.paddingLeft = '';
@@ -996,10 +1049,14 @@ function updateOverflow(container) {
   let totalW = 0;
   items.forEach(el => { totalW += (el.offsetWidth || 40); });
   const totalG = totalW + (items.length - 1) * defaultGap;
-  if (totalG <= cW) { container.style.justifyContent = 'center'; container.style.paddingLeft = ''; return; }
+  if (totalG <= cW) {
+    container.style.justifyContent = 'center'; container.style.paddingLeft = '';
+    updateHandRestClip(container);
+    return;
+  }
   container.style.justifyContent = 'flex-start';
 
-  if (items.length <= 1) return;
+  if (items.length <= 1) { updateHandRestClip(container); return; }
   // 利用可能なスペースから必要なオーバーラップを計算
   const ov = totalG - cW;
   const olap = Math.ceil(ov / (items.length - 1)) + defaultGap;
@@ -1009,6 +1066,7 @@ function updateOverflow(container) {
   const actualW = (items.length > 0) ? (lastItem.offsetLeft + lastItem.offsetWidth - items[0].offsetLeft) : 0;
   const pad = Math.max(0, Math.floor((cW - actualW) / 2));
   container.style.paddingLeft = pad > 0 ? pad + 'px' : '';
+  updateHandRestClip(container);
 }
 
 // ===================================================================
@@ -1061,12 +1119,19 @@ function isAnyPhaseActive() {
 }
 
 function setupCardInteraction(el, card, owner) {
+  let glowingBeforeTouch = null;
   el.addEventListener('touchstart', (e) => {
     e.stopPropagation();
+    if (glowingBeforeTouch === null) glowingBeforeTouch = el.classList.contains('glow');
     el.classList.add('glow');
+  }, { passive: true });
+  el.addEventListener('touchcancel', () => {
+    if (glowingBeforeTouch === false) el.classList.remove('glow');
+    glowingBeforeTouch = null;
   }, { passive: true });
   el.addEventListener('touchend', (e) => {
     e.stopPropagation();
+    glowingBeforeTouch = null;
     if (e.cancelable) e.preventDefault();
     // 魂吸収フェイズ中：魂カードをタップで選択/解除
     if (soulAbsorbPhase && owner === 'player') {
@@ -1307,6 +1372,7 @@ function showAttackBtn(gIdx) {
   selectedGroupIdx = gIdx;
   dom.attackBtn.style.display = '';
   dom.endTurnCenter.style.display = 'none';
+  updateEndTurnHint();
 }
 function hideAttackBtn() {
   selectedGroupIdx = null;
@@ -1315,6 +1381,7 @@ function hideAttackBtn() {
   dom.endTurnCenter.style.display = '';
   // ドラッグ攻撃中ならクリーンアップ
   if (dragAttackActive) cleanupDragAttack();
+  updateEndTurnHint();
 }
 
 // ===================================================================
@@ -2719,8 +2786,8 @@ function startExileOrderPhase(config) {
           if (badge) badge.remove();
         }
       });
+      dom.exileModalDesc.innerHTML = (config.desc || '') + '<br><b>残り' + remaining + '枚</b>';
       if (remaining > 0) {
-        dom.exileModalDesc.innerHTML = (config.desc || '') + '<br><b>残り' + remaining + '枚</b>';
         // 選択を戻したら決定ボタンを隠す
         dom.exileModalButtons.style.display = 'none';
         dom.exileModalConfirm.disabled = true;
@@ -3382,6 +3449,38 @@ function showSummonRipple(targetEl, colorType, aspect) {
 // ===================================================================
 // ドロー飛行アニメーション（山札からカードの最終位置へ飛ぶ）
 // ===================================================================
+// 飛行カードと待機処理を対戦に紐付け、リセット時はその場で片付ける。
+function trackCardFlight(fly) {
+  const gen = gameGeneration;
+  const timers = new Set();
+  const frames = new Set();
+  const remove = () => {
+    timers.forEach(clearTimeout);
+    frames.forEach(cancelAnimationFrame);
+    timers.clear(); frames.clear();
+    fly.remove();
+    gameResetCleanups.delete(remove);
+  };
+  gameResetCleanups.add(remove);
+  return {
+    after(callback, delay) {
+      const id = setTimeout(() => {
+        timers.delete(id);
+        if (gen === gameGeneration && fly.isConnected) callback();
+      }, delay);
+      timers.add(id);
+    },
+    frame(callback) {
+      const id = requestAnimationFrame(() => {
+        frames.delete(id);
+        if (gen === gameGeneration && fly.isConnected) callback();
+      });
+      frames.add(id);
+    },
+    remove
+  };
+}
+
 function showDrawFly(who, cardUid, onArrive) {
   const deckEl = (who === 'player') ? dom.playerDeck : dom.oppDeck;
   const container = (who === 'player') ? dom.playerHandCards : dom.oppHandCards;
@@ -3401,20 +3500,21 @@ function showDrawFly(who, cardUid, onArrive) {
   img.draggable = false;
   fly.appendChild(img);
   document.body.appendChild(fly);
+  const flight = trackCardFlight(fly);
   // 2フレーム待ってから開始
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
+  flight.frame(() => {
+    flight.frame(() => {
       fly.classList.add('fly-active');
       fly.style.left = cardRect.left + 'px';
       fly.style.top = cardRect.top + 'px';
     });
   });
   // 到着後：手札カードを表示してフェードアウト
-  setTimeout(() => {
+  flight.after(() => {
     if (onArrive) onArrive();
     fly.classList.remove('fly-active');
     fly.classList.add('fly-arrived');
-    setTimeout(() => fly.remove(), 200);
+    flight.after(flight.remove, 200);
   }, 420);
 }
 
@@ -3453,11 +3553,12 @@ function showExileFly(snapshots, exileEl, onComplete) {
     img.draggable = false;
     fly.appendChild(img);
     document.body.appendChild(fly);
+    const flight = trackCardFlight(fly);
 
-    setTimeout(() => {
+    flight.after(() => {
       // 2フレーム待ってからアニメーション開始
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
+      flight.frame(() => {
+        flight.frame(() => {
           fly.classList.add('exile-fly-active');
           fly.style.left = (destX - snap.rect.width / 2) + 'px';
           fly.style.top = (destY - snap.rect.height / 2) + 'px';
@@ -3465,11 +3566,11 @@ function showExileFly(snapshots, exileEl, onComplete) {
       });
 
       // 到着後：縮んで消える
-      setTimeout(() => {
+      flight.after(() => {
         fly.classList.remove('exile-fly-active');
         fly.classList.add('exile-fly-shrink');
-        setTimeout(() => {
-          fly.remove();
+        flight.after(() => {
+          flight.remove();
           completed++;
           if (completed === total && onComplete) onComplete(total);
         }, 250);
@@ -3515,22 +3616,23 @@ function showSoulFly(snapshots, soulEl, onComplete) {
     img.draggable = false;
     fly.appendChild(img);
     document.body.appendChild(fly);
+    const flight = trackCardFlight(fly);
 
-    setTimeout(() => {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
+    flight.after(() => {
+      flight.frame(() => {
+        flight.frame(() => {
           fly.classList.add('soul-fly-active');
           fly.style.left = (destX - snap.rect.width / 2) + 'px';
           fly.style.top = (destY - snap.rect.height / 2) + 'px';
         });
       });
-      setTimeout(() => {
+      flight.after(() => {
         // 到着した瞬間に対応する目的地カードを表示
         if (destMap[idx]) destMap[idx].style.opacity = '';
         fly.classList.remove('soul-fly-active');
         fly.classList.add('soul-fly-shrink');
-        setTimeout(() => {
-          fly.remove();
+        flight.after(() => {
+          flight.remove();
           completed++;
           if (completed === total && onComplete) onComplete();
         }, 250);
@@ -3582,22 +3684,23 @@ function showOpenFly(snapshots, openEl, onComplete) {
     img.draggable = false;
     fly.appendChild(img);
     document.body.appendChild(fly);
+    const flight = trackCardFlight(fly);
 
-    setTimeout(() => {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
+    flight.after(() => {
+      flight.frame(() => {
+        flight.frame(() => {
           fly.classList.add('open-fly-active');
           fly.style.left = endX + 'px';
           fly.style.top = endY + 'px';
         });
       });
-      setTimeout(() => {
+      flight.after(() => {
         // 到着した瞬間に対応する目的地カードを表示
         if (destMap[idx]) destMap[idx].style.opacity = '';
         fly.classList.remove('open-fly-active');
         fly.classList.add('open-fly-shrink');
-        setTimeout(() => {
-          fly.remove();
+        flight.after(() => {
+          flight.remove();
           completed++;
           if (completed === total && onComplete) onComplete();
         }, 250);
@@ -3694,6 +3797,7 @@ function setupDrag(el, card) {
         if ((!isInHand && !isInOpen) || !cardSelectConfig || !cardSelectConfig.filter(card)) return;
       }
       isDragging = true; dragCard = card; dragSourceEl = el;
+      updateEndTurnHint();
       hidePreview(); hideKaiiPopup(); hideAttackBtn(); clearAllGlow();
       suppressPreview = true;
       dragGhost = document.createElement('div');
@@ -3807,6 +3911,7 @@ function setupDrag(el, card) {
     $('player-soul-zone').classList.remove('drag-over-soul');
     dom.playerExile.classList.remove('drag-over-exile');
     isDragging = false; currentDropTarget = null;
+    updateEndTurnHint();
     scheduleGameAction(() => { if (!isDragging) suppressPreview = false; }, 150);
   }
   el.addEventListener('touchstart', e => { const t = e.touches[0]; onStart(t.clientX, t.clientY); touchId = t.identifier; }, { passive: true });
@@ -4070,6 +4175,7 @@ function placeCard(card) {
 // ドロー
 // ===================================================================
 function drawCards(who, count, sourceCardName) {
+  const gen = gameGeneration;
   const st = (who === 'player') ? player : opponent;
   const drawnUids = [];
   for (let i = 0; i < count && st.deck.length > 0; i++) {
@@ -4083,12 +4189,13 @@ function drawCards(who, count, sourceCardName) {
   // ドローフローティングテキスト + 飛行アニメ（両プレイヤー対応）
   const container = (who === 'player') ? dom.playerHandCards : dom.oppHandCards;
   requestAnimationFrame(() => {
+    if (gen !== gameGeneration) return;
     drawnUids.forEach((uid, i) => {
       const el = container.querySelector('.battle-card[data-uid="' + uid + '"]');
       if (el) {
         // 飛行中は手札側を透明にし、到着後に表示
         el.style.opacity = '0';
-        setTimeout(() => {
+        scheduleGameAction(() => {
           showDrawFly(who, uid, () => {
             el.style.opacity = '';
             showFloatingText(el, 'ドロー', 'draw');
@@ -4437,6 +4544,9 @@ function showZeroSearch(who) {
     const cardsEl = $('zero-search-cards');
     const previewImg = $('zero-search-preview-img');
     const confirmBtn = $('zero-search-confirm');
+    let entryCancelled = false;
+    let entryFrame = null;
+    overlay.classList.add('zs-loading');
 
     // 先後テキスト（【先行】【後攻】部分だけ白色）
     const sengoWord = isFirstTurn
@@ -4450,10 +4560,11 @@ function showZeroSearch(who) {
 
     // カード一覧をリセット
     cardsEl.innerHTML = '';
+    cardsEl.style.height = '';
+    cardsEl.style.overflow = '';
     previewImg.src = DECK_BACK_IMG;
     previewImg.style.display = 'block';
-    previewImg.style.visibility = 'hidden'; // レイアウト確定前の一瞬表示を防ぐ
-    confirmBtn.disabled = false;
+    confirmBtn.disabled = true; // 配置が確定して表示されてから操作可能にする
     confirmBtn.classList.add('ready'); // 0枚でも決定可能
 
     // 手札8枚を表示
@@ -4506,6 +4617,7 @@ function showZeroSearch(who) {
 
     // 決定ボタン
     const onConfirm = () => {
+      if (confirmBtn.disabled) return;
       confirmBtn.removeEventListener('click', onConfirm);
       confirmBtn.removeEventListener('touchend', onConfirmTouch);
       confirmBtn.disabled = true;
@@ -4592,14 +4704,39 @@ function showZeroSearch(who) {
     confirmBtn.addEventListener('click', onConfirm);
     confirmBtn.addEventListener('touchend', onConfirmTouch, { passive: false });
     onCleanup(() => {
+      entryCancelled = true;
+      if (entryFrame !== null) cancelAnimationFrame(entryFrame);
       confirmBtn.removeEventListener('click', onConfirm);
       confirmBtn.removeEventListener('touchend', onConfirmTouch);
     });
 
     $('app').style.display = 'none';
     overlay.style.display = 'flex';
-    // flex レイアウト確定後に表示（一瞬大きく映るフラッシュ防止）
-    requestAnimationFrame(() => { previewImg.style.visibility = ''; });
+    // 下の8枚の寸法でボタン位置も変わるため、配置確定後にまとめて表示する。
+    const previewImages = [previewImg, ...cardsEl.querySelectorAll('img')];
+    const waitForImage = img => img.complete ? Promise.resolve() : new Promise(resolve => {
+      const ready = () => {
+        img.removeEventListener('load', ready);
+        img.removeEventListener('error', ready);
+        resolve();
+      };
+      img.addEventListener('load', ready, { once: true });
+      img.addEventListener('error', ready, { once: true });
+      onCleanup(ready);
+    });
+    Promise.all(previewImages.map(waitForImage)).then(() => {
+      if (entryCancelled) return;
+      entryFrame = requestAnimationFrame(() => {
+        if (entryCancelled) return;
+        entryFrame = requestAnimationFrame(() => {
+          entryFrame = null;
+          if (!entryCancelled) {
+            overlay.classList.remove('zs-loading');
+            confirmBtn.disabled = false;
+          }
+        });
+      });
+    });
   });
 }
 
@@ -6404,9 +6541,20 @@ dom.retryBtn.addEventListener('click', startGame);
   const overlay = $('deck-popup-overlay');
   const closeBtn = $('deck-popup-close');
   if (!link || !overlay) return;
-  link.addEventListener('click', (e) => { e.preventDefault(); overlay.style.display = 'flex'; });
-  closeBtn.addEventListener('click', () => { overlay.style.display = 'none'; });
-  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.style.display = 'none'; });
+  const open = (e) => { e.preventDefault(); e.stopPropagation(); overlay.style.display = 'flex'; };
+  const close = (e) => { e.preventDefault(); e.stopPropagation(); overlay.style.display = 'none'; };
+  [link, dom.playerDeck, dom.oppDeck].forEach(el => {
+    el.addEventListener('click', open);
+    el.addEventListener('touchend', open, { passive: false });
+  });
+  closeBtn.addEventListener('click', close);
+  closeBtn.addEventListener('touchend', close, { passive: false });
+  const closeOutside = (e) => {
+    e.stopPropagation();
+    if (e.target === overlay) close(e);
+  };
+  overlay.addEventListener('click', closeOutside);
+  overlay.addEventListener('touchend', closeOutside, { passive: false });
 })();
 // 相手の手札クリック
 $('opp-hand-zone').addEventListener('click', (e) => {
@@ -6415,8 +6563,6 @@ $('opp-hand-zone').addEventListener('click', (e) => {
     showPopup('opp-hand-msg');
   }
 });
-// 相手の山札クリック
-dom.oppDeck.addEventListener('click', () => { showPopup('opp-deck-msg'); });
 let _resizeTimer = null;
 window.addEventListener('resize', () => {
   // デバウンス：ブラウザがレイアウトを確定させてから実行
@@ -6760,3 +6906,27 @@ if (banmenFloatingBtn) {
     img.src = url;
   });
 })();
+
+// 選択画面・演出・閲覧画面の開閉でも案内を更新する。定期的な監視は行わない。
+const endTurnHintPanels = [
+  dom.effectOverlay, dom.gateOverlay, dom.turnAnnounce, dom.resultOverlay,
+  dom.cardSelectOverlay, dom.handOverflowOverlay, dom.soulAbsorbAsk, dom.soulAbsorbSelect,
+  dom.exileModal, exileViewModal, dom.kaiiPopup, dom.preview, dom.kaiiPreviewOverlay,
+  $('opp-hand-exile-overlay'), $('reset-confirm'), $('title-confirm'),
+  howtoModal, $('history-modal'), menuModal, menuOverlay, $('deck-popup-overlay')
+].filter(Boolean);
+const endTurnHintObserver = new MutationObserver(updateEndTurnHint);
+endTurnHintPanels.forEach(panel => endTurnHintObserver.observe(panel, {
+  attributes: true, attributeFilter: ['class', 'style']
+}));
+const endTurnAuraObserver = new ResizeObserver(() => {
+  if (dom.endTurnCenter.classList.contains('turn-end-hint')) updateEndTurnHint();
+});
+endTurnAuraObserver.observe(dom.centerArea);
+endTurnAuraObserver.observe(dom.endTurnCenter);
+const handRestClipObserver = new ResizeObserver(entries => {
+  entries.forEach(entry => updateHandRestClip(entry.target));
+});
+handRestClipObserver.observe(dom.playerHandCards);
+handRestClipObserver.observe(dom.playerOpenCards);
+updateEndTurnHint();

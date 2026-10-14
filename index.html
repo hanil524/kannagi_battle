@@ -45,7 +45,7 @@
   <div id="app">
     <!-- ヘッダー（旧フッター） -->
     <button class="footer-btn" id="btn-menu">メニュー</button>
-    <button class="footer-btn" id="btn-history" disabled>履歴</button>
+    <button class="footer-btn" id="btn-history" disabled>ログ</button>
     <button class="footer-btn" id="btn-howto">操作方法</button>
     <button class="footer-btn" id="btn-reset" disabled>リセット</button>
     <button class="footer-btn" id="btn-title">タイトル</button>
@@ -69,14 +69,6 @@
     <a id="deck-list-link" href="#">デッキリスト</a>
     <div id="start-note">※固定の40枚デッキに加え、特典の「いったん木綿」「沼御前」のみが<br>追加されています。</div>
 
-    <!-- デッキリスト画像ポップアップ -->
-    <div id="deck-popup-overlay" style="display:none;">
-      <div id="deck-popup">
-        <button id="deck-popup-close">&times;</button>
-        <img id="deck-popup-img" src="images/yokai-deck.jpg" alt="デッキリスト">
-      </div>
-    </div>
-
     <!-- サイトフッター（スタート画面内なのでゲーム中は非表示） -->
     <footer class="start-footer">
       <nav class="start-footer-links">
@@ -89,6 +81,14 @@
       </nav>
       <p class="start-footer-copy">&copy; 2026 巫カードバトル</p>
     </footer>
+  </div>
+
+  <!-- タイトル画面と対戦中で共用するデッキリスト画像ポップアップ -->
+  <div id="deck-popup-overlay" style="display:none;">
+    <div id="deck-popup">
+      <button id="deck-popup-close">&times;</button>
+      <img id="deck-popup-img" src="images/yokai-deck.jpg" alt="デッキリスト">
+    </div>
   </div>
 
   <!-- メニューモーダル -->
@@ -157,7 +157,7 @@
     <!-- 相手の場: ライフは右端 -->
     <div class="field-row" id="opp-field-row">
       <div class="row-zone field-zone" id="opp-field">
-        <span class="zone-label">相 手 の 場</span>
+        <span class="zone-label">場</span>
         <div id="opp-field-cards" class="card-row field-card-row"></div>
       </div>
       <div class="life-area" id="opp-life-area">
@@ -168,6 +168,7 @@
 
     <!-- 中央コントロール -->
     <div id="center-area">
+      <div id="end-turn-aura" aria-hidden="true"></div>
       <div id="center-controls">
         <!-- 左側＝自分（自陣側＝下寄せ） -->
         <div class="type-btns left-btns">
@@ -179,7 +180,7 @@
         <div id="center-mid">
           <div id="center-line"></div>
           <button id="attack-btn" style="display:none;">攻撃</button>
-          <button id="end-turn-center" style="display:none;">ターン終了</button>
+          <button id="end-turn-center" style="display:none;">ターンエンド</button>
         </div>
         <!-- 右側＝相手（敵陣側＝上寄せ） -->
         <div class="type-btns right-btns">
@@ -198,7 +199,7 @@
         <div class="life-value" id="player-life-value">30</div>
       </div>
       <div class="row-zone field-zone" id="player-field">
-        <span class="zone-label">自 分 の 場</span>
+        <span class="zone-label">場</span>
         <div id="player-field-cards" class="card-row field-card-row"></div>
       </div>
     </div>
@@ -541,11 +542,11 @@
     </div>
   </div>
 
-  <!-- 行動履歴モーダル -->
+  <!-- 行動ログモーダル -->
   <div id="history-modal">
     <div id="history-modal-header">
       <button id="history-close-x">&times;</button>
-      <span>行動履歴</span>
+      <span>行動ログ</span>
     </div>
     <div id="history-list"></div>
     <div id="history-modal-footer">

@@ -200,31 +200,35 @@ body {
   line-height: 1.2;
   letter-spacing: 0;
   white-space: nowrap;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24), inset 0 -1px 0 rgba(0, 0, 0, 0.22);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.16);
 }
 
 .type-btn.basho-btn {
-  background: #c44;
-  color: #111;
+  background: linear-gradient(180deg, #b94a45, #963430);
+  color: #fff0ed;
 }
 
 .type-btn.kaii-btn {
-  background: #a050e0;
-  color: #111;
+  background: linear-gradient(180deg, #9953c8, #7437a0);
+  color: #f6efff;
 }
 
 .type-btn.dougu-btn {
-  background: #ddd;
+  background: linear-gradient(180deg, #f0eeeb, #d3d1cf);
   color: #111;
 }
 
 .type-btn.season-btn {
-  background: #dda020;
+  background: linear-gradient(180deg, #e8b74a, #cc912b);
   color: #111;
 }
 
 .type-btn.used {
   background: #555 !important;
   color: #888 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 rgba(0, 0, 0, 0.16);
+  text-shadow: none;
 }
 
 #center-mid {
@@ -251,7 +255,7 @@ body {
 #attack-btn {
   position: relative;
   z-index: 600;
-  background: linear-gradient(135deg, #8b1a1a, #5c1010);
+  background: linear-gradient(180deg, #982b2b 0%, #781a1a 45%, #5c1010 100%);
   color: #ffd4d4;
   border: 1px solid rgba(255, 100, 100, 0.4);
   padding: 4px 18px;
@@ -262,6 +266,8 @@ body {
   cursor: pointer;
   white-space: nowrap;
   max-width: 100%;
+  box-shadow: inset 0 1px 0 rgba(255, 215, 205, 0.22), inset 0 -1px 0 rgba(20, 0, 0, 0.42);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.28);
 }
 
 #attack-btn:active {
@@ -285,7 +291,35 @@ body {
   max-width: 100%;
 }
 
-#end-turn-center:active {
+/* ボタン本体の外で光を描き、中央の overflow:hidden に切られないようにする。 */
+#end-turn-aura {
+  position: absolute;
+  z-index: 0;
+  display: none;
+  border-radius: 4px;
+  pointer-events: none;
+  box-shadow: 0 0 8px 3px rgba(165, 210, 255, 0.8), 0 0 20px 7px rgba(90, 155, 245, 0.55);
+  opacity: 0.75;
+}
+
+#end-turn-aura.active {
+  display: block;
+  animation: turnEndAura 2.6s ease-in-out infinite;
+}
+
+@keyframes turnEndAura {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #end-turn-aura.active {
+    animation: none;
+  }
+}
+
+#end-turn-center:active,
+#center-area:has(#end-turn-center:active) #end-turn-aura {
   transform: scale(0.95);
 }
 
@@ -761,8 +795,55 @@ body {
   transform: translateY(-3px);
 }
 
+/* 持ち上がった自分の手札だけ、カード列と枠の外まで表示する。 */
+:is(#player-hand-cards, #player-open-cards):has(> .in-hand:is(.glow, .overflow-selected)) > .in-hand:not(:hover):not(.glow):not(.overflow-selected) {
+  clip-path: var(--hand-rest-clip, none);
+}
+
+:is(#player-hand-zone, #player-open):has(.in-hand:is(.glow, .overflow-selected)) {
+  overflow: visible;
+  min-width: 0;
+  min-height: 0;
+  z-index: 2;
+}
+
+:is(#player-hand-cards, #player-open-cards):has(.in-hand:is(.glow, .overflow-selected)) {
+  overflow: visible;
+  min-width: 0;
+  min-height: 0;
+}
+
+#player-mid-zones:has(#player-open .in-hand:is(.glow, .overflow-selected)) {
+  overflow: visible;
+  min-width: 0;
+  min-height: 0;
+}
+
 /* ===== PC マウスオーバー（タッチデバイスには影響しない） ===== */
 @media (hover: hover) and (pointer: fine) {
+  :is(#player-hand-cards, #player-open-cards):has(> .in-hand:hover) > .in-hand:not(:hover):not(.glow):not(.overflow-selected) {
+    clip-path: var(--hand-rest-clip, none);
+  }
+
+  :is(#player-hand-zone, #player-open):has(.in-hand:hover) {
+    overflow: visible;
+    min-width: 0;
+    min-height: 0;
+    z-index: 2;
+  }
+
+  :is(#player-hand-cards, #player-open-cards):has(.in-hand:hover) {
+    overflow: visible;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  #player-mid-zones:has(#player-open .in-hand:hover) {
+    overflow: visible;
+    min-width: 0;
+    min-height: 0;
+  }
+
   .battle-card:hover {
     transform: translateY(-4px);
     transition: transform 0.12s ease;
@@ -1954,7 +2035,7 @@ body {
 .battle-card.overflow-selected {
   border: 2px solid rgba(255, 200, 50, 0.8) !important;
   box-shadow: 0 0 10px 3px rgba(255, 200, 50, 0.5), 0 0 20px 6px rgba(255, 200, 50, 0.2) !important;
-  transform: translateY(-6px);
+  transform: translateY(-4px);
   opacity: 0.7;
 }
 
@@ -4726,6 +4807,13 @@ body {
 }
 
 /* 零探し 初期8枚：下からフェードインで同時登場 */
+#zero-search-overlay.zs-loading :is(#zero-search-preview-wrap, #zero-search-count, #zero-search-confirm, #zero-search-cards) {
+  visibility: hidden;
+}
+#zero-search-overlay.zs-loading .battle-card.zs-initial {
+  animation: none;
+}
+
 @keyframes zsCardAppear {
   from { opacity: 0; transform: translateY(18px); }
   to   { opacity: 1; transform: translateY(0); }
