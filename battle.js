@@ -143,6 +143,41 @@ let gameEnded = false;        // 勝敗決定後フラグ
 let gameGeneration = 0;       // リセット連打防止用世代カウンター
 let soloMode = false;         // 一人回しモード（CPUが行動しない）
 
+// 対戦をまたいで、待機中の選択・演出・CPU処理を持ち越さない。
+// 中断時もPromiseは完了させ、呼び出し側はawait後に世代を確認する。
+const gameResetCleanups = new Set();
+function gamePromise(setup) {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const cleanups = [];
+    const finish = (value, failed = false) => {
+      if (settled) return;
+      settled = true;
+      gameResetCleanups.delete(cancel);
+      cleanups.forEach(cleanup => cleanup());
+      if (failed) reject(value);
+      else resolve(value);
+    };
+    const cancel = () => finish();
+    gameResetCleanups.add(cancel);
+    try {
+      setup(value => finish(value), cleanup => {
+        if (settled) cleanup();
+        else cleanups.push(cleanup);
+      });
+    } catch (error) {
+      finish(error, true);
+    }
+  });
+}
+
+function scheduleGameAction(callback, delay) {
+  const gen = gameGeneration;
+  return setTimeout(() => {
+    if (gen === gameGeneration) callback();
+  }, delay);
+}
+
 // ===================================================================
 // 行動履歴
 // ===================================================================
@@ -497,12 +532,16 @@ function getEffectivePower(group, who) {
 function applyFieldDamage(who, amount) {
   const st = (who === 'player') ? player : opponent;
   let destroyed = 0;
-  // 後ろから処理（spliceで削除しても前のインデックスに影響しない）
-  for (let i = st.field.length - 1; i >= 0; i--) {
-    const g = st.field[i];
-    if (!g.basho) continue;
-    const currentPower = getEffectivePower(g, who);
-    if (currentPower <= amount) {
+  // 全ての場所札に同時に反映し、破壊対象も一括で確定する。
+  st.field.forEach(g => {
+    if (g.basho) g._fieldDamage = (g._fieldDamage || 0) + amount;
+  });
+  while (true) {
+    const lethalGroups = new Set(st.field.filter(g => g.basho && getEffectivePower(g, who) <= 0));
+    if (lethalGroups.size === 0) break;
+    for (let i = st.field.length - 1; i >= 0; i--) {
+      const g = st.field[i];
+      if (!lethalGroups.has(g)) continue;
       // 破壊：場所札と怪異札を魂へ
       st.soul.push(g.basho);
       g.kaii.forEach(k => st.soul.push(k));
@@ -516,10 +555,8 @@ function applyFieldDamage(who, amount) {
         st.field.splice(i, 1);
       }
       destroyed++;
-    } else {
-      // ダメージを受けるが破壊されない
-      g._fieldDamage = (g._fieldDamage || 0) + amount;
     }
+    // 沼御前などの効果が失われて力が0になった札も、並び順によらず破壊する。
   }
   if (destroyed > 0 || amount > 0) {
     renderField(who);
@@ -1152,7 +1189,7 @@ function setupBashoSelect(el, groupIdx) {
   let touchId = null;
   let touchReady = false; // タッチ開始条件を満たしているか
   el.addEventListener('touchstart', (e) => {
-    if (isAttacking || turnLocked || gameEnded || isDragging || kaiiPopupActive) return;
+    if (isAttacking || turnLocked || gameEnded || isDragging || kaiiPopupActive || banmenViewActive) return;
     const group = player.field[groupIdx];
     if (!group || !group.basho || group._summonedThisTurn || attackUsedThisTurn) return;
     const t = e.touches[0];
@@ -1205,9 +1242,15 @@ function setupBashoSelect(el, groupIdx) {
     touchId = null;
   }, { passive: false });
 
+  el.addEventListener('touchcancel', () => {
+    touchReady = false;
+    touchId = null;
+    if (dragAttackSourceEl === el) cancelDragAttack();
+  });
+
   // --- マウス：少し動かしたら即ドラッグ攻撃開始 ---
   el.addEventListener('mousedown', (e) => {
-    if (isAttacking || turnLocked || gameEnded || isDragging || kaiiPopupActive) return;
+    if (isAttacking || turnLocked || gameEnded || isDragging || kaiiPopupActive || banmenViewActive) return;
     const group = player.field[groupIdx];
     if (!group || !group.basho || group._summonedThisTurn || attackUsedThisTurn) return;
     dragAttackStartX = e.clientX;
@@ -1236,7 +1279,7 @@ function setupBashoSelect(el, groupIdx) {
   });
 }
 function showAttackBtn(gIdx) {
-  if (isAttacking || turnLocked || gameEnded) return;
+  if (isAttacking || turnLocked || gameEnded || banmenViewActive) return;
   // 攻撃済みチェック：1ターン1回
   if (attackUsedThisTurn) {
     showPopup('attack-used-msg');
@@ -1259,7 +1302,7 @@ function hideAttackBtn() {
 // 効果発動演出（共通）
 // ===================================================================
 function showEffectActivation(card, label) {
-  return new Promise(resolve => {
+  return gamePromise((resolve, onCleanup) => {
     dom.effectCardImg.src = card.img;
     dom.effectLabel.textContent = label || '効果発動';
     // アニメーションリセット（連続呼び出し対応）
@@ -1300,13 +1343,18 @@ function showEffectActivation(card, label) {
     dom.effectOverlay.addEventListener('click', skipHandler);
     dom.effectOverlay.addEventListener('touchend', skipHandler);
     // 0.8秒後に自動で次へ
-    setTimeout(finish, 800);
+    const timer = setTimeout(finish, 800);
+    onCleanup(() => {
+      clearTimeout(timer);
+      dom.effectOverlay.removeEventListener('click', skipHandler);
+      dom.effectOverlay.removeEventListener('touchend', skipHandler);
+    });
   });
 }
 
 // 効果不発演出（コスト不足時）
 function showEffectFailed(card) {
-  return new Promise(resolve => {
+  return gamePromise((resolve, onCleanup) => {
     dom.effectCardImg.src = card.img;
     dom.effectLabel.textContent = '効果不発';
     dom.effectLabel.classList.add('effect-failed');
@@ -1334,7 +1382,12 @@ function showEffectFailed(card) {
     };
     dom.effectOverlay.addEventListener('click', skipHandler);
     dom.effectOverlay.addEventListener('touchend', skipHandler);
-    setTimeout(finish, 800);
+    const timer = setTimeout(finish, 800);
+    onCleanup(() => {
+      clearTimeout(timer);
+      dom.effectOverlay.removeEventListener('click', skipHandler);
+      dom.effectOverlay.removeEventListener('touchend', skipHandler);
+    });
   });
 }
 
@@ -1342,14 +1395,14 @@ function showEffectFailed(card) {
 // 怪異札フリップアニメ（裏→表）
 // ===================================================================
 function flipKaiiCards(groupEl) {
-  return new Promise(resolve => {
+  return gamePromise(resolve => {
     const kaiiEls = groupEl.querySelectorAll('.kaii-attached');
     if (kaiiEls.length === 0) { resolve(); return; }
     let completed = 0;
     kaiiEls.forEach(el => {
       el.classList.add('kaii-flipping');
       // 半分の時点で画像を表に切り替え
-      setTimeout(() => {
+      scheduleGameAction(() => {
         const uid = el.dataset.uid;
         // カードデータからimgを取得
         let card = null;
@@ -1361,7 +1414,7 @@ function flipKaiiCards(groupEl) {
           if (img) img.src = card.img;
         }
       }, 200);
-      setTimeout(() => {
+      scheduleGameAction(() => {
         el.classList.remove('kaii-flipping');
         completed++;
         if (completed >= kaiiEls.length) resolve();
@@ -1374,7 +1427,8 @@ function flipKaiiCards(groupEl) {
 // 攻撃処理（攻撃フェイズシステム）
 // ===================================================================
 async function performAttack() {
-  if (selectedGroupIdx === null || isAttacking || turnLocked || gameEnded) return;
+  const gen = gameGeneration;
+  if (selectedGroupIdx === null || isAttacking || turnLocked || gameEnded || attackUsedThisTurn || banmenViewActive) return;
   const atkIdx = selectedGroupIdx;
   const group = player.field[atkIdx];
   if (!group || !group.basho) return;
@@ -1387,13 +1441,15 @@ async function performAttack() {
   }
 
   const power = getEffectivePower(group, 'player');
-  isAttacking = true;
-  attackUsedThisTurn = true;
-  hidePreview(); hideAttackBtn(); clearAllGlow();
-
   const groupEls = dom.playerFieldCards.querySelectorAll('.field-group');
   const targetEl = groupEls[atkIdx];
-  if (!targetEl) { isAttacking = false; return; }
+  if (!targetEl) return;
+
+  isAttacking = true;
+  turnLocked = true;
+  attackUsedThisTurn = true;
+  hidePreview(); hideAttackBtn(); clearAllGlow();
+  updatePlayableAura();
 
   const hasKaii = group.kaii.length > 0;
   const hasAttackEffect = group.basho && group.basho.attackEffect;
@@ -1409,6 +1465,7 @@ async function performAttack() {
   // 1. 怪異札フリップ
   if (hasKaii) {
     await flipKaiiCards(targetEl);
+    if (gen !== gameGeneration) return;
     // 怪異札の効果を順番に発動
     for (let i = 0; i < group.kaii.length; i++) {
       const kCard = group.kaii[i];
@@ -1419,13 +1476,17 @@ async function performAttack() {
         const playerSeasons = getSoulSeasons('player');
         if (player.soul.length < kaiiCost || (kaiiCost >= 1 && kaiiSeason && kaiiSeason !== '無' && !playerSeasons.has(kaiiSeason))) {
           await showEffectFailed(kCard);
+          if (gen !== gameGeneration) return;
           continue;
         }
         await showEffectActivation(kCard, '効果発動');
+        if (gen !== gameGeneration) return;
         await handleKaiiEffect(kCard, 'player');
+        if (gen !== gameGeneration) return;
         if (gameEnded) return;
       } else {
         await showEffectActivation(kCard, '効果発動');
+        if (gen !== gameGeneration) return;
       }
     }
   }
@@ -1433,6 +1494,7 @@ async function performAttack() {
   // 2. 攻撃時効果がある場所札の効果
   if (hasAttackEffect) {
     await handleAttackEffect(group.basho, 'player');
+    if (gen !== gameGeneration) return;
     if (gameEnded) return;
   }
 
@@ -1444,6 +1506,7 @@ async function performAttack() {
 // 攻撃時効果処理
 // ===================================================================
 async function handleAttackEffect(basho, who) {
+  const gen = gameGeneration;
   if (!basho || !basho.attackEffect) return;
 
   if (basho.attackEffect === 'retrieve_graveyard_exile') {
@@ -1451,6 +1514,7 @@ async function handleAttackEffect(basho, who) {
 
     if (who === 'player') {
       await showEffectActivation(basho, '攻撃時効果');
+      if (gen !== gameGeneration) return;
       // 除外から墓地属性カードを選択して手札公開場へ
       const hasGraveyardInExile = st.exile.some(c => hasTribe(c, '墓地'));
       if (!hasGraveyardInExile) return; // 対象なし
@@ -1461,6 +1525,7 @@ async function handleAttackEffect(basho, who) {
         desc: '除外から「墓地」属性のカードを1枚選び、手札公開場に置く。<br>成功した場合、1枚ドローする。',
         filter: (c) => hasTribe(c, '墓地'),
       });
+      if (gen !== gameGeneration) return;
 
       if (selected) {
         // 除外から手札公開場へ移動
@@ -1481,6 +1546,7 @@ async function handleAttackEffect(basho, who) {
     } else {
       // CPU版
       await handleCpuAttackEffect(basho, st);
+      if (gen !== gameGeneration) return;
     }
   }
 
@@ -1490,10 +1556,11 @@ async function handleAttackEffect(basho, who) {
 
     if (who === 'player') {
       await showEffectActivation(basho, '攻撃時効果');
+      if (gen !== gameGeneration) return;
       const hasGraveyard = [...st.hand, ...st.open].some(c => hasTribe(c, '墓地'));
       if (!hasGraveyard) return;
 
-      await new Promise((resolve) => {
+      await gamePromise((resolve) => {
         startCardSelectPhase({
           title: '攻撃時効果：妖蟲の墓',
           desc: '手札から「墓地」属性のカードを1枚選択して除外しても良い。<br>除外した場合、相手に' + dmg + '点のダメージ。',
@@ -1513,6 +1580,7 @@ async function handleAttackEffect(basho, who) {
             renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
             updateExileDisplay('player');
             applyDamageWithSoulAbsorb(dmg, 'top', basho).then(() => {
+              if (gen !== gameGeneration) return;
               if (eS1) showExileFly([eS1], dom.playerExile);
               requestAnimationFrame(() => {
                 showFloatingText(dom.playerExile, '除外', 'exile');
@@ -1525,8 +1593,10 @@ async function handleAttackEffect(basho, who) {
           onSkip: () => { resolve(); }
         });
       });
+      if (gen !== gameGeneration) return;
     } else {
       await handleCpuAttackEffect(basho, st);
+      if (gen !== gameGeneration) return;
     }
   }
 
@@ -1534,6 +1604,7 @@ async function handleAttackEffect(basho, who) {
     if (who === 'player') {
       // プレイヤーが攻撃：相手の除外カードをランダム順で相手デッキの一番下へ
       await showEffectActivation(basho, '攻撃時効果');
+      if (gen !== gameGeneration) return;
       if (opponent.exile.length > 0) {
         const shuffled = shuffle([...opponent.exile]);
         opponent.exile = [];
@@ -1545,12 +1616,14 @@ async function handleAttackEffect(basho, who) {
     } else {
       // CPUが攻撃：プレイヤーの除外カードをプレイヤーが好きな順番でデッキの一番下へ
       await showEffectActivation(basho, '攻撃時効果');
+      if (gen !== gameGeneration) return;
       if (player.exile.length > 0) {
         const ordered = await startExileOrderPhase({
           who: 'player',
           title: '攻撃時効果：べとべと',
           desc: '除外カードをデッキの一番下に戻す順番を選んでください。<br>タップした順にデッキの底へ入ります。',
         });
+        if (gen !== gameGeneration) return;
         // ordered = 選択順の配列
         player.exile = [];
         player.deck.push(...ordered);
@@ -1567,10 +1640,11 @@ async function handleAttackEffect(basho, who) {
 
     if (who === 'player') {
       await showEffectActivation(basho, '攻撃時効果');
+      if (gen !== gameGeneration) return;
       const hasGraveyard = [...st.hand, ...st.open].some(c => hasTribe(c, '墓地'));
       if (!hasGraveyard) return;
 
-      await new Promise((resolve) => {
+      await gamePromise((resolve) => {
         startCardSelectPhase({
           title: '攻撃時効果：まよい火',
           desc: '手札から「墓地」属性のカードを1枚除外しても良い。<br>除外した場合、相手に3点ダメージ＋相手の場所札全てに3ダメージ。',
@@ -1591,6 +1665,7 @@ async function handleAttackEffect(basho, who) {
             updateExileDisplay('player');
             // 相手に3点ライフダメージ（魂吸収確認後にフライエフェクト）
             applyDamageWithSoulAbsorb(3, 'top', basho).then(() => {
+              if (gen !== gameGeneration) return;
               if (eS2) showExileFly([eS2], dom.playerExile);
               requestAnimationFrame(() => {
                 showFloatingText(dom.playerExile, '除外', 'exile');
@@ -1607,16 +1682,20 @@ async function handleAttackEffect(basho, who) {
           onSkip: () => { resolve(); }
         });
       });
+      if (gen !== gameGeneration) return;
     } else {
       await handleCpuAttackEffect(basho, st);
+      if (gen !== gameGeneration) return;
     }
   }
 }
 
 // CPU攻撃時効果
 async function handleCpuAttackEffect(basho, st) {
+  const gen = gameGeneration;
   if (basho.attackEffect === 'retrieve_graveyard_exile') {
     await showEffectActivation(basho, '攻撃時効果');
+    if (gen !== gameGeneration) return;
     // 除外から墓地属性カードを探す（魂数で優先順位切替）
     const graveyardCards = st.exile.filter(c => hasTribe(c, '墓地'));
     if (graveyardCards.length > 0) {
@@ -1640,21 +1719,25 @@ async function handleCpuAttackEffect(basho, st) {
 
   if (basho.attackEffect === 'exile_hand_graveyard_damage4') {
     await showEffectActivation(basho, '攻撃時効果');
-    const graveyardCards = st.hand.filter(c => hasTribe(c, '墓地'));
+    if (gen !== gameGeneration) return;
+    const graveyardCards = [...st.hand, ...st.open].filter(c => hasTribe(c, '墓地'));
     if (graveyardCards.length > 0) {
       const soulN = st.soul.length;
       graveyardCards.sort((a, b) => soulN >= 5 ? (a.cost || 0) - (b.cost || 0) : (b.cost || 0) - (a.cost || 0));
       const target = graveyardCards[0];
-      const idx = st.hand.findIndex(c => c.uid === target.uid);
+      const source = st.hand.some(c => c.uid === target.uid) ? st.hand : st.open;
+      const idx = source.findIndex(c => c.uid === target.uid);
       if (idx !== -1) {
-        const cS1 = dom.oppHandCards.querySelector(`.battle-card[data-uid="${target.uid}"]`);
+        const cS1 = dom.oppHandCards.querySelector(`.battle-card[data-uid="${target.uid}"]`)
+          || dom.oppOpenCards.querySelector(`.battle-card[data-uid="${target.uid}"]`);
         const cE1 = cS1 ? { rect: cS1.getBoundingClientRect(), imgSrc: DECK_BACK_IMG } : null;
-        st.hand.splice(idx, 1);
+        source.splice(idx, 1);
         exileCard('opponent', target); // FIX: 'who'は未定義 → 'opponent'に固定
         logHistory('opponent', `「${basho.name}」の効果で「${target.name}」を除外した。`);
-        renderOppHand(); updateAllCounts();
+        renderOppHand(); renderOppOpen(); updateAllCounts();
         updateExileDisplay('opponent');
         await applyDamageWithSoulAbsorb(4, 'bottom', basho);
+        if (gen !== gameGeneration) return;
         if (cE1) showExileFly([cE1], dom.oppExile);
         requestAnimationFrame(() => {
           showFloatingText(dom.oppExile, '除外', 'exile');
@@ -1667,23 +1750,27 @@ async function handleCpuAttackEffect(basho, st) {
 
   if (basho.attackEffect === 'exile_hand_graveyard_damage3_field3') {
     await showEffectActivation(basho, '攻撃時効果');
+    if (gen !== gameGeneration) return;
     // CPUの手札から墓地属性カードを探す（魂数で優先順位切替）
-    const graveyardCards = st.hand.filter(c => hasTribe(c, '墓地'));
+    const graveyardCards = [...st.hand, ...st.open].filter(c => hasTribe(c, '墓地'));
     if (graveyardCards.length > 0) {
       const soulN = st.soul.length;
       graveyardCards.sort((a, b) => soulN >= 5 ? (a.cost || 0) - (b.cost || 0) : (b.cost || 0) - (a.cost || 0));
       const target = graveyardCards[0];
-      const idx = st.hand.findIndex(c => c.uid === target.uid);
+      const source = st.hand.some(c => c.uid === target.uid) ? st.hand : st.open;
+      const idx = source.findIndex(c => c.uid === target.uid);
       if (idx !== -1) {
-        const cS2 = dom.oppHandCards.querySelector(`.battle-card[data-uid="${target.uid}"]`);
+        const cS2 = dom.oppHandCards.querySelector(`.battle-card[data-uid="${target.uid}"]`)
+          || dom.oppOpenCards.querySelector(`.battle-card[data-uid="${target.uid}"]`);
         const cE2 = cS2 ? { rect: cS2.getBoundingClientRect(), imgSrc: DECK_BACK_IMG } : null;
-        st.hand.splice(idx, 1);
+        source.splice(idx, 1);
         exileCard('opponent', target); // FIX: 'who'は未定義 → 'opponent'に固定
         logHistory('opponent', `「${basho.name}」の効果で「${target.name}」を除外した。`);
-        renderOppHand(); updateAllCounts();
+        renderOppHand(); renderOppOpen(); updateAllCounts();
         updateExileDisplay('opponent');
         // プレイヤーに3点ライフダメージ（魂吸収確認後にフライエフェクト）
         await applyDamageWithSoulAbsorb(3, 'bottom', basho);
+        if (gen !== gameGeneration) return;
         if (cE2) showExileFly([cE2], dom.oppExile);
         requestAnimationFrame(() => {
           showFloatingText(dom.oppExile, '除外', 'exile');
@@ -1703,6 +1790,7 @@ async function handleCpuAttackEffect(basho, st) {
 // 怪異札効果処理
 // ===================================================================
 async function handleKaiiEffect(kCard, who) {
+  const gen = gameGeneration;
   if (!kCard || !kCard.kaiiEffect) return;
 
   if (kCard.kaiiEffect === 'exile_hand_graveyard_damage3') {
@@ -1714,7 +1802,7 @@ async function handleKaiiEffect(kCard, who) {
       const hasGraveyard = [...st.hand, ...st.open].some(c => hasTribe(c, '墓地'));
       if (!hasGraveyard) return;
 
-      await new Promise((resolve) => {
+      await gamePromise((resolve) => {
         startCardSelectPhase({
           title: 'カード選択',
           desc: '手札から「墓地」属性のカードを1枚選択して除外しても良い。<br>除外した場合、相手に' + dmg + '点のダメージ。',
@@ -1734,6 +1822,7 @@ async function handleKaiiEffect(kCard, who) {
             renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
             updateExileDisplay('player');
             applyDamageWithSoulAbsorb(dmg, 'top', kCard).then(() => {
+              if (gen !== gameGeneration) return;
               if (eS3) showExileFly([eS3], dom.playerExile);
               requestAnimationFrame(() => {
                 showFloatingText(dom.playerExile, '除外', 'exile');
@@ -1746,8 +1835,10 @@ async function handleKaiiEffect(kCard, who) {
           onSkip: () => { resolve(); }
         });
       });
+      if (gen !== gameGeneration) return;
     } else {
       await handleCpuKaiiEffect(kCard, st, dmg);
+      if (gen !== gameGeneration) return;
     }
   }
 
@@ -1764,6 +1855,7 @@ async function handleKaiiEffect(kCard, who) {
         desc: '除外から「墓地」属性のカードを1枚選び、手札公開場に置いても良い。<br>置いた場合、山札から2枚ドローする。',
         filter: (c) => hasTribe(c, '墓地'),
       });
+      if (gen !== gameGeneration) return;
 
       if (selected) {
         const idx = st.exile.findIndex(c => c.uid === selected.uid);
@@ -1816,6 +1908,7 @@ async function handleKaiiEffect(kCard, who) {
         desc: '除外から「墓地」属性のカードを1枚選び、手札公開場に置いても良い。<br>置いた場合、相手に' + dmg + '点のダメージ。',
         filter: (c) => hasTribe(c, '墓地'),
       });
+      if (gen !== gameGeneration) return;
 
       if (selected) {
         const idx = st.exile.findIndex(c => c.uid === selected.uid);
@@ -1829,6 +1922,7 @@ async function handleKaiiEffect(kCard, who) {
           updateAllCounts();
           logHistory('player', `「${kCard.name}」の効果で相手に${dmg}点のダメージを与えた。`);
           await applyDamageWithSoulAbsorb(dmg, 'top', kCard);
+          if (gen !== gameGeneration) return;
           showOpenFly([exSrcC], dom.playerOpenCards);
           checkWinLose();
         }
@@ -1851,6 +1945,7 @@ async function handleKaiiEffect(kCard, who) {
           updateAllCounts();
           logHistory('opponent', `「${kCard.name}」の効果で相手に${dmg}点のダメージを与えた。`);
           await applyDamageWithSoulAbsorb(dmg, 'bottom', kCard);
+          if (gen !== gameGeneration) return;
           showOpenFly([exSrcH], dom.oppOpenCards);
           checkWinLose();
         }
@@ -1912,7 +2007,7 @@ async function handleKaiiEffect(kCard, who) {
       renderPlayerHand(); renderPlayerOpen(); renderSoul('player');
       updateExileDisplay('player');
     } else {
-      renderOppHand(); renderSoul('opponent');
+      renderOppHand(); renderOppOpen(); renderSoul('opponent');
       updateExileDisplay('opponent');
     }
     updateAllCounts();
@@ -1927,17 +2022,19 @@ async function handleKaiiEffect(kCard, who) {
 
       // 蟲憑き専用：魂吸収確認後に除外飛行アニメーションと連続ダメージばらまき演出を同時起動
       let barrageResolve;
-      const barragePromise = new Promise(r => { barrageResolve = r; });
+      const barragePromise = gamePromise(r => { barrageResolve = r; });
       _pendingBarrage = { hitCount: graveyardCount, dmgPer: 2, side: side, resolve: barrageResolve, cardImg: 'images/finish.jpg', who: who };
       if (who === 'player') {
         await applyDamageWithSoulAbsorb(dmg, 'top', kCard);
+        if (gen !== gameGeneration) return;
       } else {
         await applyDamageWithSoulAbsorb(dmg, 'bottom', kCard);
+        if (gen !== gameGeneration) return;
       }
       // 魂吸収確認後にフライエフェクト起動
       let flyPromise = Promise.resolve();
       if (exileFlySnapshots.length > 0) {
-        flyPromise = new Promise(resolve => {
+        flyPromise = gamePromise(resolve => {
           showExileFly(exileFlySnapshots, exileEl, () => {
             showFloatingText(exileEl, '全除外', 'exile');
             resolve();
@@ -1946,16 +2043,18 @@ async function handleKaiiEffect(kCard, who) {
       }
       // 除外飛行アニメーションとばらまき演出の両方の完了を待ってからフィニッシュ判定
       await Promise.all([flyPromise, barragePromise]);
+      if (gen !== gameGeneration) return;
       checkWinLose();
     } else {
       // ダメージなしの場合は飛行アニメーションのみ
       if (exileFlySnapshots.length > 0) {
-        await new Promise(resolve => {
+        await gamePromise(resolve => {
           showExileFly(exileFlySnapshots, exileEl, () => {
             showFloatingText(exileEl, '全除外', 'exile');
             resolve();
           });
         });
+        if (gen !== gameGeneration) return;
       }
     }
   }
@@ -1976,6 +2075,7 @@ async function handleKaiiEffect(kCard, who) {
           desc: '山札から「墓地」属性の札を1枚選び、手札公開場に置いても良い。',
           filter: (c) => hasTribe(c, '墓地'),
         });
+        if (gen !== gameGeneration) return;
         if (selected) {
           const idx = st.deck.findIndex(c => c.uid === selected.uid);
           if (idx !== -1) {
@@ -1998,7 +2098,7 @@ async function handleKaiiEffect(kCard, who) {
       // 手札を1枚除外（強制）
       const hasHandCards = [...st.hand, ...st.open].length > 0;
       if (hasHandCards) {
-        await new Promise((resolve) => {
+        await gamePromise((resolve) => {
           startCardSelectPhase({
             title: '効果：あずき洗い',
             desc: '手札から1枚選んで除外する。（強制）',
@@ -2028,6 +2128,7 @@ async function handleKaiiEffect(kCard, who) {
           // スキップボタンを非表示にする（強制除外）
           $('card-select-skip').style.display = 'none';
         });
+        if (gen !== gameGeneration) return;
         $('card-select-skip').style.display = '';
       }
     } else {
@@ -2075,7 +2176,7 @@ async function handleKaiiEffect(kCard, who) {
         const cE3 = cS3 ? { rect: cS3.getBoundingClientRect(), imgSrc: DECK_BACK_IMG } : null;
         exileCard(who, target);
         logHistory('opponent', `「${kCard.name}」の効果で「${target.name}」を除外した。`);
-        renderOppHand(); updateAllCounts();
+        renderOppHand(); renderOppOpen(); updateAllCounts();
         updateExileDisplay('opponent');
         if (cE3) showExileFly([cE3], dom.oppExile);
         requestAnimationFrame(() => {
@@ -2096,7 +2197,7 @@ async function handleKaiiEffect(kCard, who) {
       if (!hasGraveyard) return;
 
       let exiled = false;
-      await new Promise((resolve) => {
+      await gamePromise((resolve) => {
         startCardSelectPhase({
           title: '効果：山姥',
           desc: '手札から「墓地」属性のカードを1枚選択して除外しても良い。<br>除外した場合、相手は自身の手札を2枚除外する。',
@@ -2125,6 +2226,7 @@ async function handleKaiiEffect(kCard, who) {
           onSkip: () => { resolve(); }
         });
       });
+      if (gen !== gameGeneration) return;
 
       if (exiled) {
         // 相手（CPU）が自身の手札を2枚除外（沼御前優先、次にランダム）
@@ -2234,6 +2336,7 @@ async function handleKaiiEffect(kCard, who) {
           });
         } else {
           await startSelfHandExilePhase(2);
+          if (gen !== gameGeneration) return;
         }
       }
     }
@@ -2241,24 +2344,27 @@ async function handleKaiiEffect(kCard, who) {
 }
 
 async function handleCpuKaiiEffect(kCard, st, dmg) {
+  const gen = gameGeneration;
   if (kCard.kaiiEffect === 'exile_hand_graveyard_damage3') {
     // CPUの手札から墓地属性カードを探す（魂数で優先順位切替）
-    const graveyardCards = st.hand.filter(c => hasTribe(c, '墓地'));
+    const graveyardCards = [...st.hand, ...st.open].filter(c => hasTribe(c, '墓地'));
     if (graveyardCards.length > 0) {
       const soulN = st.soul.length;
       graveyardCards.sort((a, b) => soulN >= 5 ? (a.cost || 0) - (b.cost || 0) : (b.cost || 0) - (a.cost || 0));
       const target = graveyardCards[0];
-      const idx = st.hand.findIndex(c => c.uid === target.uid);
+      const source = st.hand.some(c => c.uid === target.uid) ? st.hand : st.open;
+      const idx = source.findIndex(c => c.uid === target.uid);
       if (idx !== -1) {
-        st.hand.splice(idx, 1);
+        source.splice(idx, 1);
         exileCard('opponent', target);
         logHistory('opponent', `「${kCard.name}」の効果で「${target.name}」を除外した。`);
-        renderOppHand(); updateAllCounts();
+        renderOppHand(); renderOppOpen(); updateAllCounts();
         updateExileDisplay('opponent');
         requestAnimationFrame(() => {
           showFloatingText(dom.oppExile, '除外', 'exile');
         });
         await applyDamageWithSoulAbsorb(dmg, 'bottom', kCard);
+        if (gen !== gameGeneration) return;
         logHistory('opponent', `「${kCard.name}」の効果で相手に${dmg}点のダメージを与えた。`);
         checkWinLose();
       }
@@ -2269,7 +2375,7 @@ async function handleCpuKaiiEffect(kCard, st, dmg) {
 // 除外からカードを選択するフェイズ（Promise版）
 function startExileSelectPhase(config) {
   // config: { who, title, desc, filter(card)->bool }
-  return new Promise((resolve) => {
+  return gamePromise((resolve, onCleanup) => {
     const st = (config.who === 'player') ? player : opponent;
     const filteredCards = st.exile.filter(c => config.filter(c));
 
@@ -2397,6 +2503,7 @@ function startExileSelectPhase(config) {
     dom.exileModalConfirm.addEventListener('touchend', onConfirmTouch, { passive: false });
     dom.exileModalSkip.addEventListener('click', onSkip);
     dom.exileModalSkip.addEventListener('touchend', onSkipTouch, { passive: false });
+    onCleanup(cleanup);
   });
 }
 
@@ -2404,7 +2511,7 @@ function startExileSelectPhase(config) {
 function startDeckSearchPhase(config) {
   // config: { who, title, desc, filter(card)->bool }
   // 返り値: Promise<card|null> 選択したカードまたはnull
-  return new Promise((resolve) => {
+  return gamePromise((resolve, onCleanup) => {
     const st = (config.who === 'player') ? player : opponent;
     const matchCards = st.deck.filter(config.filter);
 
@@ -2506,6 +2613,7 @@ function startDeckSearchPhase(config) {
     dom.exileModalConfirm.addEventListener('touchend', onConfirmTouch, { passive: false });
     dom.exileModalSkip.addEventListener('click', onSkip);
     dom.exileModalSkip.addEventListener('touchend', onSkipTouch, { passive: false });
+    onCleanup(cleanup);
 
     dom.exileModal.style.display = 'flex';
     dom.exileModal.classList.add('active');
@@ -2518,7 +2626,7 @@ function startDeckSearchPhase(config) {
 function startExileOrderPhase(config) {
   // config: { who, title, desc }
   // 返り値: Promise<card[]> タップ順のカード配列
-  return new Promise((resolve) => {
+  return gamePromise((resolve, onCleanup) => {
     const st = (config.who === 'player') ? player : opponent;
     const allCards = [...st.exile];
 
@@ -2564,6 +2672,11 @@ function startExileOrderPhase(config) {
       resolve(ordered);
     };
     const onOrderConfirmTouch = (e) => { if (e.cancelable) e.preventDefault(); onOrderConfirm(e); };
+    onCleanup(() => {
+      dom.exileModalConfirm.removeEventListener('click', onOrderConfirm);
+      dom.exileModalConfirm.removeEventListener('touchend', onOrderConfirmTouch);
+      dom.exileModalSkip.style.display = '';
+    });
 
     // カードエレメントマップ（再描画用）
     const cardElMap = new Map(); // card.uid -> el
@@ -2662,7 +2775,7 @@ function startExileOrderPhase(config) {
 // 手札公開場のカードは選択可能、裏の手札を選択するとランダム
 // 自分の手札から強制除外フェイズ（砂の竹林等：プレイヤーが自分の手札からN枚除外）
 function startSelfHandExilePhase(count) {
-  return new Promise((resolve) => {
+  return gamePromise((resolve, onCleanup) => {
     const overlay = $('opp-hand-exile-overlay');
     const titleEl = $('opp-hand-exile-title');
     const cardsDiv = $('opp-hand-exile-cards');
@@ -2765,6 +2878,12 @@ function startSelfHandExilePhase(count) {
     confirmBtn.classList.remove('ready');
     confirmBtn.addEventListener('click', onConfirm);
     confirmBtn.addEventListener('touchend', onConfirmTouch, { passive: false });
+    onCleanup(() => {
+      confirmBtn.removeEventListener('click', onConfirm);
+      confirmBtn.removeEventListener('touchend', onConfirmTouch);
+      overlay.style.display = 'none';
+      overlay.classList.remove('active');
+    });
 
     overlay.style.display = 'flex';
     overlay.classList.add('active');
@@ -2772,15 +2891,17 @@ function startSelfHandExilePhase(count) {
 }
 
 function executeAttackAnimation(targetEl, atkIdx, power, group) {
+  const gen = gameGeneration;
   // アニメーション開始（通常速度）
   turnLocked = true;
   targetEl.classList.add('attacking');
 
   // アニメーション完了後にダメージ→カード処理を一連で行う
-  setTimeout(async () => {
+  scheduleGameAction(async () => {
     // applyDamageWithSoulAbsorb経由（CPU魂吸収AI含む）
     logHistory('player', `自分の「${group.basho ? group.basho.name : '場所札'}」が攻撃！（${power}ダメージ）`);
     await applyDamageWithSoulAbsorb(power, 'top', group.basho);
+    if (gen !== gameGeneration) return;
     const isFinishBlow = (opponent.life <= 0);
 
     // カード処理：攻撃したカードを魂へ
@@ -2818,7 +2939,7 @@ function executeAttackAnimation(targetEl, atkIdx, power, group) {
     if (isFinishBlow) {
       gameEnded = true;
       showFinishBlowZoom('top');
-      setTimeout(() => { showWinLoseResult(true); }, 1800);
+      scheduleGameAction(() => { showWinLoseResult(true); }, 1800);
     } else {
       turnLocked = false;
       updatePlayableAura();
@@ -2860,7 +2981,7 @@ function showFinishBlowZoom(targetSide) {
   }
 
   // 1.8秒後にクリーンアップ
-  setTimeout(() => {
+  scheduleGameAction(() => {
     overlay.className = '';
     overlay.style.display = 'none';
     fieldDiv.innerHTML = '';
@@ -2937,7 +3058,7 @@ function showDamage(amount, side, isFinish) {
   }
 
   const duration = isFinish ? 1600 : 850;
-  setTimeout(() => {
+  scheduleGameAction(() => {
     dom.damageOverlay.style.display = 'none';
     dom.damageOverlay.className = '';
     dom.damageOverlay.querySelectorAll('.dmg-burst,.dmg-splatter').forEach(e => e.remove());
@@ -3040,17 +3161,17 @@ function showBarrageDamage(hitCount, dmgPer, side, isLastLethal, onComplete, car
     }
 
     const dur = isFinish ? 1600 : 500;
-    setTimeout(() => {
+    scheduleGameAction(() => {
       hit.remove(); burst.remove();
       splatters.forEach(s => s.remove());
     }, dur);
 
     i++;
     if (i < hitCount) {
-      setTimeout(fireOne, 80);
+      scheduleGameAction(fireOne, 80);
     } else {
       // オーバーレイ片付け（エフェクト消え終わり後）
-      setTimeout(() => {
+      scheduleGameAction(() => {
         area.style.display = 'none';
         area.className = '';
         dom.damageText.style.display = '';
@@ -3118,10 +3239,10 @@ function setupKaiiInteraction(el, group, owner, kCard) {
   el.addEventListener('touchend', (e) => {
     el.classList.remove('glow'); e.stopPropagation(); if (e.cancelable) e.preventDefault();
     if (owner === 'opponent') {
-      // 鮮明カードがあるかチェック
-      const senmeCards = group.kaii.filter(k => hasKeyword(k, '鮮明')); // FIX: hasKeyword化
-      if (senmeCards.length > 0) {
-        if (kaiiPopupActive) hideKaiiPopup(); else showKaiiPopup({ kaii: senmeCards }, owner);
+      // 鮮明、または公開場から憑依したカードだけを閲覧できる。
+      const publicCards = group.kaii.filter(k => hasKeyword(k, '鮮明') || k._fromOpen);
+      if (publicCards.length > 0) {
+        if (kaiiPopupActive) hideKaiiPopup(); else showKaiiPopup({ kaii: publicCards }, owner);
       } else {
         showKaiiBlockMsg();
       }
@@ -3133,9 +3254,9 @@ function setupKaiiInteraction(el, group, owner, kCard) {
   el.addEventListener('click', (e) => {
     e.stopPropagation();
     if (owner === 'opponent') {
-      const senmeCards = group.kaii.filter(k => hasKeyword(k, '鮮明')); // FIX: hasKeyword化
-      if (senmeCards.length > 0) {
-        if (kaiiPopupActive) hideKaiiPopup(); else showKaiiPopup({ kaii: senmeCards }, owner);
+      const publicCards = group.kaii.filter(k => hasKeyword(k, '鮮明') || k._fromOpen);
+      if (publicCards.length > 0) {
+        if (kaiiPopupActive) hideKaiiPopup(); else showKaiiPopup({ kaii: publicCards }, owner);
       } else {
         showKaiiBlockMsg();
       }
@@ -3478,9 +3599,11 @@ function hideSeasonWarning() { dom.seasonWarning.classList.remove('active'); dom
 let dragCard = null, dragGhost = null, dragSourceEl = null, isDragging = false;
 let currentKaiiGhost = null, currentDropTarget = null;
 let lastDropX = null; // ドロップ位置のX座標（左右判定用）
+let cancelCardDrag = null;
 
 function setupDrag(el, card) {
   let startX, startY, touchId = null;
+  let mouseCleanup = null;
   let lastTrailTime = 0, lastTrailX = null, lastTrailY = null;
   const spawnTrail = (x, y) => {
     const now = Date.now();
@@ -3498,8 +3621,13 @@ function setupDrag(el, card) {
     lastTrailX = x;
     lastTrailY = y;
   };
-  const onStart = (x, y) => { startX = x; startY = y; isDragging = false; };
+  const onStart = (x, y) => {
+    if (cancelCardDrag) cancelCardDrag();
+    startX = x; startY = y; isDragging = false;
+    cancelCardDrag = cleanup;
+  };
   const onMove = (x, y) => {
+    if (cancelCardDrag !== cleanup) return;
     if (isDragging) {
       dragGhost.style.left = (x - 25) + 'px';
       dragGhost.style.top = (y - 35) + 'px';
@@ -3548,7 +3676,8 @@ function setupDrag(el, card) {
     }
   };
   const onEnd = (x, y) => {
-    if (!isDragging) return;
+    if (cancelCardDrag !== cleanup) return;
+    if (!isDragging) { cleanup(); return; }
     // カード選択フェイズ：除外ゾーンにドロップで確定
     if (cardSelectPhase && cardSelectConfig) {
       const exileRect = dom.playerExile.getBoundingClientRect();
@@ -3597,6 +3726,7 @@ function setupDrag(el, card) {
     }
     // 手札超過フェイズ中・盤面確認モード中は場への配置を禁止
     if (handOverflowPhase || banmenViewActive) { cleanup(); return; }
+    if (turnLocked || isAttacking || gameEnded) { cleanup(); return; }
 
     const rect = dom.playerField.getBoundingClientRect();
     const dropped = (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom);
@@ -3615,7 +3745,7 @@ function setupDrag(el, card) {
       lastDropX = x;
       // 手札から探す
       let idx = player.hand.findIndex(c => c.uid === card.uid);
-      if (idx !== -1) { player.hand.splice(idx, 1); placeCard(card); }
+      if (idx !== -1) { player.hand.splice(idx, 1); card._fromOpen = false; placeCard(card); }
       else {
         // 手札公開場から探す
         idx = player.open.findIndex(c => c.uid === card.uid);
@@ -3626,6 +3756,10 @@ function setupDrag(el, card) {
     cleanup();
   };
   function cleanup() {
+    if (cancelCardDrag !== cleanup) return;
+    cancelCardDrag = null;
+    touchId = null;
+    if (mouseCleanup) { mouseCleanup(); mouseCleanup = null; }
     if (dragGhost) { dragGhost.remove(); dragGhost = null; }
     if (dragSourceEl) { dragSourceEl.style.visibility = ''; dragSourceEl.style.opacity = ''; dragSourceEl = null; }
     removeKaiiGhost(); clearDropTargets(); hideSeasonWarning();
@@ -3634,9 +3768,9 @@ function setupDrag(el, card) {
     $('player-soul-zone').classList.remove('drag-over-soul');
     dom.playerExile.classList.remove('drag-over-exile');
     isDragging = false; currentDropTarget = null;
-    setTimeout(() => { suppressPreview = false; }, 150);
+    scheduleGameAction(() => { if (!isDragging) suppressPreview = false; }, 150);
   }
-  el.addEventListener('touchstart', e => { const t = e.touches[0]; touchId = t.identifier; onStart(t.clientX, t.clientY); }, { passive: true });
+  el.addEventListener('touchstart', e => { const t = e.touches[0]; onStart(t.clientX, t.clientY); touchId = t.identifier; }, { passive: true });
   el.addEventListener('touchmove', e => {
     for (let i = 0; i < e.touches.length; i++) {
       if (e.touches[i].identifier === touchId) { onMove(e.touches[i].clientX, e.touches[i].clientY); break; }
@@ -3647,13 +3781,20 @@ function setupDrag(el, card) {
       if (e.changedTouches[i].identifier === touchId) { onEnd(e.changedTouches[i].clientX, e.changedTouches[i].clientY); break; }
     }
   });
+  el.addEventListener('touchcancel', cleanup);
   el.addEventListener('mousedown', e => {
     onStart(e.clientX, e.clientY);
     const mm = ev => onMove(ev.clientX, ev.clientY);
-    const mu = ev => { onEnd(ev.clientX, ev.clientY); document.removeEventListener('mousemove', mm); document.removeEventListener('mouseup', mu); };
+    const mu = ev => { onEnd(ev.clientX, ev.clientY); };
+    mouseCleanup = () => { document.removeEventListener('mousemove', mm); document.removeEventListener('mouseup', mu); };
     document.addEventListener('mousemove', mm); document.addEventListener('mouseup', mu);
   });
 }
+
+window.addEventListener('blur', () => {
+  if (cancelCardDrag) cancelCardDrag();
+  if (dragAttackActive) cancelDragAttack();
+});
 
 // ===================================================================
 // ドロップターゲット
@@ -3717,6 +3858,7 @@ function clearDropTargets() {
 // カード配置
 // ===================================================================
 function placeCard(card) {
+  const gen = gameGeneration;
   // ドロップ位置がフィールド中央より右なら右側(push)、左なら左側(unshift)
   function insertToField(group) {
     const fieldRect = dom.playerField.getBoundingClientRect();
@@ -3797,6 +3939,8 @@ function placeCard(card) {
     });
   } else if (card.type === '道具札') {
     // 道具札：効果発動演出のみ（全道具札共通）→効果処理→魂へ
+    turnLocked = true;
+    updatePlayableAura();
     // フライアニメ用スナップショット（renderPlayerHand前に取得）
     const douguHandEl = dom.playerHandCards.querySelector(`.battle-card[data-uid="${card.uid}"]`);
     const douguSnap = douguHandEl ? { rect: douguHandEl.getBoundingClientRect(), imgSrc: douguHandEl.querySelector('img')?.src || card.img || DECK_BACK_IMG, uid: String(card.uid) } : null;
@@ -3805,10 +3949,12 @@ function placeCard(card) {
     logHistory('player', `自分は道具札「${card.name}」を発動した。`);
     (async () => {
       await showEffectActivation(card, '効果発動');
+      if (gen !== gameGeneration) return;
       // 効果処理
       if (card.effect === 'damage_8') {
         logHistory('player', `「${card.name}」の効果で相手に8点のダメージを与えた。`);
         await applyDamageWithSoulAbsorb(8, 'top', card);
+        if (gen !== gameGeneration) return;
         checkWinLose();
       } else if (card.effect === 'draw_3') {
         drawCards('player', 3, card.name);
@@ -3821,6 +3967,7 @@ function placeCard(card) {
             desc: '除外から「墓地」属性のカードを1枚選び、手札公開場に置く。<br>成功した場合、相手に4点のダメージ。',
             filter: (c) => hasTribe(c, '墓地'),
           });
+          if (gen !== gameGeneration) return;
           if (selected) {
             const idx = player.exile.findIndex(c => c.uid === selected.uid);
             if (idx !== -1) {
@@ -3833,6 +3980,7 @@ function placeCard(card) {
               updateAllCounts();
               logHistory('player', `「${card.name}」の効果で相手に4点のダメージを与えた。`);
               await applyDamageWithSoulAbsorb(4, 'top', card);
+              if (gen !== gameGeneration) return;
               showOpenFly([exSrc1], dom.playerOpenCards);
               checkWinLose();
             }
@@ -3847,6 +3995,7 @@ function placeCard(card) {
             desc: '除外から「墓地」属性のカードを1枚選び、手札公開場に置いても良い。<br>置いた場合、山札から1枚ドローする。',
             filter: (c) => hasTribe(c, '墓地'),
           });
+          if (gen !== gameGeneration) return;
           if (selected) {
             const idx = player.exile.findIndex(c => c.uid === selected.uid);
             if (idx !== -1) {
@@ -3867,6 +4016,7 @@ function placeCard(card) {
       renderSoul('player');
       if (douguSnap) showSoulFly([douguSnap], dom.playerSoulCards);
       updateAllCounts();
+      turnLocked = gameEnded;
       updatePlayableAura();
     })();
   } else {
@@ -3926,6 +4076,10 @@ let cpuFirstAction = true; // CPUの最初のターンかどうか
 
 function startGame() {
   gameGeneration++;
+  const cleanups = [...gameResetCleanups];
+  gameResetCleanups.clear();
+  cleanups.forEach(cleanup => cleanup());
+  if (cancelCardDrag) cancelCardDrag();
   uidCounter = 1;
   player.deck = buildSampleDeck();
   player.hand = []; player.field = []; player.soul = []; player.exile = []; player.open = []; player.life = 30;
@@ -3983,13 +4137,21 @@ function startGame() {
   if (fbo) { fbo.className = ''; fbo.style.display = 'none'; $('finish-blow-field').innerHTML = ''; }
 
   // 盤面確認モード解除
+  hidePreview(); hideKaiiPopup(); hideExileViewModal(); hideExileModal();
   if (typeof exitBanmenView === 'function') exitBanmenView();
+  $('card-select-skip').style.display = '';
+  dom.exileModalSkip.style.display = '';
   // 全ポップアップクリア
   hideAllPopups();
   // 効果発動オーバーレイクリア
   dom.effectOverlay.style.display = 'none';
   dom.effectOverlay.classList.remove('active');
   dom.effectOverlay.querySelectorAll('.sparkle-particle').forEach(e => e.remove());
+  dom.effectLabel.classList.remove('effect-failed');
+  dom.damageOverlay.style.display = 'none';
+  dom.damageOverlay.className = '';
+  dom.damageText.style.display = '';
+  dom.damageOverlay.querySelectorAll('.dmg-burst,.dmg-splatter,.barrage-hit').forEach(e => e.remove());
   // 零探し・開門演出オーバーレイ閉じる
   const zsOverlay = $('zero-search-overlay');
   if (zsOverlay) zsOverlay.style.display = 'none';
@@ -4027,16 +4189,20 @@ function startGame() {
   let coinFlipInterval = null;
   let coinTimer1 = null, coinTimer2 = null, coinTimer3 = null;
 
-  function finishCoinFlip() {
-    if (coinSkipped) return;
+  const cleanupCoin = () => {
     coinSkipped = true;
-    if (gen !== gameGeneration) return;
-    if (coinFlipInterval) clearInterval(coinFlipInterval);
-    if (coinTimer1) clearTimeout(coinTimer1);
-    if (coinTimer2) clearTimeout(coinTimer2);
-    if (coinTimer3) clearTimeout(coinTimer3);
+    clearInterval(coinFlipInterval);
+    clearTimeout(coinTimer1); clearTimeout(coinTimer2); clearTimeout(coinTimer3);
     dom.gateOverlay.removeEventListener('click', onCoinSkip);
     dom.gateOverlay.removeEventListener('touchend', onCoinSkipTouch);
+    gameResetCleanups.delete(cleanupCoin);
+  };
+  gameResetCleanups.add(cleanupCoin);
+
+  function finishCoinFlip() {
+    if (coinSkipped) return;
+    cleanupCoin();
+    if (gen !== gameGeneration) return;
     dom.coinText.textContent = isFirstTurn ? '先行' : '後攻';
     dom.coinText.style.textShadow = '0 0 30px rgba(255,255,255,0.6), 0 2px 8px rgba(0,0,0,0.7)';
     dom.coinText.style.animation = '';
@@ -4138,7 +4304,7 @@ function initGameAfterGate() {
 // 開門演出：零探し後、ゲーム開始直前の派手なアニメーション
 // ===================================================================
 function showKaimonAnimation() {
-  return new Promise((resolve) => {
+  return gamePromise((resolve, onCleanup) => {
     const gen = gameGeneration;
     dom.gateOverlay.classList.add('active');
     dom.gateOverlay.style.display = 'flex';
@@ -4174,6 +4340,19 @@ function showKaimonAnimation() {
 
     function onKaimonSkip() { finishKaimon(); }
     function onKaimonSkipTouch(e) { if (e.cancelable) e.preventDefault(); finishKaimon(); }
+    function onKaimonEnd() { finishKaimon(); }
+    onCleanup(() => {
+      clearTimeout(kTimer1); clearTimeout(kTimer2); clearTimeout(kTimer3);
+      dom.gateOverlay.removeEventListener('click', onKaimonSkip);
+      dom.gateOverlay.removeEventListener('touchend', onKaimonSkipTouch);
+      dom.gateOverlay.removeEventListener('animationend', onKaimonEnd);
+      dom.gateText.style.animation = '';
+      dom.gateText.style.opacity = '';
+      dom.gateText.classList.remove('kaimon-glow');
+      dom.gateOverlay.style.animation = '';
+      dom.gateOverlay.querySelectorAll('.kaimon-line').forEach(el => el.remove());
+      dom.coinText.style.display = '';
+    });
 
     dom.gateOverlay.addEventListener('click', onKaimonSkip);
     dom.gateOverlay.addEventListener('touchend', onKaimonSkipTouch, { passive: false });
@@ -4200,10 +4379,7 @@ function showKaimonAnimation() {
     kTimer3 = setTimeout(() => {
       if (kaimonSkipped) return;
       dom.gateOverlay.style.animation = 'kaimonAllOut 0.4s ease-in forwards';
-      dom.gateOverlay.addEventListener('animationend', function onEnd() {
-        dom.gateOverlay.removeEventListener('animationend', onEnd);
-        finishKaimon();
-      });
+      dom.gateOverlay.addEventListener('animationend', onKaimonEnd);
     }, 1400);
   });
 }
@@ -4212,7 +4388,7 @@ function showKaimonAnimation() {
 // 零探し：ゲーム開始時のマリガン的フェイズ
 // ===================================================================
 function showZeroSearch(who) {
-  return new Promise((resolve) => {
+  return gamePromise((resolve, onCleanup) => {
     const st = (who === 'player') ? player : opponent;
     const overlay = $('zero-search-overlay');
     const orderEl = $('zero-search-order');
@@ -4321,7 +4497,7 @@ function showZeroSearch(who) {
         el.style.animation = 'zsKeepSettle 0.3s ease forwards';
       });
 
-      setTimeout(() => {
+      scheduleGameAction(() => {
         // DOMから除去
         exitEls.forEach(el => el.remove());
 
@@ -4347,7 +4523,7 @@ function showZeroSearch(who) {
 
         // ③ 新カードを1枚ずつ下から順番に登場させる
         newCards.forEach((card, i) => {
-          setTimeout(() => {
+          scheduleGameAction(() => {
             const el = createCardEl(card, false);
             el.style.pointerEvents = 'none';
             el.style.animation = 'zsCardEnter 0.25s ease forwards';
@@ -4357,7 +4533,7 @@ function showZeroSearch(who) {
 
         // ④ 全カード登場後0.8秒待って次のシーンへ
         const totalWait = newCards.length * 60 + 200 + 800;
-        setTimeout(() => {
+        scheduleGameAction(() => {
           if (who === 'player') { renderPlayerHand(); } else { renderOppHand(); }
           updateAllCounts();
           overlay.style.display = 'none';
@@ -4373,6 +4549,10 @@ function showZeroSearch(who) {
     const onConfirmTouch = (e) => { if (e.cancelable) e.preventDefault(); onConfirm(); };
     confirmBtn.addEventListener('click', onConfirm);
     confirmBtn.addEventListener('touchend', onConfirmTouch, { passive: false });
+    onCleanup(() => {
+      confirmBtn.removeEventListener('click', onConfirm);
+      confirmBtn.removeEventListener('touchend', onConfirmTouch);
+    });
 
     $('app').style.display = 'none';
     overlay.style.display = 'flex';
@@ -4410,14 +4590,14 @@ function checkWinLose() {
     gameEnded = true;
     turnLocked = true;
     showFinishBlowZoom('top');
-    setTimeout(() => {
+    scheduleGameAction(() => {
       showWinLoseResult(true);
     }, 1800);
   } else if (player.life <= 0) {
     gameEnded = true;
     turnLocked = true;
     showFinishBlowZoom('bottom');
-    setTimeout(() => {
+    scheduleGameAction(() => {
       showWinLoseResult(false);
     }, 1800);
   }
@@ -4464,7 +4644,7 @@ function screenShake() {
 // ターン終了
 // ===================================================================
 function endTurn() {
-  if (turnLocked || gameEnded) return;
+  if (turnLocked || gameEnded || isAttacking) return;
   if (cardSelectPhase || exileSelectMode || soulAbsorbPhase || banmenViewActive || handOverflowPhase) return;
   // 手札超過チェック（手札＋手札公開場の合計）
   if (player.hand.length + player.open.length >= 9) {
@@ -4497,6 +4677,7 @@ function startHandOverflowPhase() {
 
 function handleOverflowTap(card, el) {
   if (!handOverflowPhase) return false;
+  if (![...player.hand, ...player.open].some(c => c.uid === card.uid)) return false;
   // トグル選択
   const uid = String(card.uid);
   if (overflowSelectedUids.has(uid)) {
@@ -4735,11 +4916,13 @@ $('card-select-skip').addEventListener('touchend', (e) => {
 // 召喚時効果処理
 // ===================================================================
 function handleSummonEffect(card, who) {
+  const gen = gameGeneration;
   if (card.summonEffect === 'exile_graveyard_damage3') {
     if (who === 'player') {
       // プレイヤー：効果発動演出→カード選択フェイズ
       (async () => {
         await showEffectActivation(card, '召喚時効果');
+        if (gen !== gameGeneration) return;
         // 手札＆公開場に墓地属性カードがあるかチェック
         const hasGraveyard = [...player.hand, ...player.open].some(c => hasTribe(c, '墓地'));
         if (!hasGraveyard) {
@@ -4771,6 +4954,7 @@ function handleSummonEffect(card, who) {
             updateExileDisplay('player');
             // 相手に3点ダメージ（魂吸収確認後にフライエフェクト）
             applyDamageWithSoulAbsorb(3, 'top', card).then(() => {
+              if (gen !== gameGeneration) return;
               if (exSnap1) showExileFly([exSnap1], dom.playerExile);
               requestAnimationFrame(() => {
                 const exileImg = dom.playerExile.querySelector('.exile-top-card');
@@ -4799,6 +4983,7 @@ function handleSummonEffect(card, who) {
     if (who === 'player') {
       (async () => {
         await showEffectActivation(card, '召喚時効果');
+        if (gen !== gameGeneration) return;
         const hasGraveyardInExile = player.exile.some(c => hasTribe(c, '墓地'));
         if (!hasGraveyardInExile) {
           turnLocked = false;
@@ -4811,6 +4996,7 @@ function handleSummonEffect(card, who) {
           desc: '除外から「墓地」属性のカードを1枚選び、手札公開場に置いても良い。<br>置いた場合、相手に4点のダメージ。',
           filter: (c) => hasTribe(c, '墓地'),
         });
+        if (gen !== gameGeneration) return;
         if (selected) {
           const idx = player.exile.findIndex(c => c.uid === selected.uid);
           if (idx !== -1) {
@@ -4822,6 +5008,7 @@ function handleSummonEffect(card, who) {
             updateExileDisplay('player');
             updateAllCounts();
             await applyDamageWithSoulAbsorb(4, 'top', card);
+            if (gen !== gameGeneration) return;
             showOpenFly([exSrcD], dom.playerOpenCards);
             logHistory('player', `「${card.name}」の効果で相手に4点のダメージを与えた。`);
             checkWinLose();
@@ -4839,6 +5026,7 @@ function handleSummonEffect(card, who) {
     if (who === 'player') {
       (async () => {
         await showEffectActivation(card, '召喚時効果');
+        if (gen !== gameGeneration) return;
         // 自分と相手の除外にある墓地属性カードを数える
         const playerGraveyardCount = player.exile.filter(c => hasTribe(c, '墓地')).length;
         const oppGraveyardCount = opponent.exile.filter(c => hasTribe(c, '墓地')).length;
@@ -4847,6 +5035,7 @@ function handleSummonEffect(card, who) {
         if (dmg > 0) {
           logHistory('player', `「${card.name}」の効果で相手に${dmg}点のダメージを与えた。`);
           await applyDamageWithSoulAbsorb(dmg, 'top', card);
+          if (gen !== gameGeneration) return;
           checkWinLose();
         }
         turnLocked = false;
@@ -4862,6 +5051,7 @@ function handleSummonEffect(card, who) {
     if (who === 'player') {
       (async () => {
         await showEffectActivation(card, '召喚時効果');
+        if (gen !== gameGeneration) return;
         const hasGraveyard = [...player.hand, ...player.open].some(c => hasTribe(c, '墓地'));
         if (!hasGraveyard) {
           turnLocked = false;
@@ -4911,6 +5101,7 @@ function handleSummonEffect(card, who) {
     if (who === 'player') {
       (async () => {
         await showEffectActivation(card, '召喚時効果');
+        if (gen !== gameGeneration) return;
         const hasGraveyardInExile = player.exile.some(c => hasTribe(c, '墓地'));
         if (!hasGraveyardInExile) {
           turnLocked = false;
@@ -4923,6 +5114,7 @@ function handleSummonEffect(card, who) {
           desc: '除外から「墓地」属性のカードを1枚選び、手札公開場に置いても良い。<br>置いた場合、相手は自身の手札を2枚除外する。',
           filter: (c) => hasTribe(c, '墓地'),
         });
+        if (gen !== gameGeneration) return;
         if (selected) {
           const idx = player.exile.findIndex(c => c.uid === selected.uid);
           if (idx !== -1) {
@@ -4974,20 +5166,23 @@ function handleSummonEffect(card, who) {
 }
 
 async function handleCpuSummonEffect(card) {
+  const gen = gameGeneration;
   if (card.summonEffect === 'exile_graveyard_damage3') {
     await showEffectActivation(card, '召喚時効果');
+    if (gen !== gameGeneration) return;
     // CPUの手札から墓地属性カードを探す（魂数で優先順位切替）
-    const graveyardCards = opponent.hand.filter(c => hasTribe(c, '墓地'));
+    const graveyardCards = [...opponent.hand, ...opponent.open].filter(c => hasTribe(c, '墓地'));
     if (graveyardCards.length > 0) {
       const soulN = opponent.soul.length;
       graveyardCards.sort((a, b) => soulN >= 5 ? (a.cost || 0) - (b.cost || 0) : (b.cost || 0) - (a.cost || 0));
       const target = graveyardCards[0];
-      const idx = opponent.hand.findIndex(c => c.uid === target.uid);
+      const source = opponent.hand.some(c => c.uid === target.uid) ? opponent.hand : opponent.open;
+      const idx = source.findIndex(c => c.uid === target.uid);
       if (idx !== -1) {
-        opponent.hand.splice(idx, 1);
+        source.splice(idx, 1);
         exileCard('opponent', target);
         logHistory('opponent', `「${card.name}」の効果で「${target.name}」を除外した。`);
-        renderOppHand(); updateAllCounts();
+        renderOppHand(); renderOppOpen(); updateAllCounts();
         updateExileDisplay('opponent');
         // 除外フローティングテキスト
         requestAnimationFrame(() => {
@@ -4995,7 +5190,9 @@ async function handleCpuSummonEffect(card) {
         });
         // プレイヤーに3点ダメージ（魂吸収選択あり）
         await applyDamageWithSoulAbsorb(3, 'bottom', card);
-        await new Promise(r => setTimeout(r, 100));
+        if (gen !== gameGeneration) return;
+        await gamePromise(r => setTimeout(r, 100));
+        if (gen !== gameGeneration) return;
         logHistory('opponent', `「${card.name}」の効果で相手に3点のダメージを与えた。`);
         checkWinLose();
       }
@@ -5005,6 +5202,7 @@ async function handleCpuSummonEffect(card) {
 
   if (card.summonEffect === 'retrieve_exile_graveyard_damage4') {
     await showEffectActivation(card, '召喚時効果');
+    if (gen !== gameGeneration) return;
     // CPUの除外から墓地属性カードを探す（魂数で優先順位切替）
     const graveyardCards = opponent.exile.filter(c => hasTribe(c, '墓地'));
     if (graveyardCards.length > 0) {
@@ -5021,8 +5219,10 @@ async function handleCpuSummonEffect(card) {
         updateExileDisplay('opponent');
         updateAllCounts();
         await applyDamageWithSoulAbsorb(4, 'bottom', card);
+        if (gen !== gameGeneration) return;
         showOpenFly([exSrcI], dom.oppOpenCards);
-        await new Promise(r => setTimeout(r, 100));
+        await gamePromise(r => setTimeout(r, 100));
+        if (gen !== gameGeneration) return;
         logHistory('opponent', `「${card.name}」の効果で相手に4点のダメージを与えた。`);
         checkWinLose();
       }
@@ -5031,6 +5231,7 @@ async function handleCpuSummonEffect(card) {
 
   if (card.summonEffect === 'exile_graveyard_count_damage') {
     await showEffectActivation(card, '召喚時効果');
+    if (gen !== gameGeneration) return;
     // 自分と相手の除外にある墓地属性カードを数える
     const cpuGraveyardCount = opponent.exile.filter(c => hasTribe(c, '墓地')).length;
     const playerGraveyardCount = player.exile.filter(c => hasTribe(c, '墓地')).length;
@@ -5039,7 +5240,9 @@ async function handleCpuSummonEffect(card) {
     if (dmg > 0) {
       logHistory('opponent', `「${card.name}」の効果で相手に${dmg}点のダメージを与えた。`);
       await applyDamageWithSoulAbsorb(dmg, 'bottom', card);
-      await new Promise(r => setTimeout(r, 100));
+      if (gen !== gameGeneration) return;
+      await gamePromise(r => setTimeout(r, 100));
+      if (gen !== gameGeneration) return;
       checkWinLose();
     }
   }
@@ -5047,17 +5250,19 @@ async function handleCpuSummonEffect(card) {
   // 木霊の森CPU版：手札から墓地属性カードを除外→1ドロー
   if (card.summonEffect === 'exile_hand_graveyard_draw1') {
     await showEffectActivation(card, '召喚時効果');
-    const graveyardCards = opponent.hand.filter(c => hasTribe(c, '墓地'));
+    if (gen !== gameGeneration) return;
+    const graveyardCards = [...opponent.hand, ...opponent.open].filter(c => hasTribe(c, '墓地'));
     if (graveyardCards.length > 0) {
       const soulN = opponent.soul.length;
       graveyardCards.sort((a, b) => soulN >= 5 ? (a.cost || 0) - (b.cost || 0) : (b.cost || 0) - (a.cost || 0));
       const target = graveyardCards[0];
-      const idx = opponent.hand.findIndex(c => c.uid === target.uid);
+      const source = opponent.hand.some(c => c.uid === target.uid) ? opponent.hand : opponent.open;
+      const idx = source.findIndex(c => c.uid === target.uid);
       if (idx !== -1) {
-        opponent.hand.splice(idx, 1);
+        source.splice(idx, 1);
         exileCard('opponent', target);
         logHistory('opponent', `「${card.name}」の効果で「${target.name}」を除外した。`);
-        renderOppHand(); updateAllCounts();
+        renderOppHand(); renderOppOpen(); updateAllCounts();
         updateExileDisplay('opponent');
         requestAnimationFrame(() => {
           showFloatingText(dom.oppExile, '除外', 'exile');
@@ -5070,6 +5275,7 @@ async function handleCpuSummonEffect(card) {
   // 砂の竹林CPU版：除外から墓地属性カードを回収→プレイヤーが自身の手札から2枚除外
   if (card.summonEffect === 'retrieve_exile_graveyard_exile2_opponent_hand') {
     await showEffectActivation(card, '召喚時効果');
+    if (gen !== gameGeneration) return;
     const graveyardCards = opponent.exile.filter(c => hasTribe(c, '墓地'));
     if (graveyardCards.length > 0) {
       const soulN = opponent.soul.length;
@@ -5098,10 +5304,10 @@ async function handleCpuSummonEffect(card) {
             if (snapEl) sandySnaps.push({ rect: snapEl.getBoundingClientRect(), imgSrc: snapEl.querySelector('img')?.src || c.img });
           });
           const autoExiledNames = [...player.hand, ...player.open].map(c => c.name);
-          [...player.hand].forEach(c => exileCard('player', c));
-          [...player.open].forEach(c => exileCard('player', c));
           player.hand = [];
           player.open = [];
+          // 不屈で公開場へ戻る札を、除外後の配列初期化で消さない。
+          playerAllHand.forEach(c => exileCard('player', c));
           logHistory('opponent', `「${card.name}」の効果で自分の手札「${autoExiledNames.join('」「')}」が除外された。`);
           renderPlayerHand(); renderPlayerOpen(); updateAllCounts();
           updateExileDisplay('player');
@@ -5112,6 +5318,7 @@ async function handleCpuSummonEffect(card) {
         } else {
           // 3枚以上→プレイヤーが2枚選択
           await startSelfHandExilePhase(2);
+          if (gen !== gameGeneration) return;
         }
       }
     }
@@ -5192,7 +5399,7 @@ function cpuSoulAbsorbAI(st, amount) {
 }
 
 function applyDamageWithSoulAbsorb(amount, side, sourceCard) {
-  return new Promise((resolve) => {
+  return gamePromise((resolve, onCleanup) => {
     const who = (side === 'bottom') ? 'player' : 'opponent';
     const st = (who === 'player') ? player : opponent;
 
@@ -5291,7 +5498,7 @@ function applyDamageWithSoulAbsorb(amount, side, sourceCard) {
       e.stopPropagation();
       cleanup();
       // 魂選択フェイズ開始
-      startSoulAbsorbSelect(amount, side, st, resolve);
+      startSoulAbsorbSelect(amount, side, st, resolve, onCleanup);
     };
     const onYesTouch = (e) => { if (e.cancelable) e.preventDefault(); onYes(e); };
 
@@ -5299,10 +5506,11 @@ function applyDamageWithSoulAbsorb(amount, side, sourceCard) {
     dom.soulAbsorbYes.addEventListener('touchend', onYesTouch, { passive: false });
     dom.soulAbsorbNo.addEventListener('click', onNo);
     dom.soulAbsorbNo.addEventListener('touchend', onNoTouch, { passive: false });
+    onCleanup(cleanup);
   });
 }
 
-function startSoulAbsorbSelect(totalDamage, side, st, resolve) {
+function startSoulAbsorbSelect(totalDamage, side, st, resolve, onCleanup) {
   soulAbsorbPhase = true;
   soulAbsorbSelectedUids.clear();
 
@@ -5328,6 +5536,10 @@ function startSoulAbsorbSelect(totalDamage, side, st, resolve) {
   const onConfirmTouch = (e) => { if (e.cancelable) e.preventDefault(); onConfirm(e); };
   dom.soulAbsorbConfirm.addEventListener('click', onConfirm);
   dom.soulAbsorbConfirm.addEventListener('touchend', onConfirmTouch, { passive: false });
+  onCleanup(() => {
+    dom.soulAbsorbConfirm.removeEventListener('click', onConfirm);
+    dom.soulAbsorbConfirm.removeEventListener('touchend', onConfirmTouch);
+  });
 }
 
 function handleSoulAbsorbTap(card, el) {
@@ -5474,7 +5686,7 @@ function cpuTurn() {
 
   // 一人回しモード：CPUはカード使用・攻撃をせず即ターン終了
   if (soloMode) {
-    setTimeout(() => { finishCpuTurn(); }, 300);
+    scheduleGameAction(() => { finishCpuTurn(); }, 300);
     return;
   }
 
@@ -5497,7 +5709,7 @@ function cpuTurn() {
           // フェーズ4: 場所札・季節札を召喚
           const postActions = buildCpuPostAttackActions();
           executeCpuActions(postActions, 0, () => {
-            setTimeout(() => { finishCpuTurn(); }, 300);
+            scheduleGameAction(() => { finishCpuTurn(); }, 300);
           });
         });
       });
@@ -5508,9 +5720,9 @@ function cpuTurn() {
         // フェーズ5: 未攻撃の場合のみ、速攻グループで攻撃
         const sokkouIdx = pickCpuAttackTarget();
         if (sokkouIdx !== null && opponent.field[sokkouIdx] && hasKeyword(opponent.field[sokkouIdx].basho, '速攻')) {
-          executeCpuAttack(sokkouIdx, () => { setTimeout(() => { finishCpuTurn(); }, 300); });
+          executeCpuAttack(sokkouIdx, () => { scheduleGameAction(() => { finishCpuTurn(); }, 300); });
         } else {
-          setTimeout(() => { finishCpuTurn(); }, 300);
+          scheduleGameAction(() => { finishCpuTurn(); }, 300);
         }
       });
     }
@@ -5594,6 +5806,7 @@ function buildCpuPostAttackActions() {
 }
 
 async function executeCpuActions(actions, idx, done) {
+  const gen = gameGeneration;
   if (gameEnded) return;
   if (idx >= actions.length) { done(); return; }
   const card = actions[idx];
@@ -5608,21 +5821,26 @@ async function executeCpuActions(actions, idx, done) {
   let hi = opponent.hand.findIndex(c => c.uid === card.uid);
   if (hi !== -1) {
     opponent.hand.splice(hi, 1);
+    card._fromOpen = false;
   } else {
     hi = opponent.open.findIndex(c => c.uid === card.uid);
     if (hi === -1) { executeCpuActions(actions, idx + 1, done); return; }
     opponent.open.splice(hi, 1);
+    card._fromOpen = true;
+    renderOppOpen();
   }
 
   // カード配置
   await cpuPlaceCard(card);
+  if (gen !== gameGeneration) return;
 
-  setTimeout(() => {
+  scheduleGameAction(() => {
     executeCpuActions(actions, idx + 1, done);
   }, 700);
 }
 
 async function cpuPlaceCard(card) {
+  const gen = gameGeneration;
   if (card.type === '場所札') {
     const hasSokkou = card.keyword === '速攻';
     const emptyGroup = opponent.field.find(g => g.season && !g.basho);
@@ -5648,6 +5866,7 @@ async function cpuPlaceCard(card) {
         });
       });
       await handleCpuSummonEffect(card);
+      if (gen !== gameGeneration) return;
       return; // 既にmarkUsedしたのでreturn
     }
   } else if (card.type === '季節札') {
@@ -5688,10 +5907,13 @@ async function cpuPlaceCard(card) {
     logHistory('opponent', `相手が道具札「${card.name}」を発動した。`);
     // 道具札：効果発動演出を表示
     await showEffectActivation(card, '効果発動');
+    if (gen !== gameGeneration) return;
     if (card.effect === 'damage_8') {
       logHistory('opponent', `「${card.name}」の効果で相手に8点のダメージを与えた。`);
       await applyDamageWithSoulAbsorb(8, 'bottom', card);
-      await new Promise(r => setTimeout(r, 100));
+      if (gen !== gameGeneration) return;
+      await gamePromise(r => setTimeout(r, 100));
+      if (gen !== gameGeneration) return;
       checkWinLose();
     } else if (card.effect === 'draw_3') {
       drawCards('opponent', 3, card.name);
@@ -5713,8 +5935,10 @@ async function cpuPlaceCard(card) {
           updateAllCounts();
           logHistory('opponent', `「${card.name}」の効果で相手に4点のダメージを与えた。`);
           await applyDamageWithSoulAbsorb(4, 'bottom', card);
+          if (gen !== gameGeneration) return;
           showOpenFly([exSrcK], dom.oppOpenCards);
-          await new Promise(r => setTimeout(r, 100));
+          await gamePromise(r => setTimeout(r, 100));
+          if (gen !== gameGeneration) return;
           checkWinLose();
         }
       }
@@ -5793,6 +6017,7 @@ function pickCpuAttackTarget() {
 }
 
 async function executeCpuAttack(groupIdx, done) {
+  const gen = gameGeneration;
   if (gameEnded) return;
   const group = opponent.field[groupIdx];
   if (!group || !group.basho) { done(); return; }
@@ -5808,13 +6033,17 @@ async function executeCpuAttack(groupIdx, done) {
         const oppSeasons = getSoulSeasons('opponent');
         if (opponent.soul.length < kaiiCost || (kaiiCost >= 1 && kaiiSeason && kaiiSeason !== '無' && !oppSeasons.has(kaiiSeason))) {
           await showEffectFailed(kCard);
+          if (gen !== gameGeneration) return;
           continue;
         }
         await showEffectActivation(kCard, '効果発動');
+        if (gen !== gameGeneration) return;
         await handleKaiiEffect(kCard, 'opponent');
+        if (gen !== gameGeneration) return;
         if (gameEnded) { done(); return; }
       } else {
         await showEffectActivation(kCard, '効果発動');
+        if (gen !== gameGeneration) return;
       }
     }
   }
@@ -5822,6 +6051,7 @@ async function executeCpuAttack(groupIdx, done) {
   // 攻撃時効果処理（アニメーション前）
   if (group.basho.attackEffect) {
     await handleAttackEffect(group.basho, 'opponent');
+    if (gen !== gameGeneration) return;
     if (gameEnded) { done(); return; }
   }
 
@@ -5836,10 +6066,11 @@ async function executeCpuAttack(groupIdx, done) {
   targetEl.style.animation = 'cpuAttackSlideDown 0.5s ease-in forwards';
 
   // アニメーション完了後に魂吸収選択→ダメージ処理
-  setTimeout(async () => {
+  scheduleGameAction(async () => {
     // 魂吸収選択（プレイヤーが受けるダメージ）
     logHistory('opponent', `相手の「${group.basho ? group.basho.name : '場所札'}」が攻撃！（${power}ダメージ）`);
     const actualDamage = await applyDamageWithSoulAbsorb(power, 'bottom', group.basho);
+    if (gen !== gameGeneration) return;
     const isFinishBlow = (player.life <= 0);
 
     // カード処理
@@ -5873,30 +6104,31 @@ async function executeCpuAttack(groupIdx, done) {
     if (isFinishBlow) {
       gameEnded = true;
       showFinishBlowZoom('bottom');
-      setTimeout(() => { showWinLoseResult(false); }, 1800);
+      scheduleGameAction(() => { showWinLoseResult(false); }, 1800);
     } else {
       // ダメージエフェクトを0.8秒見せてから次フェーズへ
-      setTimeout(done, 800);
+      scheduleGameAction(done, 800);
     }
   }, 500);
 }
 
 function finishCpuTurn() {
   if (gameEnded) return;
-  // CPU手札超過：9枚以上なら最も低コストのカードを魂へ
-  while (opponent.hand.length >= 9) {
-    const sorted = [...opponent.hand].sort((a, b) => (a.cost || 0) - (b.cost || 0));
+  // プレイヤーと同様、手札と公開場を合計して8枚までにする。
+  while (opponent.hand.length + opponent.open.length >= 9) {
+    const sorted = [...opponent.hand, ...opponent.open].sort((a, b) => (a.cost || 0) - (b.cost || 0));
     const discard = sorted[0];
-    const idx = opponent.hand.findIndex(c => c.uid === discard.uid);
+    const source = opponent.hand.some(c => c.uid === discard.uid) ? opponent.hand : opponent.open;
+    const idx = source.findIndex(c => c.uid === discard.uid);
     if (idx !== -1) {
-      opponent.hand.splice(idx, 1);
+      source.splice(idx, 1);
       opponent.soul.push(discard);
     } else break;
   }
   // ターン終了時：場ダメージ回復（両方）
   resetFieldDamage('player');
   resetFieldDamage('opponent');
-  renderOppHand(); renderSoul('opponent'); updateAllCounts();
+  renderOppHand(); renderOppOpen(); renderSoul('opponent'); updateAllCounts();
   startPlayerTurn();
 }
 

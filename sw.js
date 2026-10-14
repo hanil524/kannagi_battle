@@ -1,4 +1,5 @@
-const CACHE_NAME = 'kannagi-v2';
+const CACHE_PREFIX = 'kannagi_battle-images-';
+const CACHE_NAME = CACHE_PREFIX + 'v3';
 
 // インストール時にキャッシュ
 self.addEventListener('install', (e) => {
@@ -47,14 +48,15 @@ self.addEventListener('install', (e) => {
   self.skipWaiting();
 });
 
-// 古いキャッシュを削除
+// このゲームの旧キャッシュだけを削除する（kannagi-v2は旧版の専用名）。
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    )
+      Promise.all(keys.filter(k =>
+        k === 'kannagi-v2' || (k.startsWith(CACHE_PREFIX) && k !== CACHE_NAME)
+      ).map(k => caches.delete(k)))
+    ).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 // リクエスト時：キャッシュ優先、なければネットワーク
@@ -63,7 +65,7 @@ self.addEventListener('fetch', (e) => {
   // 画像・GIFのみキャッシュ対象
   if (url.match(/\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i)) {
     e.respondWith(
-      caches.match(e.request).then(cached => {
+      caches.open(CACHE_NAME).then(cache => cache.match(e.request)).then(cached => {
         if (cached) return cached;
         return fetch(e.request).then(res => {
           if (res.ok) {
