@@ -28,6 +28,7 @@ const CARD_DB = [
 
 const DECK_BACK_IMG = 'images/deck.jpg';
 const TYPE_ORDER = { '場所札': 0, '怪異札': 1, '道具札': 2, '季節札': 3 };
+const SEASON_ORDER = { '春': 0, '夏': 1, '秋': 2, '冬': 3, '無': 4, '混化': 5 };
 
 // ===================================================================
 // 属性チェック（tribe は半角スペース区切りで複数属性を持てる）
@@ -2595,7 +2596,18 @@ function startDeckSearchPhase(config) {
   // 返り値: Promise<card|null> 選択したカードまたはnull
   return gamePromise((resolve, onCleanup) => {
     const st = (config.who === 'player') ? player : opponent;
-    const matchCards = st.deck.filter(config.filter);
+    // filterで作った表示用配列だけを整列し、元の山札順は維持する。
+    const matchCards = st.deck.filter(config.filter).sort((a, b) => {
+      const typeDiff = (TYPE_ORDER[a.type] ?? 9) - (TYPE_ORDER[b.type] ?? 9);
+      if (typeDiff) return typeDiff;
+      const costDiff = (a.cost || 0) - (b.cost || 0);
+      if (costDiff) return costDiff;
+      const seasonDiff = (SEASON_ORDER[a.season] ?? 9) - (SEASON_ORDER[b.season] ?? 9);
+      if (seasonDiff) return seasonDiff;
+      const nameDiff = a.name.localeCompare(b.name, 'ja');
+      if (nameDiff) return nameDiff;
+      return (a.number || 0) - (b.number || 0);
+    });
 
     if (matchCards.length === 0) {
       resolve(null);
@@ -4544,6 +4556,7 @@ function showZeroSearch(who) {
     const cardsEl = $('zero-search-cards');
     const previewImg = $('zero-search-preview-img');
     const confirmBtn = $('zero-search-confirm');
+    const keepAllBtn = $('zero-search-keep-all');
     let entryCancelled = false;
     let entryFrame = null;
     overlay.classList.add('zs-loading');
@@ -4557,6 +4570,7 @@ function showZeroSearch(who) {
 
     // 選択状態
     const selectedUids = new Set();
+    const cardElements = new Map();
 
     // カード一覧をリセット
     cardsEl.innerHTML = '';
@@ -4565,13 +4579,14 @@ function showZeroSearch(who) {
     previewImg.src = DECK_BACK_IMG;
     previewImg.style.display = 'block';
     confirmBtn.disabled = true; // 配置が確定して表示されてから操作可能にする
+    keepAllBtn.disabled = true;
     confirmBtn.classList.add('ready'); // 0枚でも決定可能
 
     // 手札8枚を表示
     st.hand.forEach(card => {
       const el = createCardEl(card, false);
+      cardElements.set(card.uid, el);
       el.classList.add('zs-initial');
-      el.style.opacity = '0'; // delay中の一瞬表示を防ぐ（アニメーション開始で上書きされる）
       let touchStartY = 0;
 
       el.addEventListener('touchstart', (e) => {
@@ -4612,8 +4627,23 @@ function showZeroSearch(who) {
     const updateCount = () => {
       const n = selectedUids.size;
       countEl.textContent = n === 0 ? 'キープする手札を選択（任意）' : `${n}枚を手札にキープする→${8 - n}枚ドロー`;
+      keepAllBtn.textContent = n > 0 && n === cardElements.size ? '全て解除' : '全てキープ';
     };
     updateCount();
+
+    const onKeepAll = () => {
+      if (keepAllBtn.disabled) return;
+      const keep = selectedUids.size !== cardElements.size;
+      cardElements.forEach((el, uid) => {
+        if (keep) selectedUids.add(uid);
+        else selectedUids.delete(uid);
+        el.classList.toggle('zs-selected', keep);
+      });
+      updateCount();
+    };
+    const onKeepAllTouch = (e) => { if (e.cancelable) e.preventDefault(); onKeepAll(); };
+    keepAllBtn.addEventListener('click', onKeepAll);
+    keepAllBtn.addEventListener('touchend', onKeepAllTouch, { passive: false });
 
     // 決定ボタン
     const onConfirm = () => {
@@ -4621,6 +4651,7 @@ function showZeroSearch(who) {
       confirmBtn.removeEventListener('click', onConfirm);
       confirmBtn.removeEventListener('touchend', onConfirmTouch);
       confirmBtn.disabled = true;
+      keepAllBtn.disabled = true;
 
       // キープ選択状態を即解除（光り続けるのを防ぐ）
       cardsEl.querySelectorAll('.zs-selected').forEach(el => el.classList.remove('zs-selected'));
@@ -4708,6 +4739,8 @@ function showZeroSearch(who) {
       if (entryFrame !== null) cancelAnimationFrame(entryFrame);
       confirmBtn.removeEventListener('click', onConfirm);
       confirmBtn.removeEventListener('touchend', onConfirmTouch);
+      keepAllBtn.removeEventListener('click', onKeepAll);
+      keepAllBtn.removeEventListener('touchend', onKeepAllTouch);
     });
 
     $('app').style.display = 'none';
@@ -4733,6 +4766,7 @@ function showZeroSearch(who) {
           if (!entryCancelled) {
             overlay.classList.remove('zs-loading');
             confirmBtn.disabled = false;
+            keepAllBtn.disabled = false;
           }
         });
       });

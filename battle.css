@@ -863,12 +863,10 @@ body {
 
   #zero-search-cards .battle-card:hover {
     transform: translateY(-4px);
+    filter: brightness(1.04);
+    box-shadow: 0 0 0 1px rgba(175, 192, 225, 0.4), 0 4px 12px rgba(110, 143, 194, 0.2);
   }
 
-  /* 選択済みカードはホバーで上書きしない */
-  #zero-search-cards .battle-card.zs-selected:hover {
-    transform: translateY(-6px) scale(1.06);
-  }
 }
 
 /* ===== 召喚酔い（場所札横向き） ===== */
@@ -4792,7 +4790,7 @@ body {
   max-width: 100%;
   display: block;
   border-radius: 12px;
-  box-shadow: 0 0 8px 3px rgba(255, 215, 0, 0.25), 0 0 18px 5px rgba(255, 215, 0, 0.1);
+  box-shadow: 0 0 8px 3px rgba(207, 177, 120, 0.2), 0 0 18px 5px rgba(207, 177, 120, 0.08);
 }
 
 @media (min-width:600px) {
@@ -4807,7 +4805,7 @@ body {
 }
 
 /* 零探し 初期8枚：下からフェードインで同時登場 */
-#zero-search-overlay.zs-loading :is(#zero-search-preview-wrap, #zero-search-count, #zero-search-confirm, #zero-search-cards) {
+#zero-search-overlay.zs-loading :is(#zero-search-preview-wrap, #zero-search-count, #zero-search-buttons, #zero-search-cards) {
   visibility: hidden;
 }
 #zero-search-overlay.zs-loading .battle-card.zs-initial {
@@ -4819,8 +4817,8 @@ body {
   to   { opacity: 1; transform: translateY(0); }
 }
 #zero-search-cards .battle-card.zs-initial {
-  animation: zsCardAppear 0.28s ease forwards;
-  /* animation-delayは使わない。opacity:0はJS側のinline styleで制御 */
+  animation: zsCardAppear 0.28s ease backwards;
+  /* 登場後にアニメーションのtransformを残さず、選択とホバーに戻す。 */
 }
 
 /* 零探し カード退場アニメーション（非キープ：上へシュッと消える） */
@@ -4850,7 +4848,7 @@ body {
 #zero-search-count {
   text-align: center;
   font-size: clamp(10px, 1.3vh, 12px);
-  color: rgba(255, 220, 100, 0.9);
+  color: #d8c69f;
   font-weight: bold;
   letter-spacing: 1px;
   margin-bottom: clamp(2px, 0.7vh, 8px);
@@ -4860,9 +4858,18 @@ body {
 }
 
 /* 決定ボタン */
+#zero-search-buttons {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: clamp(2px, 0.5vh, 0px);
+  max-width: 100%;
+  flex-shrink: 0;
+}
+
 #zero-search-confirm {
   padding: clamp(5px, 0.9vh, 8px) 28px;
-  margin-bottom: clamp(2px, 0.5vh, 0px);
   background: linear-gradient(135deg, #1a3a6a, #0d2044);
   color: rgba(160, 180, 230, 0.8);
   border: 1px solid rgba(80, 120, 220, 0.3);
@@ -4887,6 +4894,33 @@ body {
   transform: scale(0.96);
 }
 
+/* 全選択は決定より控えめな補助ボタンにする。 */
+#zero-search-keep-all {
+  min-width: calc(5em + 29px);
+  padding: clamp(5px, 0.9vh, 8px) 12px;
+  background: linear-gradient(135deg, #172238, #101827);
+  color: #b2bfd5;
+  border: 1px solid rgba(143, 161, 191, 0.35);
+  border-radius: 8px;
+  font-size: clamp(11px, 1.5vh, 13px);
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  #zero-search-keep-all:not(:disabled):hover {
+    background: #202e46;
+    border-color: rgba(163, 182, 211, 0.55);
+  }
+}
+
+#zero-search-keep-all:not(:disabled):active {
+  transform: scale(0.96);
+}
+
 /* 下部: カード一覧（4×2, 中央密着, 全身像表示） */
 #zero-search-cards {
   flex-shrink: 0;
@@ -4903,7 +4937,7 @@ body {
 #zero-search-cards .battle-card {
   border-radius: 10px;
   touch-action: pan-y;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
   overflow: hidden;
 }
 
@@ -4914,9 +4948,8 @@ body {
 }
 
 #zero-search-cards .battle-card.zs-selected {
-  transform: translateY(-6px) scale(1.06);
-  box-shadow: 0 0 14px 4px rgba(255, 215, 0, 0.6), 0 0 28px 8px rgba(255, 215, 0, 0.2) !important;
-  border: 2px solid rgba(255, 215, 0, 0.9) !important;
+  box-shadow: 0 0 0 1px rgba(235, 214, 171, 0.18), 0 3px 12px rgba(174, 139, 75, 0.24), 0 0 20px rgba(203, 171, 104, 0.14) !important;
+  border: 2px solid rgba(207, 177, 120, 0.82) !important;
 }
 
 /* ===== 盤面確認ボタン ===== */
