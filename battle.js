@@ -764,7 +764,7 @@ function showExileModal(who) {
     st.exile.forEach(card => {
       const el = createCardEl(card, false);
       setupCardInteraction(el, card, who);
-      attachModalPreview(el, card);
+      guardModalCardScroll(el);
       dom.exileModalCards.appendChild(el);
     });
   }
@@ -841,6 +841,7 @@ function showExileViewModal(who) {
         if (currentPreviewCard && currentPreviewCard.uid === card.uid) { hidePreview(); }
         else { showPreview(card, who); }
       }, { passive: false });
+      guardModalCardScroll(el);
       exileViewCards.appendChild(el);
     });
   }
@@ -1104,10 +1105,27 @@ function hidePreview() {
   dom.kaiiPreviewOverlay.style.display = 'none';
 }
 
-// モーダル/オーバーレイ内カードプレビュー（長押し・hover廃止。クリック/タップのみ対応）
-// ※PCでのhoverプレビューはモーダル内でカードを隠してしまうため廃止
-function attachModalPreview(el, card) {
-  // 何も追加しない（旧: mouseenter/mouseleaveおよび長押しプレビューをここで設定していたが廃止）
+// 一覧をスワイプした指で、カードを選択・拡大しないようにする。
+function guardModalCardScroll(el) {
+  let startX = 0, startY = 0, moved = false, wasGlowing = false;
+  const track = touch => {
+    if (touch && (Math.abs(touch.clientX - startX) > 10 || Math.abs(touch.clientY - startY) > 10)) moved = true;
+  };
+  el.addEventListener('touchstart', e => {
+    const touch = e.touches[0];
+    startX = touch ? touch.clientX : 0;
+    startY = touch ? touch.clientY : 0;
+    moved = false;
+    wasGlowing = el.classList.contains('glow');
+  }, { passive: true, capture: true });
+  el.addEventListener('touchmove', e => track(e.touches[0]), { passive: true, capture: true });
+  el.addEventListener('touchend', e => {
+    track(e.changedTouches[0]);
+    if (!moved) return;
+    if (!wasGlowing) el.classList.remove('glow');
+    if (e.cancelable) e.preventDefault();
+    e.stopImmediatePropagation();
+  }, { passive: false, capture: true });
 }
 // モーダルプレビューをタップで閉じる
 document.addEventListener('DOMContentLoaded', () => {
@@ -2546,7 +2564,7 @@ function startExileSelectPhase(config) {
       };
       el.addEventListener('click', onSelectClick);
       el.addEventListener('touchend', onSelectTouch, { passive: false });
-      attachModalPreview(el, card);
+      guardModalCardScroll(el);
       dom.exileModalCards.appendChild(el);
     });
 
@@ -2676,7 +2694,7 @@ function startDeckSearchPhase(config) {
       };
       el.addEventListener('click', onSelect);
       el.addEventListener('touchend', onSelectTouch, { passive: false });
-      attachModalPreview(el, card);
+      guardModalCardScroll(el);
       dom.exileModalCards.appendChild(el);
     });
 
@@ -2756,8 +2774,9 @@ function startExileOrderPhase(config) {
     dom.exileModalCards.innerHTML = '';
     dom.exileModalEmpty.style.display = 'none';
 
-    // ボタン非表示（全選択完了まで非表示）
-    dom.exileModalButtons.style.display = 'none';
+    // 最後の選択で一覧が動かないよう、決定ボタンの領域を先に確保する。
+    dom.exileModalButtons.style.display = 'flex';
+    dom.exileModalButtons.style.visibility = 'hidden';
     dom.exileModalSkip.style.display = 'none'; // スキップ不要
     dom.exileModalConfirm.disabled = true;
     dom.exileModalConfirm.classList.remove('ready');
@@ -2782,6 +2801,7 @@ function startExileOrderPhase(config) {
       dom.exileModalConfirm.removeEventListener('click', onOrderConfirm);
       dom.exileModalConfirm.removeEventListener('touchend', onOrderConfirmTouch);
       dom.exileModalSkip.style.display = '';
+      dom.exileModalButtons.style.visibility = '';
     });
 
     // カードエレメントマップ（再描画用）
@@ -2812,8 +2832,8 @@ function startExileOrderPhase(config) {
       });
       dom.exileModalDesc.innerHTML = (config.desc || '') + '<br><b>残り' + remaining + '枚</b>';
       if (remaining > 0) {
-        // 選択を戻したら決定ボタンを隠す
-        dom.exileModalButtons.style.display = 'none';
+        // 選択を戻しても決定ボタンの領域は保つ。
+        dom.exileModalButtons.style.visibility = 'hidden';
         dom.exileModalConfirm.disabled = true;
         dom.exileModalConfirm.classList.remove('ready');
         if (confirmListening) {
@@ -2852,7 +2872,7 @@ function startExileOrderPhase(config) {
           confirmListening = true;
           dom.exileModalConfirm.disabled = false;
           dom.exileModalConfirm.classList.add('ready');
-          dom.exileModalButtons.style.display = 'flex';
+          dom.exileModalButtons.style.visibility = '';
           dom.exileModalConfirm.addEventListener('click', onOrderConfirm);
           dom.exileModalConfirm.addEventListener('touchend', onOrderConfirmTouch, { passive: false });
         }
@@ -2865,7 +2885,7 @@ function startExileOrderPhase(config) {
 
       el.addEventListener('click', onPick);
       el.addEventListener('touchend', onPickTouch, { passive: false });
-      attachModalPreview(el, card);
+      guardModalCardScroll(el);
       dom.exileModalCards.appendChild(el);
     });
 
@@ -2920,7 +2940,7 @@ function startSelfHandExilePhase(count) {
       };
       el.addEventListener('click', onClick);
       el.addEventListener('touchend', (e) => { e.stopPropagation(); if (e.cancelable) e.preventDefault(); onClick(); }, { passive: false });
-      attachModalPreview(el, card);
+      guardModalCardScroll(el);
       cardsDiv.appendChild(el);
     });
 
@@ -3855,7 +3875,10 @@ function setupDrag(el, card) {
     // カード選択フェイズ：除外ゾーンにドロップで確定
     if (cardSelectPhase && cardSelectConfig) {
       const exileRect = dom.playerExile.getBoundingClientRect();
-      const inExile = (x >= exileRect.left && x <= exileRect.right && y >= exileRect.top && y <= exileRect.bottom);
+      // 枠とオーラはそのままに、ドロップ判定だけ周囲へ広げる。
+      const dropPadding = 24;
+      const inExile = (x >= exileRect.left - dropPadding && x <= exileRect.right + dropPadding
+        && y >= exileRect.top - dropPadding && y <= exileRect.bottom + dropPadding);
       if (inExile && cardSelectConfig.filter(card)) {
         cleanup();
         // 選択してconfirmと同等の処理
@@ -4249,7 +4272,7 @@ function drawCards(who, count, sourceCardName) {
 // ===================================================================
 // ゲーム開始
 // ===================================================================
-let isFirstTurn = true; // 先行フラグ（50%ランダム）
+let isFirstTurn = true; // 先行フラグ（CPU対戦では50%ランダム）
 let cpuFirstAction = true; // CPUの最初のターンかどうか
 
 function startGame() {
@@ -4352,11 +4375,16 @@ function startGame() {
   hideAttackBtn(); hidePreview(); hideKaiiPopup(); hideSeasonWarning();
   dom.endTurnCenter.style.display = '';
 
-  // 先行/後攻ランダム決定（事前に決める）
-  isFirstTurn = Math.random() < 0.5;
+  // 一人回しは自分から開始。CPU対戦だけ先行・後攻を抽選する。
+  isFirstTurn = soloMode || Math.random() < 0.5;
 
   dom.startOverlay.style.display = 'none';
   dom.startOverlay.classList.remove('ready');
+
+  if (soloMode) {
+    initGameAfterGate();
+    return;
+  }
 
   // === 先攻/後攻コインフリップ演出（開門なし） ===
   const gen = gameGeneration;
@@ -4586,6 +4614,7 @@ function showZeroSearch(who) {
       : (who === 'player' ? '後攻' : '先行');
     const sengoSubject = (who === 'player') ? 'あなたは' : '相手は';
     orderEl.innerHTML = `${sengoSubject}【<span class="zs-order-highlight">${sengoWord}</span>】です。`;
+    orderEl.style.visibility = soloMode ? 'hidden' : '';
 
     // 選択状態
     const selectedUids = new Set();

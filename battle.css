@@ -796,24 +796,24 @@ body {
 }
 
 /* 持ち上がった自分の手札だけ、カード列と枠の外まで表示する。 */
-:is(#player-hand-cards, #player-open-cards):has(> .in-hand:is(.glow, .overflow-selected)) > .in-hand:not(:hover):not(.glow):not(.overflow-selected) {
+:is(#player-hand-cards, #player-open-cards):has(> .in-hand:is(.glow, .overflow-selected, .selected-card)) > .in-hand:not(:hover):not(.glow):not(.overflow-selected):not(.selected-card) {
   clip-path: var(--hand-rest-clip, none);
 }
 
-:is(#player-hand-zone, #player-open):has(.in-hand:is(.glow, .overflow-selected)) {
+:is(#player-hand-zone, #player-open):has(.in-hand:is(.glow, .overflow-selected, .selected-card)) {
   overflow: visible;
   min-width: 0;
   min-height: 0;
   z-index: 2;
 }
 
-:is(#player-hand-cards, #player-open-cards):has(.in-hand:is(.glow, .overflow-selected)) {
+:is(#player-hand-cards, #player-open-cards):has(.in-hand:is(.glow, .overflow-selected, .selected-card)) {
   overflow: visible;
   min-width: 0;
   min-height: 0;
 }
 
-#player-mid-zones:has(#player-open .in-hand:is(.glow, .overflow-selected)) {
+#player-mid-zones:has(#player-open .in-hand:is(.glow, .overflow-selected, .selected-card)) {
   overflow: visible;
   min-width: 0;
   min-height: 0;
@@ -821,7 +821,7 @@ body {
 
 /* ===== PC マウスオーバー（タッチデバイスには影響しない） ===== */
 @media (hover: hover) and (pointer: fine) {
-  :is(#player-hand-cards, #player-open-cards):has(> .in-hand:hover) > .in-hand:not(:hover):not(.glow):not(.overflow-selected) {
+  :is(#player-hand-cards, #player-open-cards):has(> .in-hand:hover) > .in-hand:not(:hover):not(.glow):not(.overflow-selected):not(.selected-card) {
     clip-path: var(--hand-rest-clip, none);
   }
 
@@ -1830,7 +1830,7 @@ body {
 }
 
 #exile-modal-cards .battle-card.exile-selected {
-  border: 2px solid rgba(80, 160, 255, 0.8) !important;
+  border: 1px solid rgba(80, 160, 255, 0.8) !important;
   box-shadow: 0 0 14px rgba(80, 160, 255, 0.6);
 }
 
@@ -1841,8 +1841,11 @@ body {
   transition: top 0.12s ease, box-shadow 0.15s ease;
 }
 
-/* オーラの有無で画像の描画が切り替わらないよう、一覧を開いている間だけ分離する。 */
-#exile-modal.deck-search-mode #exile-modal-cards .battle-card img {
+/* 選択枠・オーラ・拡大表示でカード画像の描画を切り替えない。 */
+#exile-modal.active #exile-modal-cards .battle-card img,
+#exile-view-modal.active #exile-view-cards .battle-card img,
+#opp-hand-exile-overlay.active #opp-hand-exile-cards .battle-card img,
+:is(#player-hand-cards, #player-open-cards, #player-soul-cards) .battle-card img {
   will-change: transform;
 }
 
@@ -1850,20 +1853,6 @@ body {
   #exile-modal.deck-search-mode #exile-modal-cards .battle-card:hover {
     top: -4px;
   }
-}
-
-#exile-modal.deck-search-mode #exile-modal-cards .battle-card.selected-card {
-  border-width: 1px !important;
-}
-
-#exile-modal.deck-search-mode #exile-modal-cards .battle-card.selected-card::after {
-  content: '';
-  position: absolute;
-  /* 外枠1pxに内側1pxを重ね、元の2px枠を画像の縮小なしで描く。 */
-  inset: 0;
-  border: 1px solid rgba(255, 215, 0, 0.8);
-  border-radius: 5px;
-  pointer-events: none;
 }
 
 /* ===== 相手怪異札ブロック（小型中央ポップアップ） ===== */
@@ -1906,6 +1895,11 @@ body {
 #exile-modal-cards .battle-card {
   touch-action: pan-y;
   /* 個別カードでも縦スクロール優先 */
+}
+
+:is(#exile-view-cards, #opp-hand-exile-cards),
+:is(#exile-view-cards, #opp-hand-exile-cards) .battle-card {
+  touch-action: pan-y;
 }
 
 /* ===== ドラッグトレイル（オーラのみ） ===== */
@@ -2064,7 +2058,7 @@ body {
 
 /* ===== 手札超過：タップ選択ハイライト ===== */
 .battle-card.overflow-selected {
-  border: 2px solid rgba(255, 200, 50, 0.8) !important;
+  border: 1px solid rgba(255, 200, 50, 0.8) !important;
   box-shadow: 0 0 10px 3px rgba(255, 200, 50, 0.5), 0 0 20px 6px rgba(255, 200, 50, 0.2) !important;
   transform: translateY(-4px);
   opacity: 0.7;
@@ -2229,9 +2223,20 @@ body {
 }
 
 .battle-card.selected-card {
-  border: 2px solid rgba(255, 215, 0, 0.8) !important;
+  border: 1px solid rgba(255, 215, 0, 0.8) !important;
   box-shadow: 0 0 10px 3px rgba(255, 215, 0, 0.5), 0 0 20px 6px rgba(255, 215, 0, 0.2) !important;
   transform: translateY(-6px);
+}
+
+/* 外枠1pxに内側1pxを重ね、選択時も画像の表示領域を保つ。 */
+.battle-card:is(.selected-card, .overflow-selected, .soul-absorb-selected, .exile-selected)::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid;
+  border-color: inherit;
+  border-radius: 5px;
+  pointer-events: none;
 }
 
 /* ===== スタート画面 ===== */
@@ -3865,7 +3870,7 @@ body {
 
 /* 魂選択中のハイライト */
 .battle-card.soul-absorb-selected {
-  border: 2px solid rgba(255, 200, 50, 0.8) !important;
+  border: 1px solid rgba(255, 200, 50, 0.8) !important;
   box-shadow: 0 0 12px rgba(255, 200, 50, 0.5);
 }
 
