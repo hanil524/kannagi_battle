@@ -4831,10 +4831,10 @@ body {
   from { opacity: 0;   transform: translateY(20px) scale(0.92); }
   to   { opacity: 1;   transform: translateY(0) scale(1); }
 }
-/* 零探し キープカードの詰め移動 */
-@keyframes zsKeepSettle {
-  from { opacity: 0.8; }
-  to   { opacity: 1; }
+/* 零探し キープ札は色・オーラ・不透明度を保ったまま詰め移動する。 */
+@keyframes zsKeepMove {
+  from { transform: translate(var(--zs-move-x), var(--zs-move-y)); }
+  to   { transform: translate(0, 0); }
 }
 
 /* 先行/後攻の強調（真っ白） */

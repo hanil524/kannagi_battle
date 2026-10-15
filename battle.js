@@ -4576,6 +4576,7 @@ function showZeroSearch(who) {
     cardsEl.innerHTML = '';
     cardsEl.style.height = '';
     cardsEl.style.overflow = '';
+    cardsEl.style.gridTemplateRows = '';
     previewImg.src = DECK_BACK_IMG;
     previewImg.style.display = 'block';
     confirmBtn.disabled = true; // 配置が確定して表示されてから操作可能にする
@@ -4679,11 +4680,9 @@ function showZeroSearch(who) {
         return;
       }
 
-      cardsEl.querySelectorAll('.zs-selected').forEach(el => el.classList.remove('zs-selected'));
-
-      // カード削除時のレイアウト崩れ防止：高さを今の値で固定
+      // キープ札とオーラの余白を保ち、画像到着や補充ごとの行の伸縮を防ぐ。
+      cardsEl.style.gridTemplateRows = getComputedStyle(cardsEl).gridTemplateRows;
       cardsEl.style.height = cardsEl.offsetHeight + 'px';
-      cardsEl.style.overflow = 'hidden';
 
       // ① 非キープカードを同時にスライドアップ＆フェードアウト
       exitEls.forEach(el => {
@@ -4691,16 +4690,16 @@ function showZeroSearch(who) {
         el.style.animation = 'zsCardExit 0.22s ease forwards';
       });
 
-      // キープカードに詰め移動ブラーを同時適用
+      // キープ札は色とオーラを保ち、薄くする演出をかけない。
       const keepEls = Array.from(cardsEl.querySelectorAll('.battle-card'))
         .filter(el => selectedUidStrs.has(el.dataset.uid));
       keepEls.forEach(el => {
         el.classList.remove('zs-initial');
-        el.style.opacity = ''; // インラインopacityを解除（zsKeepSettleに引き継ぎ）
-        el.style.animation = 'zsKeepSettle 0.3s ease forwards';
+        el.style.pointerEvents = 'none';
       });
 
       scheduleGameAction(() => {
+        const previousRects = keepEls.map(el => el.getBoundingClientRect());
         // DOMから除去
         exitEls.forEach(el => el.remove());
 
@@ -4724,18 +4723,27 @@ function showZeroSearch(who) {
           newCards.push(c);
         }
 
-        // ③ 新カードを1枚ずつ下から順番に登場させる
+        // ③ 補充先を一度に確保し、新カードだけ順番に登場させる。
+        const enterDelay = keepEls.length > 0 ? 180 : 0;
         newCards.forEach((card, i) => {
-          scheduleGameAction(() => {
-            const el = createCardEl(card, false);
-            el.style.pointerEvents = 'none';
-            el.style.animation = 'zsCardEnter 0.25s ease forwards';
-            cardsEl.appendChild(el);
-          }, i * 60);
+          const el = createCardEl(card, false);
+          el.style.pointerEvents = 'none';
+          el.style.animation = `zsCardEnter 0.25s ease ${enterDelay + i * 60}ms both`;
+          cardsEl.appendChild(el);
         });
 
-        // ④ 全カード登場後0.8秒待って次のシーンへ
-        const totalWait = newCards.length * 60 + 200 + 800;
+        // 詰め直した位置から旧位置へ一度戻し、同じキープ札を滑らかに移動する。
+        const nextRects = keepEls.map(el => el.getBoundingClientRect());
+        keepEls.forEach((el, i) => {
+          el.style.setProperty('--zs-move-x', `${previousRects[i].left - nextRects[i].left}px`);
+          el.style.setProperty('--zs-move-y', `${previousRects[i].top - nextRects[i].top}px`);
+          el.style.animation = 'zsKeepMove 0.28s ease-out both';
+        });
+
+        // ④ 最後の登場・詰め移動が終わってから、0.3秒の余韻で次のシーンへ。
+        const enterComplete = newCards.length > 0 ? enterDelay + (newCards.length - 1) * 60 + 250 : 0;
+        const moveComplete = keepEls.length > 0 ? 280 : 0;
+        const totalWait = Math.max(enterComplete, moveComplete) + 300;
         scheduleGameAction(finishZeroSearch, totalWait);
       }, 260); // フェードアウト完了待ち
     };
