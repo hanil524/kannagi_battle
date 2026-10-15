@@ -1156,6 +1156,8 @@ function setupCardInteraction(el, card, owner) {
     e.stopPropagation();
     glowingBeforeTouch = null;
     if (e.cancelable) e.preventDefault();
+    // ドラッグの指離しをタップ選択として扱わない。
+    if (isDragging || suppressPreview) return;
     // 魂吸収フェイズ中：魂カードをタップで選択/解除
     if (soulAbsorbPhase && owner === 'player') {
       if (handleSoulAbsorbTap(card, el)) return;
@@ -1170,7 +1172,6 @@ function setupCardInteraction(el, card, owner) {
     }
     // フェイズ中はプレビュー無効
     if (isAnyPhaseActive()) { el.classList.remove('glow'); return; }
-    if (suppressPreview) return;
     if (currentPreviewCard && currentPreviewCard.uid === card.uid) {
       hidePreview(); el.classList.remove('glow');
     } else {
@@ -1182,6 +1183,7 @@ function setupCardInteraction(el, card, owner) {
   // クリックのみでプレビューを表示する仕様に統一
   el.addEventListener('click', (e) => {
     e.stopPropagation();
+    if (isDragging || suppressPreview) return;
     // 魂吸収フェイズ中：魂カードをクリックで選択/解除
     if (soulAbsorbPhase && owner === 'player') {
       if (handleSoulAbsorbTap(card, el)) return;
@@ -1196,7 +1198,6 @@ function setupCardInteraction(el, card, owner) {
     }
     // フェイズ中はプレビュー無効
     if (isAnyPhaseActive()) return;
-    if (suppressPreview) return;
     if (currentPreviewCard && currentPreviewCard.uid === card.uid) hidePreview();
     else showPreview(card, owner);
   });
@@ -3819,23 +3820,25 @@ function setupDrag(el, card) {
     startX = x; startY = y; isDragging = false;
     cancelCardDrag = cleanup;
   };
+  const updateTarget = (x, y) => {
+    // 除外・手札超過中は、配置できない場の候補を表示しない。
+    if (cardSelectPhase || handOverflowPhase) return;
+    if (card.type === '怪異札') updateKaiiDropTarget(x, y);
+    else if (card.type === '場所札') updateBashoDropTarget(x, y);
+    if (card.type === '季節札') {
+      const hasSeason = player.field.some(g => g.season !== null);
+      const fieldRect = dom.playerField.getBoundingClientRect();
+      const inField = (x >= fieldRect.left && x <= fieldRect.right && y >= fieldRect.top && y <= fieldRect.bottom);
+      if (hasSeason && inField) showSeasonWarning(); else hideSeasonWarning();
+    }
+  };
   const onMove = (x, y) => {
     if (cancelCardDrag !== cleanup) return;
     if (isDragging) {
       dragGhost.style.left = (x - 25) + 'px';
       dragGhost.style.top = (y - 35) + 'px';
       spawnTrail(x, y);
-      // カード選択フェイズ中は除外ゾーンへの移動のみ（場の反応を抑制）
-      if (!cardSelectPhase) {
-        if (card.type === '怪異札') updateKaiiDropTarget(x, y);
-        else if (card.type === '場所札') updateBashoDropTarget(x, y);
-        if (card.type === '季節札') {
-          const hasSeason = player.field.some(g => g.season !== null);
-          const fieldRect = dom.playerField.getBoundingClientRect();
-          const inField = (x >= fieldRect.left && x <= fieldRect.right && y >= fieldRect.top && y <= fieldRect.bottom);
-          if (hasSeason && inField) showSeasonWarning(); else hideSeasonWarning();
-        }
-      }
+      updateTarget(x, y);
       return;
     }
     if (Math.abs(x - startX) > 8 || Math.abs(y - startY) > 8) {
@@ -3867,6 +3870,7 @@ function setupDrag(el, card) {
       } else {
         dom.playerField.classList.add('drag-over');
       }
+      updateTarget(x, y);
     }
   };
   const onEnd = (x, y) => {
@@ -3938,6 +3942,8 @@ function setupDrag(el, card) {
         cleanup();
         return;
       }
+      // 最後の移動イベントと指離し位置が違っても、実際の配置先を使う。
+      updateTarget(x, y);
       // ドロップ位置を記録（placeCard内で左右判定に使用）
       lastDropX = x;
       // 手札から探す
@@ -3981,9 +3987,13 @@ function setupDrag(el, card) {
   });
   el.addEventListener('touchcancel', cleanup);
   el.addEventListener('mousedown', e => {
+    if (e.button !== 0) return;
     onStart(e.clientX, e.clientY);
-    const mm = ev => onMove(ev.clientX, ev.clientY);
-    const mu = ev => { onEnd(ev.clientX, ev.clientY); };
+    const mm = ev => {
+      if (!(ev.buttons & 1) || !el.isConnected) { cleanup(); return; }
+      onMove(ev.clientX, ev.clientY);
+    };
+    const mu = ev => { if (ev.button === 0) onEnd(ev.clientX, ev.clientY); };
     mouseCleanup = () => { document.removeEventListener('mousemove', mm); document.removeEventListener('mouseup', mu); };
     document.addEventListener('mousemove', mm); document.addEventListener('mouseup', mu);
   });
