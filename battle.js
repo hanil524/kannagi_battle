@@ -2616,6 +2616,9 @@ function startDeckSearchPhase(config) {
 
     dom.exileModalTitle.textContent = config.title || '山札検索';
     dom.exileModalDesc.innerHTML = config.desc || '';
+    // 前の選択画面の裏面プレビューを持ち越さず、初回と同じ一覧配置で開く。
+    if (dom.exileModalPreviewImg) dom.exileModalPreviewImg.style.display = 'none';
+    if (dom.exileModalPreviewPlaceholder) dom.exileModalPreviewPlaceholder.style.display = '';
     dom.exileModalCards.innerHTML = '';
     dom.exileModalEmpty.style.display = 'none';
     dom.exileModalButtons.style.display = 'flex';
@@ -2741,6 +2744,8 @@ function startExileOrderPhase(config) {
     dom.exileModalTitle.textContent = config.title || 'カード順番選択';
     dom.exileModalDesc.textContent = '';
     dom.exileModalDesc.innerHTML = (config.desc || '') + '<br><b>残り' + remaining + '枚</b>';
+    if (dom.exileModalPreviewImg) dom.exileModalPreviewImg.style.display = 'none';
+    if (dom.exileModalPreviewPlaceholder) dom.exileModalPreviewPlaceholder.style.display = '';
     dom.exileModalCards.innerHTML = '';
     dom.exileModalEmpty.style.display = 'none';
 
@@ -3630,25 +3635,32 @@ function showSoulFly(snapshots, soulEl, onComplete) {
     document.body.appendChild(fly);
     const flight = trackCardFlight(fly);
 
+    // 魂置き場の中央ではなく、この札自身の着地位置・大きさへ移動する。
+    const destRect = destMap[idx] ? destMap[idx].getBoundingClientRect() : null;
+
     flight.after(() => {
       flight.frame(() => {
         flight.frame(() => {
           fly.classList.add('soul-fly-active');
-          fly.style.left = (destX - snap.rect.width / 2) + 'px';
-          fly.style.top = (destY - snap.rect.height / 2) + 'px';
+          fly.style.left = (destRect ? destRect.left : destX - snap.rect.width / 2) + 'px';
+          fly.style.top = (destRect ? destRect.top : destY - snap.rect.height / 2) + 'px';
+          if (destRect) {
+            fly.style.width = destRect.width + 'px';
+            fly.style.height = destRect.height + 'px';
+          }
+          // 描画待ちが長くても、移動開始前から到着時間を数えない。
+          flight.after(() => {
+            if (destMap[idx]) destMap[idx].style.opacity = '';
+            fly.classList.remove('soul-fly-active');
+            fly.classList.add('soul-fly-shrink');
+            flight.after(() => {
+              flight.remove();
+              completed++;
+              if (completed === total && onComplete) onComplete();
+            }, 250);
+          }, 470);
         });
       });
-      flight.after(() => {
-        // 到着した瞬間に対応する目的地カードを表示
-        if (destMap[idx]) destMap[idx].style.opacity = '';
-        fly.classList.remove('soul-fly-active');
-        fly.classList.add('soul-fly-shrink');
-        flight.after(() => {
-          flight.remove();
-          completed++;
-          if (completed === total && onComplete) onComplete();
-        }, 250);
-      }, 470);
     }, idx * STAGGER);
   });
 }
@@ -4725,26 +4737,43 @@ function showZeroSearch(who) {
 
         // ③ 補充先を一度に確保し、新カードだけ順番に登場させる。
         const enterDelay = keepEls.length > 0 ? 180 : 0;
-        newCards.forEach((card, i) => {
+        const enterEls = newCards.map(card => {
           const el = createCardEl(card, false);
           el.style.pointerEvents = 'none';
-          el.style.animation = `zsCardEnter 0.25s ease ${enterDelay + i * 60}ms both`;
+          el.style.opacity = '0';
           cardsEl.appendChild(el);
+          return el;
         });
 
         // 詰め直した位置から旧位置へ一度戻し、同じキープ札を滑らかに移動する。
         const nextRects = keepEls.map(el => el.getBoundingClientRect());
+        const moveStarted = performance.now();
         keepEls.forEach((el, i) => {
           el.style.setProperty('--zs-move-x', `${previousRects[i].left - nextRects[i].left}px`);
           el.style.setProperty('--zs-move-y', `${previousRects[i].top - nextRects[i].top}px`);
           el.style.animation = 'zsKeepMove 0.28s ease-out both';
         });
 
-        // ④ 最後の登場・詰め移動が終わってから、0.3秒の余韻で次のシーンへ。
-        const enterComplete = newCards.length > 0 ? enterDelay + (newCards.length - 1) * 60 + 250 : 0;
-        const moveComplete = keepEls.length > 0 ? 280 : 0;
-        const totalWait = Math.max(enterComplete, moveComplete) + 300;
-        scheduleGameAction(finishZeroSearch, totalWait);
+        // 読み込み・デコード前の空枠が先に登場しないよう、画像の準備を待つ。
+        Promise.all(enterEls.map(el => {
+          const img = el.querySelector('img');
+          return waitForImage(img).then(() => {
+            if (!entryCancelled && typeof img.decode === 'function') return img.decode().catch(() => {});
+          });
+        })).then(() => {
+          if (entryCancelled) return;
+          const elapsed = performance.now() - moveStarted;
+          const remainingDelay = Math.max(0, enterDelay - elapsed);
+          enterEls.forEach((el, i) => {
+            el.style.opacity = '';
+            el.style.animation = `zsCardEnter 0.25s ease ${remainingDelay + i * 60}ms both`;
+          });
+
+          // ④ 最後の登場・詰め移動が終わってから、0.3秒の余韻で次のシーンへ。
+          const enterComplete = enterEls.length > 0 ? remainingDelay + (enterEls.length - 1) * 60 + 250 : 0;
+          const moveComplete = Math.max(0, (keepEls.length > 0 ? 280 : 0) - elapsed);
+          scheduleGameAction(finishZeroSearch, Math.max(enterComplete, moveComplete) + 300);
+        });
       }, 260); // フェードアウト完了待ち
     };
     const onConfirmTouch = (e) => { if (e.cancelable) e.preventDefault(); onConfirm(); };
