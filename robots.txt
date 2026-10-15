@@ -1,5 +1,5 @@
 User-agent: *
-# 審査中のため全ページをクロール不可
-Disallow: /
+# 本公開のため全ページのクロールを許可
+Allow: /
 
 Sitemap: https://hanil524.github.io/kannagi_battle/sitemap.xml

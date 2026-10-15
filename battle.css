@@ -862,7 +862,8 @@ body {
   }
 
   #zero-search-cards .battle-card:hover {
-    transform: translateY(-4px);
+    transform: none;
+    top: -4px;
     filter: brightness(1.04);
     box-shadow: 0 0 0 1px rgba(175, 192, 225, 0.4), 0 4px 12px rgba(110, 143, 194, 0.2);
   }
@@ -1831,6 +1832,38 @@ body {
 #exile-modal-cards .battle-card.exile-selected {
   border: 2px solid rgba(80, 160, 255, 0.8) !important;
   box-shadow: 0 0 14px rgba(80, 160, 255, 0.6);
+}
+
+/* 山札検索：画像の寸法を保ち、移動による描画レイヤーの切り替えを避ける。 */
+#exile-modal.deck-search-mode #exile-modal-cards .battle-card {
+  top: 0;
+  transform: none;
+  transition: top 0.12s ease, box-shadow 0.15s ease;
+}
+
+/* オーラの有無で画像の描画が切り替わらないよう、一覧を開いている間だけ分離する。 */
+#exile-modal.deck-search-mode #exile-modal-cards .battle-card img {
+  will-change: transform;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  #exile-modal.deck-search-mode #exile-modal-cards .battle-card:hover {
+    top: -4px;
+  }
+}
+
+#exile-modal.deck-search-mode #exile-modal-cards .battle-card.selected-card {
+  border-width: 1px !important;
+}
+
+#exile-modal.deck-search-mode #exile-modal-cards .battle-card.selected-card::after {
+  content: '';
+  position: absolute;
+  /* 外枠1pxに内側1pxを重ね、元の2px枠を画像の縮小なしで描く。 */
+  inset: 0;
+  border: 1px solid rgba(255, 215, 0, 0.8);
+  border-radius: 5px;
+  pointer-events: none;
 }
 
 /* ===== 相手怪異札ブロック（小型中央ポップアップ） ===== */
@@ -4140,6 +4173,17 @@ body {
   box-shadow: 0 0 18px 5px rgba(255, 215, 0, 0.40), 0 0 36px 10px rgba(255, 215, 0, 0.15);
 }
 
+/* 初回選択や画像読み込みで一覧の高さ・スクロール位置を変えない。 */
+#exile-modal.deck-search-mode #exile-modal-preview-wrap {
+  height: 262px;
+  max-height: 40%;
+  min-height: 0;
+}
+
+#exile-modal.deck-search-mode #exile-modal-preview-img {
+  height: 100%;
+}
+
 /* ===== メニューモーダル ===== */
 #menu-overlay {
   position: absolute;
@@ -4941,7 +4985,9 @@ body {
 #zero-search-cards .battle-card {
   border-radius: 10px;
   touch-action: pan-y;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+  /* 通常のホバーはtopで動かし、画像の描画レイヤー切り替えを避ける。 */
+  top: 0;
+  transition: top 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
   overflow: hidden;
 }
 
@@ -4953,7 +4999,16 @@ body {
 
 #zero-search-cards .battle-card.zs-selected {
   box-shadow: 0 0 0 1px rgba(246, 225, 183, 0.35), 0 0 8px 2px rgba(221, 185, 113, 0.38), 0 0 18px 3px rgba(188, 143, 67, 0.2) !important;
-  border: 2px solid rgba(207, 177, 120, 0.82) !important;
+}
+
+/* 枠を画像に重ね、選択のたびに画像の表示領域が縮まるのを防ぐ。 */
+#zero-search-cards .battle-card.zs-selected::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 2px solid rgba(207, 177, 120, 0.82);
+  border-radius: inherit;
+  pointer-events: none;
 }
 
 /* ===== 盤面確認ボタン ===== */

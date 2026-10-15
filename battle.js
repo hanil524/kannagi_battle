@@ -2618,9 +2618,10 @@ function startDeckSearchPhase(config) {
       return;
     }
 
+    dom.exileModal.classList.add('deck-search-mode');
     dom.exileModalTitle.textContent = config.title || '山札検索';
     dom.exileModalDesc.innerHTML = config.desc || '';
-    // 前の選択画面の裏面プレビューを持ち越さず、初回と同じ一覧配置で開く。
+    // プレビューの領域はCSSで確保し、未選択から選択への配置変動を防ぐ。
     if (dom.exileModalPreviewImg) dom.exileModalPreviewImg.style.display = 'none';
     if (dom.exileModalPreviewPlaceholder) dom.exileModalPreviewPlaceholder.style.display = '';
     dom.exileModalCards.innerHTML = '';
@@ -2680,6 +2681,7 @@ function startDeckSearchPhase(config) {
     });
 
     dom.exileModalConfirm.disabled = true;
+    dom.exileModalConfirm.classList.remove('ready');
 
     const cleanup = () => {
       dom.exileModalConfirm.removeEventListener('click', onConfirm);
@@ -2689,6 +2691,7 @@ function startDeckSearchPhase(config) {
       exileSelectMode = false;
       dom.exileModal.style.display = 'none';
       dom.exileModal.classList.remove('active');
+      dom.exileModal.classList.remove('deck-search-mode');
       exileModalActive = false;
       dom.exileModalDesc.textContent = '';
       dom.exileModalButtons.style.display = 'none';
@@ -6984,9 +6987,27 @@ if (banmenFloatingBtn) {
   const urls = new Set();
   CARD_DB.forEach(c => { if (c.img) urls.add(c.img); });
   urls.add(DECK_BACK_IMG);
+  const warmFullImages = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
   urls.forEach(url => {
     const img = new Image();
     img.src = url;
+    if (warmFullImages && typeof img.decode === 'function') {
+      img.decode().then(() => {
+        // PCの一覧で初回だけ粗い縮小デコードを使わないよう、原寸で先読みする。
+        const canvas = document.createElement('canvas');
+        try {
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0);
+            ctx.getImageData(0, 0, 1, 1);
+          }
+        } finally {
+          canvas.width = canvas.height = 0;
+        }
+      }).catch(() => {});
+    }
   });
 })();
 
