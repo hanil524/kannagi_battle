@@ -622,6 +622,10 @@ function createCardEl(card, faceDown) {
   el.className = 'battle-card';
   el.dataset.uid = card.uid;
   const img = document.createElement('img');
+  // 拡大プレビューを開く前から、表示する画像のデコードを済ませる。
+  img.addEventListener('load', () => {
+    if (typeof img.decode === 'function') img.decode().catch(() => {});
+  });
   img.src = faceDown ? DECK_BACK_IMG : card.img;
   img.alt = card.name;
   img.draggable = false;
