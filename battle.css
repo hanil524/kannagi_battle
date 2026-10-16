@@ -13,6 +13,11 @@ button.btn-touch-cancelled {
   pointer-events: none !important;
 }
 
+/* 準備中も最終レイアウトを計算し、途中の形だけ画面に出さない。 */
+.popup-preparing {
+  visibility: hidden !important;
+}
+
 html {
   width: 100%;
   height: 100%;
@@ -795,19 +800,19 @@ body {
   transform: translateY(-3px);
 }
 
-/* 持ち上がった自分の手札だけ、カード列と枠の外まで表示する。 */
-:is(#player-hand-cards, #player-open-cards):has(> .in-hand:is(.glow, .overflow-selected, .selected-card)) > .in-hand:not(:hover):not(.glow):not(.overflow-selected):not(.selected-card) {
+/* 持ち上がった手札・魂だけ、カード列と枠の外まで表示する。 */
+:is(#player-hand-cards, #player-open-cards, #player-soul-cards, #opp-soul-cards):has(> :is(.in-hand, .in-soul):is(.glow, .overflow-selected, .selected-card)) > :is(.in-hand, .in-soul):not(:hover):not(.glow):not(.overflow-selected):not(.selected-card) {
   clip-path: var(--hand-rest-clip, none);
 }
 
-:is(#player-hand-zone, #player-open):has(.in-hand:is(.glow, .overflow-selected, .selected-card)) {
+:is(#player-hand-zone, #player-open, #player-soul-zone, #opp-soul-zone):has(:is(.in-hand, .in-soul):is(.glow, .overflow-selected, .selected-card)) {
   overflow: visible;
   min-width: 0;
   min-height: 0;
   z-index: 2;
 }
 
-:is(#player-hand-cards, #player-open-cards):has(.in-hand:is(.glow, .overflow-selected, .selected-card)) {
+:is(#player-hand-cards, #player-open-cards, #player-soul-cards, #opp-soul-cards):has(:is(.in-hand, .in-soul):is(.glow, .overflow-selected, .selected-card)) {
   overflow: visible;
   min-width: 0;
   min-height: 0;
@@ -821,18 +826,18 @@ body {
 
 /* ===== PC マウスオーバー（タッチデバイスには影響しない） ===== */
 @media (hover: hover) and (pointer: fine) {
-  :is(#player-hand-cards, #player-open-cards):has(> .in-hand:hover) > .in-hand:not(:hover):not(.glow):not(.overflow-selected):not(.selected-card) {
+  :is(#player-hand-cards, #player-open-cards, #player-soul-cards, #opp-soul-cards):has(> :is(.in-hand, .in-soul):hover) > :is(.in-hand, .in-soul):not(:hover):not(.glow):not(.overflow-selected):not(.selected-card) {
     clip-path: var(--hand-rest-clip, none);
   }
 
-  :is(#player-hand-zone, #player-open):has(.in-hand:hover) {
+  :is(#player-hand-zone, #player-open, #player-soul-zone, #opp-soul-zone):has(:is(.in-hand, .in-soul):hover) {
     overflow: visible;
     min-width: 0;
     min-height: 0;
     z-index: 2;
   }
 
-  :is(#player-hand-cards, #player-open-cards):has(.in-hand:hover) {
+  :is(#player-hand-cards, #player-open-cards, #player-soul-cards, #opp-soul-cards):has(:is(.in-hand, .in-soul):hover) {
     overflow: visible;
     min-width: 0;
     min-height: 0;
@@ -3799,6 +3804,89 @@ body {
   margin-bottom: 8px;
 }
 
+/* 致死ダメージ時だけ、判断に必要な情報をひとつの案内にまとめる。 */
+.soul-lethal-notice {
+  --notice-accent: #ef9a86;
+  width: min(440px, 90%);
+  flex-shrink: 0;
+  padding: 14px 16px;
+  border: 1px solid rgba(188, 155, 87, 0.45);
+  border-radius: 2px;
+  background: rgba(10, 9, 12, 0.96);
+  box-shadow: inset 0 1px 0 rgba(235, 210, 155, 0.08), 0 4px 16px rgba(0, 0, 0, 0.5);
+  color: #e8dfce;
+  text-align: left;
+}
+
+.soul-lethal-notice[hidden] {
+  display: none;
+}
+
+.soul-lethal-heading {
+  display: flex;
+  align-items: center;
+  color: var(--notice-accent);
+}
+
+.soul-lethal-title {
+  font-size: clamp(15px, 3.9vw, 17px);
+  line-height: 1.5;
+  letter-spacing: 0.25px;
+}
+
+.soul-lethal-message {
+  margin: 6px 0 12px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgba(232, 223, 206, 0.8);
+}
+
+.soul-lethal-stats {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(188, 155, 87, 0.25);
+  font-size: clamp(12px, 3vw, 13px);
+  color: rgba(232, 223, 206, 0.7);
+}
+
+.soul-lethal-stats b {
+  margin-left: 6px;
+  color: #e8dfce;
+  font-size: 22px;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.soul-lethal-notice.is-safe {
+  --notice-accent: #e3c78f;
+}
+
+.soul-lethal-stats .soul-lethal-life {
+  color: var(--notice-accent);
+}
+
+#soul-absorb-ask.lethal-damage {
+  gap: 12px;
+  padding: 16px 0;
+}
+
+#soul-absorb-ask.lethal-damage #soul-absorb-ask-title {
+  width: 90%;
+  font-size: clamp(16px, 3.8vw, 20px);
+  line-height: 1.6;
+  letter-spacing: 1px;
+  text-align: center;
+}
+
+#soul-absorb-ask.lethal-damage #soul-absorb-ask-img {
+  width: auto;
+  height: min(25dvh, 216px);
+  margin-bottom: 0;
+}
+
 /* ===== 魂ダメージ吸収：魂選択フェイズ ===== */
 #soul-absorb-select {
   position: absolute;
@@ -4494,6 +4582,12 @@ body {
   max-width: 85%;
   word-break: break-all;
   color: #ffffff;
+}
+
+.history-damage {
+  color: #ff9494;
+  font-weight: 700;
+  text-shadow: 0 0 5px rgba(255, 90, 90, 0.2);
 }
 
 /* 自分の行動は青枠・左寄せ */
