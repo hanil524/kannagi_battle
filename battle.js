@@ -988,12 +988,14 @@ function renderPlayerHand() {
   sortCards(player.hand);
   syncCardRow(dom.playerHandCards, player.hand, false, 'player', 'in-hand', true);
   updateOverflow(dom.playerHandCards);
+  if (cardSelectPhase) markSelectableCards();
   updatePlayableAura();
 }
 function renderPlayerOpen() {
   sortCards(player.open);
   syncCardRow(dom.playerOpenCards, player.open, false, 'player', 'in-hand', true);
   updateOverflow(dom.playerOpenCards);
+  if (cardSelectPhase) markSelectableCards();
   updatePlayableAura();
 }
 function renderOppHand() {
@@ -1242,6 +1244,7 @@ function setupCardInteraction(el, card, owner) {
   let glowingBeforeTouch = null;
   el.addEventListener('touchstart', (e) => {
     e.stopPropagation();
+    if (el.classList.contains('selection-unavailable')) return;
     if (glowingBeforeTouch === null) glowingBeforeTouch = el.classList.contains('glow');
     el.classList.add('glow');
   }, { passive: true });
@@ -2629,6 +2632,7 @@ function startExileSelectPhase(config) {
       const el = createCardEl(card, false);
       const isSelectable = config.filter(card);
       if (isSelectable) el.classList.add('exile-selectable');
+      markCardSelectionAvailability(el, isSelectable);
 
       // クリック/タップで選択
       const onSelectClick = (e) => {
@@ -2691,6 +2695,7 @@ function startExileSelectPhase(config) {
     // イベントリスナー（一度きり）
     const cleanup = () => {
       exileSelectMode = false;
+      clearCardSelectionAvailability(dom.exileModalCards);
       dom.exileModal.style.display = 'none';
       dom.exileModal.classList.remove('active');
       exileModalActive = false;
@@ -3062,6 +3067,7 @@ function startSelfHandExilePhase(count) {
     });
 
     function updateUI() {
+      markLimitedCardSelection(cardsDiv, selected, maxExile);
       if (selected.size >= maxExile) {
         confirmBtn.disabled = false;
         confirmBtn.classList.add('ready');
@@ -3124,6 +3130,7 @@ function startSelfHandExilePhase(count) {
       confirmBtn.removeEventListener('touchend', onConfirmTouch);
       overlay.style.display = 'none';
       overlay.classList.remove('active');
+      clearCardSelectionAvailability(cardsDiv);
     });
 
     overlay.style.display = 'flex';
@@ -4485,6 +4492,7 @@ function startGame() {
   $('player-hand-zone').classList.remove('card-select-zone-glow');
   $('player-open').classList.remove('card-select-zone-glow');
   document.querySelectorAll('.battle-card.selectable').forEach(e => e.classList.remove('selectable'));
+  clearCardSelectionAvailability();
   document.querySelectorAll('.battle-card.selected-card').forEach(e => e.classList.remove('selected-card'));
   // 魂吸収リセット
   soulAbsorbPhase = false;
@@ -5174,6 +5182,9 @@ function handleOverflowTap(card, el) {
 
 function updateOverflowConfirmBtn() {
   const total = player.hand.length + player.open.length;
+  [dom.playerHandCards, dom.playerOpenCards].forEach(container => {
+    markLimitedCardSelection(container, overflowSelectedUids, Math.max(0, total - 8));
+  });
   const remaining = total - overflowSelectedUids.size;
   const needToDiscard = remaining - 8; // あと何枚選択する必要があるか
   // あと○枚 表示
@@ -5221,6 +5232,8 @@ function checkHandOverflowDone() {
   if (player.hand.length + player.open.length <= 8) {
     handOverflowPhase = false;
     overflowSelectedUids.clear();
+    clearCardSelectionAvailability(dom.playerHandCards);
+    clearCardSelectionAvailability(dom.playerOpenCards);
     dom.handOverflowOverlay.style.display = 'none';
     dom.handOverflowOverlay.classList.remove('active');
     dom.handOverflowConfirm.disabled = true;
@@ -5285,13 +5298,39 @@ function startCardSelectPhase(config) {
   preparePopup(dom.cardSelectOverlay, dom.cardSelectPreviewImg);
 }
 
+function markCardSelectionAvailability(el, available, reason = 'この効果では選べません') {
+  el.classList.toggle('selection-unavailable', !available);
+  if (available) {
+    el.removeAttribute('aria-disabled');
+    el.removeAttribute('title');
+  } else {
+    el.setAttribute('aria-disabled', 'true');
+    el.title = reason;
+  }
+}
+
+function clearCardSelectionAvailability(container = document) {
+  container.querySelectorAll('.battle-card.selection-unavailable').forEach(el => markCardSelectionAvailability(el, true));
+}
+
+function markLimitedCardSelection(container, selectedUids, limit) {
+  const full = selectedUids.size >= limit;
+  const selected = new Set([...selectedUids].map(String));
+  container.querySelectorAll('.battle-card').forEach(el => {
+    // 選択済みのカードは、上限に達していても解除できる。
+    markCardSelectionAvailability(el, !full || selected.has(el.dataset.uid), '選択済みのカードを解除すると選べます');
+  });
+}
+
 function markSelectableCards() {
   if (!cardSelectConfig) return;
   // 手札
   dom.playerHandCards.querySelectorAll('.battle-card').forEach(el => {
     const uid = el.dataset.uid;
     const card = player.hand.find(c => String(c.uid) === uid);
-    if (card && cardSelectConfig.filter(card)) {
+    const available = !!card && cardSelectConfig.filter(card);
+    markCardSelectionAvailability(el, available);
+    if (available) {
       el.classList.add('selectable');
     } else {
       el.classList.remove('selectable');
@@ -5301,7 +5340,9 @@ function markSelectableCards() {
   dom.playerOpenCards.querySelectorAll('.battle-card').forEach(el => {
     const uid = el.dataset.uid;
     const card = player.open.find(c => String(c.uid) === uid);
-    if (card && cardSelectConfig.filter(card)) {
+    const available = !!card && cardSelectConfig.filter(card);
+    markCardSelectionAvailability(el, available);
+    if (available) {
       el.classList.add('selectable');
     } else {
       el.classList.remove('selectable');
@@ -5363,6 +5404,7 @@ function endCardSelectPhase(confirmed) {
 
   // 選択可能マーク・選択マーク除去
   document.querySelectorAll('.battle-card.selectable').forEach(e => e.classList.remove('selectable'));
+  clearCardSelectionAvailability();
   document.querySelectorAll('.battle-card.selected-card').forEach(e => e.classList.remove('selected-card'));
 
   if (confirmed && selectedCard && config && config.onConfirm) {
@@ -6065,6 +6107,7 @@ function startSoulAbsorbSelect(totalDamage, side, st, resolve, onCleanup) {
   onCleanup(() => {
     dom.soulAbsorbConfirm.removeEventListener('click', onConfirm);
     dom.soulAbsorbConfirm.removeEventListener('touchend', onConfirmTouch);
+    clearCardSelectionAvailability(dom.playerSoulCards);
   });
   dom.soulAbsorbSelect.style.display = 'flex';
   dom.soulAbsorbSelect.classList.add('active');
@@ -6095,6 +6138,7 @@ function handleSoulAbsorbTap(card, el) {
 
 function updateSoulAbsorbDesc(totalDamage) {
   dom.soulAbsorbSelect.dataset.totalDamage = totalDamage;
+  markLimitedCardSelection(dom.playerSoulCards, soulAbsorbSelectedUids, totalDamage);
   const absorbCount = soulAbsorbSelectedUids.size;
   const remainingDamage = Math.max(0, totalDamage - absorbCount);
   dom.soulAbsorbSelectDesc.innerHTML =
