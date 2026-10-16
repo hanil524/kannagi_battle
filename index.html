@@ -241,6 +241,7 @@
   <div id="card-preview">
     <img id="preview-img" src="" alt="preview">
   </div>
+  <button id="play-card-btn" type="button" style="display:none;">使用する</button>
 
   <!-- モーダル内カードプレビュー（最前面） -->
   <div id="modal-preview">
@@ -252,6 +253,19 @@
     <img id="kaii-preview-img" src="" alt="kaii-preview">
   </div>
 
+
+  <!-- タップ操作の配置先選択・入れ替え確認 -->
+  <div id="tap-play-dialog" role="dialog" aria-modal="true" aria-labelledby="tap-play-title" aria-describedby="tap-play-desc" style="display:none;">
+    <div class="tap-play-panel">
+      <h2 id="tap-play-title"></h2>
+      <p id="tap-play-desc"></p>
+      <div id="tap-play-options"></div>
+      <div class="tap-play-actions">
+        <button id="tap-play-cancel" type="button">戻る</button>
+        <button id="tap-play-confirm" type="button" disabled>決定する</button>
+      </div>
+    </div>
+  </div>
 
   <!-- カード使用エフェクト -->
   <div id="play-effect">
@@ -459,6 +473,18 @@
     <div id="reset-confirm-buttons">
       <button id="reset-confirm-yes">はい</button>
       <button id="reset-confirm-no">いいえ</button>
+    </div>
+  </div>
+
+  <!-- 攻撃を残してターンエンドする場合の確認 -->
+  <div id="end-turn-confirm" role="dialog" aria-modal="true" aria-labelledby="end-turn-confirm-title" aria-describedby="end-turn-confirm-desc" style="display:none;">
+    <div class="end-turn-confirm-panel">
+      <h2 id="end-turn-confirm-title">ターンエンドしますか？</h2>
+      <p id="end-turn-confirm-desc">攻撃できる場所札が残っています。</p>
+      <div class="end-turn-confirm-actions">
+        <button id="end-turn-confirm-no" type="button">戻る</button>
+        <button id="end-turn-confirm-yes" type="button">ターンエンド</button>
+      </div>
     </div>
   </div>
 

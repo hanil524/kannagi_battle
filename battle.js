@@ -339,6 +339,8 @@ const dom = {
   oppLife: $('opp-life-value'),
   preview: $('card-preview'),
   previewImg: $('preview-img'),
+  playCardBtn: $('play-card-btn'),
+  tapPlayDialog: $('tap-play-dialog'),
   kaiiPreviewOverlay: $('kaii-preview-overlay'),
   kaiiPreviewImg: $('kaii-preview-img'),
   kaiiPopup: $('kaii-popup'),
@@ -516,6 +518,7 @@ function updateEndTurnHint() {
 }
 
 function updatePlayableAura() {
+  refreshTapPlayButton();
   updateEndTurnHint();
   // 自分のターン中かつ手札超過フェイズでない場合のみ緑オーラ表示
   if (turnLocked || handOverflowPhase || gameEnded) {
@@ -1175,12 +1178,15 @@ function updateOverflow(container) {
 // ===================================================================
 let currentPreviewCard = null;
 let insideKaiiPopup = false;
+let tapPlayDialogState = null;
+let tapPlayAnchorFrame = null;
 
 function showPreview(card, side, fromKaiiPopup) {
   if (suppressPreview) return;
   // 怪異札モーダルが表示中：モーダル内カード以外のプレビューをブロック
   if (kaiiPopupActive && !fromKaiiPopup) return;
   currentPreviewCard = card;
+  if (side === 'player' && getOwnedHandCard(card.uid) && canTapPlayCards()) hideAttackBtn();
   if (insideKaiiPopup) {
     dom.kaiiPreviewImg.src = card.img;
     dom.kaiiPreviewImg.style.display = '';
@@ -1195,6 +1201,7 @@ function showPreview(card, side, fromKaiiPopup) {
   dom.preview.className = 'active ' + showSide;
   dom.preview.style.display = 'flex';
   preparePopup(dom.preview, dom.previewImg);
+  refreshTapPlayButton();
 }
 function hidePreview() {
   currentPreviewCard = null;
@@ -1202,7 +1209,205 @@ function hidePreview() {
   dom.preview.className = '';
   dom.kaiiPreviewOverlay.classList.remove('active');
   dom.kaiiPreviewOverlay.style.display = 'none';
+  refreshTapPlayButton();
 }
+
+// タップで選んだ札も、ドラッグと同じ判定・配置処理で使用する。
+function getOwnedHandCard(uid) {
+  return [...player.hand, ...player.open].find(card => String(card.uid) === String(uid));
+}
+
+function canTapPlayCards() {
+  return turnNumber > 0 && !turnLocked && !gameEnded && !isAttacking &&
+    !isAnyPhaseActive() && !exileSelectMode && !banmenViewActive && !isDragging && !dragAttackActive &&
+    !endTurnHintPanels.some(panel => panel !== dom.preview &&
+      (panel.classList.contains('active') || panel.style.display === 'flex' || panel.style.display === 'block'));
+}
+
+function refreshTapPlayButton() {
+  const card = currentPreviewCard && getOwnedHandCard(currentPreviewCard.uid);
+  const visible = card && !tapPlayDialogState && dom.preview.style.display === 'flex' &&
+    !dom.preview.classList.contains('popup-preparing') && canTapPlayCards();
+  document.querySelectorAll('.tap-play-selected').forEach(el => {
+    if (!visible || el.dataset.uid !== String(card.uid)) el.classList.remove('tap-play-selected', 'glow');
+  });
+  if (!visible) {
+    dom.playCardBtn.style.display = 'none';
+    cancelAnimationFrame(tapPlayAnchorFrame);
+    tapPlayAnchorFrame = null;
+    return;
+  }
+  const labels = { '場所札': '召喚する', '道具札': '使用する', '季節札': '場に出す', '怪異札': '憑依する' };
+  const check = canPlayCard(card, 'player');
+  const reasons = { soul: '魂が足りません', season: '季節が足りません', type_used: 'この種類は使用済み', no_basho: '場所札がありません' };
+  dom.playCardBtn.textContent = check.ok
+    ? (card.type === '怪異札' && player.field.filter(group => group.basho).length > 1 ? '憑依先を選ぶ' : labels[card.type] || '使用する')
+    : reasons[check.reason] || '使用できません';
+  dom.playCardBtn.disabled = !check.ok;
+  dom.playCardBtn.style.display = '';
+  [dom.playerHandCards, dom.playerOpenCards].forEach(container => {
+    const el = container.querySelector(`.battle-card[data-uid="${card.uid}"]`);
+    if (el) el.classList.add('tap-play-selected', 'glow');
+  });
+  trackTapPlayButton();
+}
+
+function positionTapPlayButton() {
+  if (dom.playCardBtn.style.display === 'none' || !currentPreviewCard) return;
+  const source = [dom.playerHandCards, dom.playerOpenCards]
+    .map(container => container.querySelector(`.battle-card[data-uid="${currentPreviewCard.uid}"]`)).find(Boolean);
+  if (!source) { dom.playCardBtn.style.display = 'none'; return; }
+  const cardRect = source.getBoundingClientRect(), bodyRect = document.body.getBoundingClientRect();
+  const width = dom.playCardBtn.offsetWidth, height = dom.playCardBtn.offsetHeight;
+  dom.playCardBtn.style.left = Math.max(8, Math.min(bodyRect.width - width - 8,
+    cardRect.left + cardRect.width / 2 - bodyRect.left - width / 2)) + 'px';
+  dom.playCardBtn.style.top = Math.max(8, cardRect.top - bodyRect.top - height - 8) + 'px';
+}
+
+// 選択時の浮き上がりにも追従し、静止した後は監視を止める。
+function trackTapPlayButton() {
+  cancelAnimationFrame(tapPlayAnchorFrame);
+  positionTapPlayButton();
+  if (dom.playCardBtn.style.display === 'none') return;
+  const until = performance.now() + 200;
+  const follow = () => {
+    positionTapPlayButton();
+    tapPlayAnchorFrame = dom.playCardBtn.style.display !== 'none' && performance.now() < until
+      ? requestAnimationFrame(follow) : null;
+  };
+  tapPlayAnchorFrame = requestAnimationFrame(follow);
+}
+window.addEventListener('resize', trackTapPlayButton);
+document.addEventListener('scroll', trackTapPlayButton, { capture: true, passive: true });
+
+function commitTapPlay(uid, target = null) {
+  const card = getOwnedHandCard(uid);
+  if (!card || !canTapPlayCards() || !canPlayCard(card, 'player').ok) { refreshTapPlayButton(); return; }
+  let targetIndex = null;
+  if (target && target.key !== 'new' && target.key !== 'replace') {
+    targetIndex = player.field.findIndex(group => {
+      const base = card.type === '怪異札' ? group.basho : !group.basho && group.season;
+      return base && String(base.uid) === target.key;
+    });
+    if (targetIndex === -1) return;
+  }
+  if (card.type === '怪異札' && (targetIndex === null || !player.field[targetIndex]?.basho)) return;
+  hidePreview(); clearAllGlow(); hideAttackBtn();
+  const previousTarget = currentDropTarget, previousX = lastDropX;
+  const fieldRect = dom.playerField.getBoundingClientRect();
+  currentDropTarget = targetIndex;
+  lastDropX = fieldRect.left + fieldRect.width / 2;
+  try { playPlayerHandCard(card); }
+  finally { currentDropTarget = previousTarget; lastDropX = previousX; }
+  updatePlayableAura();
+}
+
+function usePreviewCard() {
+  const card = currentPreviewCard && getOwnedHandCard(currentPreviewCard.uid);
+  if (!card || !canTapPlayCards() || !canPlayCard(card, 'player').ok) { refreshTapPlayButton(); return; }
+  if (card.type === '怪異札') {
+    const targets = player.field.filter(group => group.basho).map(group => ({ key: String(group.basho.uid), card: group.basho }));
+    if (targets.length === 1) commitTapPlay(card.uid, targets[0]);
+    else openTapPlayDialog(card, 'kaii', targets);
+  } else if (card.type === '場所札' && player.field.some(group => group.season && !group.basho)) {
+    const targets = [{ key: 'new', card: null }, ...player.field.filter(group => group.season && !group.basho)
+      .map(group => ({ key: String(group.season.uid), card: group.season }))];
+    openTapPlayDialog(card, 'basho', targets);
+  } else if (card.type === '季節札' && player.field.some(group => group.season)) {
+    openTapPlayDialog(card, 'season', [{ key: 'replace', card }]);
+  } else commitTapPlay(card.uid);
+}
+
+function closeTapPlayDialog(restorePreview = true) {
+  const state = tapPlayDialogState;
+  if (!state) return;
+  tapPlayDialogState = null;
+  gameResetCleanups.delete(state.onReset);
+  dom.tapPlayDialog.style.display = 'none';
+  dom.tapPlayDialog.classList.remove('active');
+  $('tap-play-options').replaceChildren();
+  if (state.gen !== gameGeneration) return;
+  turnLocked = state.wasLocked;
+  const card = getOwnedHandCard(state.uid);
+  if (restorePreview && card) {
+    showPreview(card, 'player');
+    dom.playCardBtn.focus({ preventScroll: true });
+  }
+  updatePlayableAura();
+}
+
+function openTapPlayDialog(card, mode, options) {
+  const state = { uid: card.uid, gen: gameGeneration, mode, options, selected: mode === 'season' ? options[0] : null, wasLocked: turnLocked };
+  state.onReset = () => closeTapPlayDialog(false);
+  tapPlayDialogState = state;
+  gameResetCleanups.add(state.onReset);
+  hidePreview(); hideAttackBtn();
+  turnLocked = true;
+  $('tap-play-title').textContent = mode === 'kaii' ? '憑依先を選択' : mode === 'basho' ? '召喚先を選択' : '季節札を入れ替える';
+  $('tap-play-desc').textContent = mode === 'kaii' ? `「${card.name}」を憑依させる場所札を選んでください。`
+    : mode === 'basho' ? '新しく場に出すか、季節札の上に召喚するか選んでください。'
+    : '場にある季節札と、その上のカードはすべて魂になります。\n新しい季節札を出しますか？';
+  const list = $('tap-play-options'), confirm = $('tap-play-confirm');
+  list.replaceChildren();
+  confirm.textContent = mode === 'kaii' ? '憑依する' : mode === 'basho' ? '召喚する' : '入れ替えて出す';
+  confirm.disabled = !state.selected;
+  options.forEach(option => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'tap-play-option';
+    button.setAttribute('aria-pressed', String(state.selected === option));
+    if (option.card) {
+      const img = document.createElement('img');
+      img.src = option.card.img; img.alt = option.card.name; img.draggable = false;
+      button.appendChild(img);
+    } else {
+      const slot = document.createElement('span');
+      slot.className = 'tap-play-new-slot'; slot.textContent = '＋'; slot.setAttribute('aria-hidden', 'true');
+      button.appendChild(slot);
+    }
+    const name = document.createElement('span');
+    name.className = 'tap-play-option-name';
+    name.textContent = option.card ? option.card.name : '新しく場に出す';
+    button.appendChild(name);
+    button.addEventListener('click', e => {
+      e.stopPropagation();
+      if (tapPlayDialogState !== state) return;
+      state.selected = option;
+      list.querySelectorAll('button').forEach(el => el.setAttribute('aria-pressed', String(el === button)));
+      confirm.disabled = false;
+    });
+    list.appendChild(button);
+  });
+  dom.tapPlayDialog.style.display = 'flex';
+  dom.tapPlayDialog.classList.add('active');
+  preparePopup(dom.tapPlayDialog);
+  list.querySelector('button')?.focus({ preventScroll: true });
+  updatePlayableAura();
+}
+
+dom.playCardBtn.addEventListener('click', e => { e.stopPropagation(); usePreviewCard(); });
+$('tap-play-cancel').addEventListener('click', e => { e.stopPropagation(); closeTapPlayDialog(); });
+$('tap-play-confirm').addEventListener('click', e => {
+  e.stopPropagation();
+  const state = tapPlayDialogState;
+  if (!state || !state.selected || state.gen !== gameGeneration) return;
+  closeTapPlayDialog(false);
+  commitTapPlay(state.uid, state.selected);
+});
+dom.tapPlayDialog.addEventListener('click', e => {
+  if (e.target !== e.currentTarget) return;
+  e.stopPropagation();
+  closeTapPlayDialog();
+});
+dom.tapPlayDialog.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { e.preventDefault(); closeTapPlayDialog(); }
+  if (e.key === 'Tab') {
+    const buttons = [...dom.tapPlayDialog.querySelectorAll('button:not(:disabled)')];
+    const first = buttons[0], last = buttons[buttons.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
+});
 
 // 一覧をスワイプした指で、カードを選択・拡大しないようにする。
 function guardModalCardScroll(el) {
@@ -1311,6 +1516,7 @@ function clearAllGlow() {
 // ===================================================================
 function isCenterBtnTarget(e) {
   return e.target === dom.attackBtn || dom.attackBtn.contains(e.target)
+    || e.target === dom.playCardBtn || dom.playCardBtn.contains(e.target)
     || e.target === dom.endTurnCenter || dom.endTurnCenter.contains(e.target);
 }
 
@@ -1510,6 +1716,7 @@ function showAttackBtn(gIdx) {
   }
   const group = player.field[gIdx];
   if (!group || !group.basho) { hideAttackBtn(); return; }
+  if (currentPreviewCard && getOwnedHandCard(currentPreviewCard.uid)) hidePreview();
   selectedGroupIdx = gIdx;
   selectedBashoUid = group.basho.uid;
   dom.attackBtn.style.display = '';
@@ -1522,6 +1729,7 @@ function hideAttackBtn() {
   dom.attackBtn.style.display = 'none';
   // 攻撃が非表示になったら中央ターン終了を表示
   dom.endTurnCenter.style.display = '';
+  refreshTapPlayButton();
   // ドラッグ攻撃中ならクリーンアップ
   if (dragAttackActive) cleanupDragAttack();
   updateEndTurnHint();
@@ -1564,13 +1772,15 @@ function showEffectActivation(card, label) {
     };
     // クリック/タップでスキップ
     const skipHandler = (e) => {
+      // 演出を閉じた後の合成クリックで、背後のボタンを押さない。
+      if (e.type === 'touchend' && e.cancelable) e.preventDefault();
       e.stopPropagation();
       dom.effectOverlay.removeEventListener('click', skipHandler);
       dom.effectOverlay.removeEventListener('touchend', skipHandler);
       finish();
     };
     dom.effectOverlay.addEventListener('click', skipHandler);
-    dom.effectOverlay.addEventListener('touchend', skipHandler);
+    dom.effectOverlay.addEventListener('touchend', skipHandler, { passive: false });
     // 0.8秒後に自動で次へ
     const timer = setTimeout(finish, 800);
     onCleanup(() => {
@@ -1605,13 +1815,14 @@ function showEffectFailed(card, who) {
       resolve();
     };
     const skipHandler = (e) => {
+      if (e.type === 'touchend' && e.cancelable) e.preventDefault();
       e.stopPropagation();
       dom.effectOverlay.removeEventListener('click', skipHandler);
       dom.effectOverlay.removeEventListener('touchend', skipHandler);
       finish();
     };
     dom.effectOverlay.addEventListener('click', skipHandler);
-    dom.effectOverlay.addEventListener('touchend', skipHandler);
+    dom.effectOverlay.addEventListener('touchend', skipHandler, { passive: false });
     const timer = setTimeout(finish, 800);
     onCleanup(() => {
       clearTimeout(timer);
@@ -4122,14 +4333,7 @@ function setupDrag(el, card) {
       updateTarget(x, y);
       // ドロップ位置を記録（placeCard内で左右判定に使用）
       lastDropX = x;
-      // 手札から探す
-      let idx = player.hand.findIndex(c => c.uid === card.uid);
-      if (idx !== -1) { player.hand.splice(idx, 1); card._fromOpen = false; placeCard(card); }
-      else {
-        // 手札公開場から探す
-        idx = player.open.findIndex(c => c.uid === card.uid);
-        if (idx !== -1) { player.open.splice(idx, 1); card._fromOpen = true; placeCard(card); renderPlayerOpen(); }
-      }
+      playPlayerHandCard(card);
       lastDropX = null;
     }
     cleanup();
@@ -4243,6 +4447,23 @@ function clearDropTargets() {
 // ===================================================================
 // カード配置
 // ===================================================================
+function playPlayerHandCard(card) {
+  let idx = player.hand.findIndex(c => c.uid === card.uid);
+  if (idx !== -1) {
+    player.hand.splice(idx, 1);
+    card._fromOpen = false;
+    placeCard(card);
+    return;
+  }
+  idx = player.open.findIndex(c => c.uid === card.uid);
+  if (idx !== -1) {
+    player.open.splice(idx, 1);
+    card._fromOpen = true;
+    placeCard(card);
+    renderPlayerOpen();
+  }
+}
+
 function placeCard(card) {
   const gen = gameGeneration;
   // ドロップ位置がフィールド中央より右なら右側(push)、左なら左側(unshift)
@@ -5125,15 +5346,61 @@ function screenShake() {
 // ===================================================================
 // ターン終了
 // ===================================================================
-function endTurn() {
+async function endTurn() {
   if (turnLocked || gameEnded || isAttacking) return;
   if (cardSelectPhase || exileSelectMode || soulAbsorbPhase || banmenViewActive || handOverflowPhase) return;
+  const gen = gameGeneration;
+  if (!attackUsedThisTurn && player.field.some(group => group.basho && !group._summonedThisTurn)) {
+    if (!await confirmEndTurnWithoutAttack()) return;
+    if (gen !== gameGeneration || turnLocked || gameEnded || isAttacking) return;
+  }
   // 手札超過チェック（手札＋手札公開場の合計）
   if (player.hand.length + player.open.length >= 9) {
     startHandOverflowPhase();
     return;
   }
   proceedEndTurn();
+}
+
+function confirmEndTurnWithoutAttack() {
+  return gamePromise((resolve, onCleanup) => {
+    const gen = gameGeneration, wasLocked = turnLocked;
+    const panel = $('end-turn-confirm'), cancel = $('end-turn-confirm-no'), confirm = $('end-turn-confirm-yes');
+    const previousFocus = document.activeElement;
+    const onInput = e => {
+      e.stopPropagation();
+      if (e.type === 'touchend' && e.cancelable) e.preventDefault();
+      if (e.target.closest('#end-turn-confirm-yes')) resolve(true);
+      else if (e.target === panel || e.target.closest('#end-turn-confirm-no')) resolve(false);
+    };
+    const onKey = e => {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); resolve(false); }
+      else if (e.key === 'Tab') {
+        if (e.shiftKey && document.activeElement === cancel) { e.preventDefault(); confirm.focus(); }
+        else if (!e.shiftKey && document.activeElement === confirm) { e.preventDefault(); cancel.focus(); }
+      }
+    };
+    panel.addEventListener('click', onInput);
+    panel.addEventListener('touchend', onInput, { passive: false });
+    panel.addEventListener('keydown', onKey);
+    onCleanup(() => {
+      panel.removeEventListener('click', onInput);
+      panel.removeEventListener('touchend', onInput);
+      panel.removeEventListener('keydown', onKey);
+      panel.style.display = 'none';
+      panel.classList.remove('active');
+      if (gen !== gameGeneration) return;
+      turnLocked = wasLocked;
+      updatePlayableAura();
+      if (panel.contains(document.activeElement) && previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
+    });
+    turnLocked = true;
+    panel.style.display = 'flex';
+    panel.classList.add('active');
+    preparePopup(panel);
+    updatePlayableAura();
+    cancel.focus({ preventScroll: true });
+  });
 }
 
 let overflowSelectedUids = new Set(); // 手札超過タップ選択中のuid
@@ -7355,11 +7622,11 @@ if (banmenFloatingBtn) {
 const endTurnHintPanels = [
   dom.effectOverlay, dom.gateOverlay, dom.turnAnnounce, dom.resultOverlay,
   dom.cardSelectOverlay, dom.handOverflowOverlay, dom.soulAbsorbAsk, dom.soulAbsorbSelect,
-  dom.exileModal, exileViewModal, dom.kaiiPopup, dom.preview, dom.kaiiPreviewOverlay,
-  $('opp-hand-exile-overlay'), $('reset-confirm'), $('title-confirm'),
+  dom.exileModal, exileViewModal, dom.kaiiPopup, dom.preview, dom.kaiiPreviewOverlay, dom.tapPlayDialog,
+  $('opp-hand-exile-overlay'), $('reset-confirm'), $('title-confirm'), $('end-turn-confirm'),
   howtoModal, $('history-modal'), menuModal, menuOverlay, $('deck-popup-overlay')
 ].filter(Boolean);
-const endTurnHintObserver = new MutationObserver(updateEndTurnHint);
+const endTurnHintObserver = new MutationObserver(() => { refreshTapPlayButton(); updateEndTurnHint(); });
 endTurnHintPanels.forEach(panel => endTurnHintObserver.observe(panel, {
   attributes: true, attributeFilter: ['class', 'style']
 }));
