@@ -1813,8 +1813,18 @@ body {
   letter-spacing: 1px;
 }
 
+/* 2択は長い文言に合わせて等幅にし、片方が非表示なら1列にする。 */
+#exile-modal-buttons,
+#card-select-buttons,
+#reset-confirm-buttons,
+#soul-absorb-ask-buttons {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  max-width: calc(100% - 24px);
+}
+
 #exile-modal-buttons {
-  display: flex;
   gap: 12px;
   margin-top: 4px;
   margin-bottom: 4px;
@@ -2185,7 +2195,6 @@ body {
 }
 
 #card-select-buttons {
-  display: flex;
   gap: 10px;
   margin-top: 2px;
   pointer-events: auto;
@@ -2374,6 +2383,7 @@ body {
 
 .tap-play-actions button {
   flex: 1;
+  min-width: 0;
   min-height: 44px;
   max-width: 190px;
   padding: 10px 12px;
@@ -3887,7 +3897,6 @@ body {
 }
 
 #reset-confirm-buttons {
-  display: flex;
   gap: 16px;
 }
 
@@ -3969,6 +3978,7 @@ body {
 
 .end-turn-confirm-actions button {
   flex: 1;
+  min-width: 0;
   min-height: 44px;
   padding: 10px 8px;
   border: 1px solid #50596a;
@@ -4019,7 +4029,6 @@ body {
 }
 
 #soul-absorb-ask-buttons {
-  display: flex;
   gap: 16px;
 }
 

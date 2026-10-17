@@ -2827,7 +2827,7 @@ function startExileSelectPhase(config) {
     dom.exileModalEmpty.style.display = 'none';
 
     // ボタン表示
-    dom.exileModalButtons.style.display = 'flex';
+    dom.exileModalButtons.style.display = '';
     dom.exileModalConfirm.disabled = true;
     dom.exileModalConfirm.classList.remove('ready');
     // 盤面ボタン表示
@@ -2975,7 +2975,7 @@ function startDeckSearchPhase(config) {
     if (dom.exileModalPreviewPlaceholder) dom.exileModalPreviewPlaceholder.style.display = '';
     dom.exileModalCards.innerHTML = '';
     dom.exileModalEmpty.style.display = 'none';
-    dom.exileModalButtons.style.display = 'flex';
+    dom.exileModalButtons.style.display = '';
     // 盤面ボタン表示
     const exBanmen2 = dom.exileModal.querySelector('.banmen-btn');
     if (exBanmen2) exBanmen2.style.display = '';
@@ -3107,7 +3107,7 @@ function startExileOrderPhase(config) {
     dom.exileModalEmpty.style.display = 'none';
 
     // 最後の選択で一覧が動かないよう、決定ボタンの領域を先に確保する。
-    dom.exileModalButtons.style.display = 'flex';
+    dom.exileModalButtons.style.display = '';
     dom.exileModalButtons.style.visibility = 'hidden';
     dom.exileModalSkip.style.display = 'none'; // スキップ不要
     dom.exileModalConfirm.disabled = true;
