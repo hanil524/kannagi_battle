@@ -29,6 +29,7 @@ const CARD_DB = [
 const DECK_BACK_IMG = 'images/deck.jpg';
 const TYPE_ORDER = { '場所札': 0, '怪異札': 1, '道具札': 2, '季節札': 3 };
 const SEASON_ORDER = { '春': 0, '夏': 1, '秋': 2, '冬': 3, '無': 4, '混化': 5 };
+const landscapeLayout = window.matchMedia('(orientation: landscape) and (max-height: 600px)');
 
 // ===================================================================
 // 属性チェック（tribe は半角スペース区切りで複数属性を持てる）
@@ -864,7 +865,7 @@ function showExileModal(who) {
   if (dom.exileModalPreviewImg) { dom.exileModalPreviewImg.src = ''; dom.exileModalPreviewImg.style.display = 'none'; }
   if (dom.exileModalPreviewPlaceholder) dom.exileModalPreviewPlaceholder.style.display = '';
 
-  dom.exileModal.style.display = 'flex';
+  dom.exileModal.style.display = '';
   dom.exileModal.classList.add('active');
   exileModalActive = true;
   preparePopup(dom.exileModal);
@@ -2897,7 +2898,7 @@ function startExileSelectPhase(config) {
       dom.exileModalCards.appendChild(el);
     });
 
-    dom.exileModal.style.display = 'flex';
+    dom.exileModal.style.display = '';
     dom.exileModal.classList.add('active');
     exileModalActive = true;
     exileSelectMode = true;
@@ -3068,7 +3069,7 @@ function startDeckSearchPhase(config) {
     dom.exileModalSkip.addEventListener('touchend', onSkipTouch, { passive: false });
     onCleanup(cleanup);
 
-    dom.exileModal.style.display = 'flex';
+    dom.exileModal.style.display = '';
     dom.exileModal.classList.add('active');
     exileModalActive = true;
     exileSelectMode = true;
@@ -3221,7 +3222,7 @@ function startExileOrderPhase(config) {
       dom.exileModalCards.appendChild(el);
     });
 
-    dom.exileModal.style.display = 'flex';
+    dom.exileModal.style.display = '';
     dom.exileModal.classList.add('active');
     exileModalActive = true;
     exileSelectMode = true;
@@ -4182,8 +4183,17 @@ let cancelCardDrag = null;
 
 function setupDrag(el, card) {
   let startX, startY, touchId = null;
+  let dragMetrics = null;
   let mouseCleanup = null;
   let lastTrailTime = 0, lastTrailX = null, lastTrailY = null;
+  const positionVisual = (visual, x, y) => {
+    visual.style.left = (x - (dragMetrics?.offsetX ?? 25)) + 'px';
+    visual.style.top = (y - (dragMetrics?.offsetY ?? 35)) + 'px';
+    if (dragMetrics) {
+      visual.style.width = dragMetrics.width + 'px';
+      visual.style.height = dragMetrics.height + 'px';
+    }
+  };
   const spawnTrail = (x, y) => {
     const now = Date.now();
     if (now - lastTrailTime < 18) return;
@@ -4191,8 +4201,7 @@ function setupDrag(el, card) {
     if (lastTrailX !== null) {
       const trail = document.createElement('div');
       trail.className = 'drag-trail';
-      trail.style.left = (lastTrailX - 25) + 'px';
-      trail.style.top  = (lastTrailY - 35) + 'px';
+      positionVisual(trail, lastTrailX, lastTrailY);
       document.body.appendChild(trail);
       trail.addEventListener('animationend', () => trail.remove());
     }
@@ -4203,6 +4212,11 @@ function setupDrag(el, card) {
   const onStart = (x, y) => {
     if (cancelCardDrag) cancelCardDrag();
     startX = x; startY = y; isDragging = false;
+    dragMetrics = null;
+    if (landscapeLayout.matches) {
+      const rect = el.getBoundingClientRect();
+      dragMetrics = { width: rect.width, height: rect.height, offsetX: x - rect.left, offsetY: y - rect.top };
+    }
     cancelCardDrag = cleanup;
   };
   const updateTarget = (x, y) => {
@@ -4220,8 +4234,7 @@ function setupDrag(el, card) {
   const onMove = (x, y) => {
     if (cancelCardDrag !== cleanup) return;
     if (isDragging) {
-      dragGhost.style.left = (x - 25) + 'px';
-      dragGhost.style.top = (y - 35) + 'px';
+      positionVisual(dragGhost, x, y);
       spawnTrail(x, y);
       updateTarget(x, y);
       return;
@@ -4245,8 +4258,7 @@ function setupDrag(el, card) {
       img.src = card.img; img.draggable = false;
       dragGhost.appendChild(img);
       document.body.appendChild(dragGhost);
-      dragGhost.style.left = (x - 25) + 'px';
-      dragGhost.style.top = (y - 35) + 'px';
+      positionVisual(dragGhost, x, y);
       el.style.visibility = 'hidden';
       if (cardSelectPhase) {
         dom.playerExile.classList.add('drag-over-exile');
@@ -5234,7 +5246,7 @@ function showZeroSearch(who) {
     });
 
     $('app').style.display = 'none';
-    overlay.style.display = 'flex';
+    overlay.style.display = '';
     // 下の8枚の寸法でボタン位置も変わるため、配置確定後にまとめて表示する。
     const previewImages = [previewImg, ...cardsEl.querySelectorAll('img')];
     const waitForImage = img => img.complete ? Promise.resolve() : new Promise(resolve => {
@@ -6304,7 +6316,7 @@ function applyDamageWithSoulAbsorb(amount, side, sourceCard) {
     // 画像と盤面の揺れが落ち着いてから、完成した位置で一度だけ表示する。
     const revealAsk = () => {
       if (askCancelled || gen !== gameGeneration) return;
-      dom.soulAbsorbAsk.style.display = 'flex';
+      dom.soulAbsorbAsk.style.display = '';
       dom.soulAbsorbAsk.classList.add('active');
     };
     const showAsk = () => {
@@ -6376,7 +6388,7 @@ function startSoulAbsorbSelect(totalDamage, side, st, resolve, onCleanup) {
     dom.soulAbsorbConfirm.removeEventListener('touchend', onConfirmTouch);
     clearCardSelectionAvailability(dom.playerSoulCards);
   });
-  dom.soulAbsorbSelect.style.display = 'flex';
+  dom.soulAbsorbSelect.style.display = '';
   dom.soulAbsorbSelect.classList.add('active');
 }
 
@@ -7258,7 +7270,26 @@ $('opp-hand-zone').addEventListener('click', (e) => {
   }
 });
 let _resizeTimer = null;
+let _wasLandscapeLayout = landscapeLayout.matches;
 window.addEventListener('resize', () => {
+  const preserveCardElements = landscapeLayout.matches || _wasLandscapeLayout;
+  _wasLandscapeLayout = landscapeLayout.matches;
+  if (preserveCardElements) {
+    if (cancelCardDrag) cancelCardDrag();
+    if (cancelBashoTouchDrag) cancelBashoTouchDrag();
+    if (cancelBashoMouseDrag) cancelBashoMouseDrag();
+    if (dragAttackActive) cancelDragAttack();
+    // 交換中に固定した零探しの行高は、回転後の画面で計算し直す。
+    const zeroCards = $('zero-search-cards');
+    if ($('zero-search-overlay').style.display !== 'none') {
+      zeroCards.style.height = '';
+      zeroCards.style.gridTemplateRows = '';
+    }
+    // 回転後の最初の描画から、場・手札・魂を新しい幅で重ね直す。
+    fitFieldRow(dom.playerFieldCards);
+    fitFieldRow(dom.oppFieldCards);
+    [dom.playerHandCards, dom.oppHandCards, dom.playerOpenCards, dom.oppOpenCards, dom.playerFieldCards, dom.oppFieldCards, dom.playerSoulCards, dom.oppSoulCards].forEach(updateOverflow);
+  }
   // デバウンス：ブラウザがレイアウトを確定させてから実行
   if (_resizeTimer) clearTimeout(_resizeTimer);
   _resizeTimer = setTimeout(() => {
@@ -7276,13 +7307,15 @@ window.addEventListener('resize', () => {
         el.style.width = '';
         el.style.maxWidth = '';
       });
-      renderPlayerHand();
-      renderOppHand();
+      if (!preserveCardElements) {
+        renderPlayerHand();
+        renderOppHand();
+      }
       // 場のDOMを保ち、進行中のフリップ・攻撃演出を途中で消さない。
       fitFieldRow(dom.playerFieldCards);
       fitFieldRow(dom.oppFieldCards);
       updateAllCounts();
-      [dom.playerHandCards, dom.oppHandCards, dom.playerFieldCards, dom.oppFieldCards, dom.playerSoulCards, dom.oppSoulCards].forEach(updateOverflow);
+      [dom.playerHandCards, dom.oppHandCards, dom.playerOpenCards, dom.oppOpenCards, dom.playerFieldCards, dom.oppFieldCards, dom.playerSoulCards, dom.oppSoulCards].forEach(updateOverflow);
     } else {
       [dom.playerHandCards, dom.oppHandCards, dom.playerFieldCards, dom.oppFieldCards, dom.playerSoulCards, dom.oppSoulCards].forEach(updateOverflow);
     }

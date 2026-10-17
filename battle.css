@@ -123,6 +123,7 @@ body {
 #field {
   flex: 1;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   /* 相手の場以外を縮小し、両者の場を広めに確保 */
   grid-template-rows: 0.8fr 1.2fr 0.9fr 2.3fr auto 2.3fr 1.2fr 1.2fr 1.3fr;
   width: 100%;
@@ -506,6 +507,7 @@ body {
 /* ===== 場のcard-row: 画面中央揃え＋枠内に収まる ===== */
 .field-card-row {
   overflow: visible;
+  min-width: 0;
   align-items: center;
   gap: clamp(4px, 3vw, 14px);
   height: 100%;
@@ -5649,5 +5651,226 @@ body.screen-shake {
     position: static;
     align-self: stretch;
     margin-top: 12px;
+  }
+}
+
+/* スマホ横画面だけ、手札を上下に保ちながら場の左右に補助エリアを置く。 */
+@media (orientation: landscape) and (max-height: 600px) {
+  body {
+    --landscape-field-card-width: clamp(28px, 12dvh, 58px);
+    width: calc(100% - env(safe-area-inset-left) - env(safe-area-inset-right));
+    max-width: none;
+    height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    margin: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  #app { padding: 3px 8px; }
+  .footer-btn { font-size: 12px; padding: 4px 14px; }
+  #field {
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2.2fr) minmax(0, 1fr);
+    grid-template-rows: minmax(34px, .7fr) minmax(0, 1.6fr) 32px minmax(0, 1.6fr) minmax(48px, 1fr);
+  }
+  #opp-hand-zone { grid-area: 1 / 1 / 2 / 4; }
+  #opp-mid-zones { grid-area: 2 / 1; }
+  #opp-field-row { grid-area: 2 / 2; }
+  #opp-soul-zone { grid-area: 2 / 3; }
+  #center-area { grid-area: 3 / 1 / 4 / 4; }
+  #player-soul-zone { grid-area: 4 / 1; }
+  #player-field-row { grid-area: 4 / 2; }
+  #player-mid-zones { grid-area: 4 / 3; }
+  #player-hand-zone { grid-area: 5 / 1 / 6 / 4; }
+  .field-row, .row-zone, .triple-zone { min-width: 0; min-height: 0; }
+  #player-mid-zones, #opp-mid-zones {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+  }
+  #opp-open { grid-area: 1 / 1 / 2 / 3; }
+  #opp-exile { grid-area: 2 / 1; }
+  #opp-deck { grid-area: 2 / 2; }
+  #player-open { grid-area: 2 / 1 / 3 / 3; }
+  #player-deck { grid-area: 1 / 1; }
+  #player-exile { grid-area: 1 / 2; }
+  .field-card-row { gap: 8px; }
+  .life-area { width: 34px; }
+  .life-value { font-size: 22px; }
+  .life-label { font-size: 9px; letter-spacing: 0; white-space: nowrap; }
+  #player-field-row .field-card-row { padding-right: 34px; }
+  #opp-field-row .field-card-row { padding-left: 34px; }
+  .battle-card.on-field { width: var(--landscape-field-card-width); }
+  .field-group.has-season .basho-slot { margin-top: calc(var(--landscape-field-card-width) * -1.08); }
+  .field-group .kaii-row { margin-top: -3dvh; }
+  .battle-card.kaii-attached, .kaii-ghost-preview { width: clamp(14px, 5dvh, 24px); }
+  .kaii-row .battle-card.kaii-attached:not(:first-child) { margin-left: -2.5dvh; }
+  .battle-card.in-soul { height: min(56px, calc(100% - 8px)); }
+  .soul-info-area { width: 24px; }
+  .season-icon { width: 16px; height: 11px; font-size: 7px; }
+  .soul-count-mini { width: 16px; height: 16px; font-size: 10px; }
+  .zone-label { font-size: 12px; letter-spacing: 3px; }
+  .zone-count { width: 18px; height: 18px; font-size: 10px; }
+  .power-badge { width: 16px; height: 16px; }
+  .power-badge span { font-size: 10px; }
+  .drag-ghost { transform: none; border: 1px solid transparent; }
+  #card-preview { width: 30%; right: auto; }
+  #card-preview.show-top, #card-preview.show-bottom { top: 0; height: 100%; }
+  #card-preview img { max-height: 90%; max-width: 95%; }
+
+  /* 零探しは左に説明とプレビュー、右に8枚。交換中も同じ2行を使う。 */
+  #zero-search-overlay {
+    display: grid;
+    grid-template-columns: minmax(190px, 1fr) minmax(0, 2fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 4px 10px;
+    padding: 6px 10px;
+  }
+  #zero-search-order { grid-area: 1 / 1 / 2 / 3; padding: 0; }
+  #zero-search-mid { grid-area: 2 / 1; padding: 0 0 4px; }
+  #zero-search-title { font-size: 19px; margin-bottom: 4px; }
+  #zero-search-desc { white-space: normal; font-size: 10px; line-height: 1.5; margin-bottom: 4px; }
+  #zero-search-preview-wrap { width: 100%; margin-bottom: 4px; }
+  #zero-search-count {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 28px;
+    padding: 0;
+    font-size: 10px;
+    line-height: 1.4;
+    letter-spacing: 0;
+    white-space: normal;
+    margin: 4px 0;
+  }
+  #zero-search-buttons { gap: 8px; }
+  #zero-search-confirm { padding: 8px 18px; }
+  #zero-search-keep-all { min-width: 88px; padding: 8px 10px; }
+  #zero-search-cards {
+    grid-area: 2 / 2;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    margin: 0;
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    padding: 6px;
+    align-items: center;
+  }
+  #zero-search-cards .battle-card {
+    width: auto;
+    height: auto;
+    max-height: 100%;
+    max-width: 100%;
+    aspect-ratio: 5 / 7;
+  }
+  #zero-search-cards .battle-card img { height: 100%; }
+
+  /* 一覧はプレビューと選択欄を左右に分け、決定ボタンを常に画面内へ。 */
+  #exile-modal.active {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2.4fr);
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    gap: 6px 12px;
+    padding: 10px 12px;
+  }
+  #exile-modal #exile-modal-preview-wrap {
+    grid-area: 1 / 1 / 5 / 2;
+    height: 100%;
+    min-height: 0;
+    max-height: 100%;
+    padding: 4px;
+  }
+  #exile-modal #exile-modal-preview-img { max-height: 100%; max-width: 100%; height: auto; }
+  #exile-modal-preview-placeholder { text-align: center; line-height: 1.6; }
+  #exile-modal-title { grid-area: 1 / 2; text-align: center; }
+  #exile-modal-desc { grid-area: 2 / 2; max-width: 100%; }
+  #exile-modal-cards {
+    grid-area: 3 / 2;
+    min-height: 0;
+    height: 100%;
+    max-height: none;
+    max-width: 100%;
+    width: 100%;
+    align-content: flex-start;
+  }
+  #exile-modal-empty { grid-area: 3 / 2; text-align: center; }
+  #exile-modal-buttons { grid-area: 4 / 2; justify-self: center; margin: 0; }
+  #exile-view-cards { min-height: 0; max-height: 75%; }
+  #card-select-overlay { flex-direction: row; }
+  #card-select-top { flex: 0 0 30%; height: 100%; }
+  #card-select-top img { max-width: 100%; }
+  #card-select-mid { flex: 1; min-width: 0; justify-content: center; padding: 6px 12px; }
+  #card-select-title { font-size: 16px; }
+  #card-select-desc { font-size: 11px; }
+  #hand-overflow-overlay { gap: 4px; }
+  #hand-overflow-title, #soul-absorb-select-title { font-size: 20px; letter-spacing: 3px; }
+  #hand-overflow-desc { font-size: 11px; line-height: 1.5; }
+  #hand-overflow-remaining, #hand-overflow-buttons { margin-top: 0; }
+
+  #soul-absorb-select.active {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
+    align-content: center;
+    justify-items: center;
+    gap: 6px 14px;
+    padding: 8px 12px;
+  }
+  #soul-absorb-select-title { grid-area: 1 / 1; }
+  #soul-absorb-select-desc { grid-area: 2 / 1; font-size: 12px; }
+  #soul-absorb-select-buttons { grid-area: 3 / 1; margin-top: 0; }
+  #soul-absorb-select-warning { grid-area: 1 / 2 / 4 / 3; }
+  #soul-absorb-select:not(:has(.soul-lethal-notice:not([hidden]))) { grid-template-columns: minmax(0, 1fr); }
+  .soul-lethal-notice { width: 100%; padding: 10px 12px; }
+  .soul-lethal-title { font-size: 14px; line-height: 1.4; }
+  .soul-lethal-message { font-size: 12px; margin: 4px 0 8px; }
+  .soul-lethal-stats { gap: 8px; font-size: 11px; padding-top: 6px; }
+  .soul-lethal-stats b { font-size: 20px; }
+  #soul-absorb-ask { gap: 8px; }
+  #soul-absorb-ask-title { font-size: 16px; text-align: center; }
+  #soul-absorb-ask.lethal-damage.active {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2.2fr);
+    grid-template-rows: auto auto auto;
+    align-content: center;
+    justify-items: center;
+    gap: 8px 16px;
+    padding: 12px 16px;
+  }
+  #soul-absorb-ask.lethal-damage #soul-absorb-ask-img {
+    grid-area: 1 / 1 / 4 / 2;
+    height: min(65dvh, 260px);
+    max-height: 100%;
+    max-width: 100%;
+    margin: 0;
+  }
+  #soul-absorb-ask.lethal-damage #soul-absorb-ask-title { grid-area: 1 / 2; width: 100%; font-size: 16px; }
+  #soul-absorb-ask-warning { grid-area: 2 / 2; }
+  #soul-absorb-ask-buttons { grid-area: 3 / 2; }
+  #soul-absorb-ask.lethal-damage:has(#soul-absorb-ask-img[style*="display: none"]) { grid-template-columns: minmax(0, 1fr); }
+  #soul-absorb-ask.lethal-damage:has(#soul-absorb-ask-img[style*="display: none"]) > :not(img) { grid-column: 1; max-width: 440px; }
+  #soul-absorb-ask-img { max-height: 45%; }
+
+  .tap-play-panel { padding: 12px; }
+  #tap-play-desc { margin: 6px 0 10px; }
+  .tap-play-actions { padding-top: 10px; }
+  .tap-play-option { width: 110px; padding: 6px; gap: 4px; }
+  .tap-play-option img, .tap-play-new-slot { width: auto; height: min(30dvh, 120px); aspect-ratio: 5 / 7; }
+  #kaii-popup { padding: 6px; }
+  #kaii-popup-title { margin-bottom: 6px; }
+  #kaii-popup-cards { min-height: 0; overflow-y: auto; }
+  #kaii-popup-cards .battle-card { width: 65px; height: 91px; }
+  #result-overlay { gap: 12px; padding: 10px; overflow-y: auto; }
+  #result-text { font-size: 30px; }
+  #win-streak { font-size: 16px; }
+  #result-shop-img { width: auto; max-width: 60vw; max-height: 24dvh; }
+  #result-shop-text { font-size: 11px; }
+}
+
+/* ブラウザのバーで高さが減っても、季節札と怪異札を重ねた場を収める。 */
+@media (orientation: landscape) and (max-height: 310px) {
+  body {
+    --landscape-field-card-width: clamp(10px, calc((100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 166px) / 4.6), 34px);
   }
 }
