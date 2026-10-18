@@ -5874,3 +5874,16 @@ body.screen-shake {
     --landscape-field-card-width: clamp(10px, calc((100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 166px) / 4.6), 34px);
   }
 }
+
+/* 高さの少ない横画面でも、手札超過の案内を上半分に収める。 */
+@media (orientation: landscape) and (max-height: 280px) {
+  #hand-overflow-buttons { display: flex; align-items: center; gap: 12px; }
+}
+
+/* 狭い縦画面に戻した場合も、魂選択の見出しが画面外へ出ないようにする。 */
+@media (orientation: portrait) and (max-width: 280px) {
+  #soul-absorb-select { gap: 4px; }
+  #soul-absorb-select-warning { padding: 8px 10px; }
+  #soul-absorb-select-warning .soul-lethal-message { margin: 4px 0 6px; }
+  #soul-absorb-select-warning .soul-lethal-stats { padding-top: 6px; }
+}

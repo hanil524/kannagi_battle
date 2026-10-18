@@ -1410,9 +1410,13 @@ dom.tapPlayDialog.addEventListener('keydown', e => {
   }
 });
 
-// 一覧をスワイプした指で、カードを選択・拡大しないようにする。
+let modalCardLayoutVersion = 0;
+window.addEventListener('resize', () => { modalCardLayoutVersion++; });
+
+// 一覧をスワイプした指や、回転前から触れていた指でカードを選択しない。
 function guardModalCardScroll(el) {
   let startX = 0, startY = 0, moved = false, wasGlowing = false;
+  let startLayoutVersion = 0;
   const track = touch => {
     if (touch && (Math.abs(touch.clientX - startX) > 10 || Math.abs(touch.clientY - startY) > 10)) moved = true;
   };
@@ -1420,12 +1424,14 @@ function guardModalCardScroll(el) {
     const touch = e.touches[0];
     startX = touch ? touch.clientX : 0;
     startY = touch ? touch.clientY : 0;
+    startLayoutVersion = modalCardLayoutVersion;
     moved = false;
     wasGlowing = el.classList.contains('glow');
   }, { passive: true, capture: true });
   el.addEventListener('touchmove', e => track(e.touches[0]), { passive: true, capture: true });
   el.addEventListener('touchend', e => {
     track(e.changedTouches[0]);
+    if (startLayoutVersion !== modalCardLayoutVersion) moved = true;
     if (!moved) return;
     if (!wasGlowing) el.classList.remove('glow');
     if (e.cancelable) e.preventDefault();
@@ -4183,6 +4189,7 @@ let cancelCardDrag = null;
 
 function setupDrag(el, card) {
   let startX, startY, touchId = null;
+  let cancelledTouchId = null;
   let dragMetrics = null;
   let mouseCleanup = null;
   let lastTrailTime = 0, lastTrailX = null, lastTrailY = null;
@@ -4211,6 +4218,7 @@ function setupDrag(el, card) {
   };
   const onStart = (x, y) => {
     if (cancelCardDrag) cancelCardDrag();
+    cancelledTouchId = null;
     startX = x; startY = y; isDragging = false;
     dragMetrics = null;
     if (landscapeLayout.matches) {
@@ -4353,6 +4361,7 @@ function setupDrag(el, card) {
   function cleanup() {
     if (cancelCardDrag !== cleanup) return;
     cancelCardDrag = null;
+    cancelledTouchId = touchId;
     touchId = null;
     if (mouseCleanup) { mouseCleanup(); mouseCleanup = null; }
     if (dragGhost) { dragGhost.remove(); dragGhost = null; }
@@ -4372,6 +4381,13 @@ function setupDrag(el, card) {
       if (e.touches[i].identifier === touchId) { onMove(e.touches[i].clientX, e.touches[i].clientY); break; }
     }
   }, { passive: true });
+  // 回転などで中断した指を離しても、タップ選択を発生させない。
+  el.addEventListener('touchend', e => {
+    if (!Array.from(e.changedTouches).some(t => t.identifier === cancelledTouchId)) return;
+    cancelledTouchId = null;
+    if (e.cancelable) e.preventDefault();
+    e.stopImmediatePropagation();
+  }, { capture: true, passive: false });
   el.addEventListener('touchend', e => {
     for (let i = 0; i < e.changedTouches.length; i++) {
       if (e.changedTouches[i].identifier === touchId) { onEnd(e.changedTouches[i].clientX, e.changedTouches[i].clientY); break; }
